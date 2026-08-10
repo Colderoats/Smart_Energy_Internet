@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"venv/Scripts/python.exe\" -m pip install --quiet \"psycopg[binary,pool]\")",
+      "Bash(\"venv/Scripts/python.exe\" -m pip freeze)",
+      "Bash(xargs -I{} sh -c 'echo ==={}===; cat {}')",
+      "Bash(netstat -ano)",
+      "Bash(tasklist)",
+      "Bash(cat \"/c/Users/deepa/AppData/Local/Temp/claude/c--Users-deepa-Smart-Energy-Internet/211fa10c-3f1e-4075-ac47-f0ce272de2e6/scratchpad/uvicorn4.log\")",
+      "Read(//c/Users/deepa/AppData/Local/Temp/claude/c--Users-deepa-Smart-Energy-Internet/211fa10c-3f1e-4075-ac47-f0ce272de2e6/scratchpad/**)"
+    ]
+  }
+}

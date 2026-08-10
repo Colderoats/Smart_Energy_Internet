@@ -1,0 +1,18 @@
+node_modules/
+dist/
+build/
+.vite/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# env / secrets
+.env
+
+# data
+/backend/data/scada/*
+!/backend/data/scada/.gitkeep
+
+*.log
