@@ -1,73 +1,43 @@
-import { useCallback, useState } from 'react'
-import TopologyView from './components/TopologyView'
-import TimeSeriesPanel from './components/TimeSeriesPanel'
-import { useTwinSocket } from './hooks/useTwinSocket'
-import { HEALTH_STYLES } from './healthStatus'
+import { useState } from 'react'
+import LiveDataTab from './tabs/LiveDataTab'
+import DigitalTwinTab from './tabs/DigitalTwinTab'
+
+const TABS = [
+  { id: 'live', label: 'Live Data' },
+  { id: 'twin', label: 'Digital Twin' },
+]
 
 function App() {
-  const { nodes, edges, connected } = useTwinSocket()
-  const [selectedNodeId, setSelectedNodeId] = useState('wind_01')
-
-  const handleSelectNode = useCallback((nodeId) => setSelectedNodeId(nodeId), [])
-  const selectedNode = nodes[selectedNodeId]
+  const [tab, setTab] = useState('live')
 
   return (
     <div className="flex h-svh flex-col bg-slate-950 text-slate-100">
       <header className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
         <div>
-          <h1 className="text-lg font-semibold">Smart Energy Internet — Digital Twin</h1>
+          <h1 className="text-lg font-semibold">Smart Energy Internet</h1>
           <p className="text-xs text-slate-400">
-            Live wind,hydro + fault-detection 
+            Live wind/hydro + replayed SCADA data, and the digital twin's self-healing response
           </p>
         </div>
-        <div className="flex items-center gap-4 text-xs">
-          <Legend />
-          <span
-            className={`flex items-center gap-1.5 rounded-full px-2 py-1 ${
-              connected ? 'bg-emerald-900 text-emerald-300' : 'bg-red-900 text-red-300'
-            }`}
-          >
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-400'}`}
-            />
-            {connected ? 'Live' : 'Disconnected'}
-          </span>
-        </div>
+        <nav className="flex gap-1 rounded-lg bg-slate-900 p-1 text-sm">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`rounded-md px-3 py-1.5 font-medium transition-colors ${
+                tab === t.id ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        <div className="min-w-0 flex-1 border-r border-slate-800">
-          <TopologyView
-            nodes={nodes}
-            edges={edges}
-            onSelectNode={handleSelectNode}
-            selectedNodeId={selectedNodeId}
-          />
-        </div>
-        <div className="w-[420px] shrink-0">
-          <TimeSeriesPanel nodeId={selectedNodeId} latestReading={selectedNode?.latest_reading} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function Legend() {
-  return (
-    <div className="flex items-center gap-3">
-      {Object.entries(HEALTH_STYLES).map(([key, style]) => (
-        <span key={key} className="flex items-center gap-1">
-          <span
-            className="h-2.5 w-2.5 rounded-full border"
-            style={{ backgroundColor: style.bg, borderColor: style.border }}
-          />
-          {style.label}
-        </span>
-      ))}
-      <span className="ml-2 border-l border-slate-700 pl-3 text-slate-400">
-        node_id prefixed <code className="text-slate-300">wind_scada_*</code> = replayed
-        historical data
-      </span>
+      {/* Only one tab is ever mounted at a time — they don't share state or
+          a socket connection, per the requirement that these be genuinely
+          separate views, not one graph with extra info bolted on. */}
+      {tab === 'live' ? <LiveDataTab /> : <DigitalTwinTab />}
     </div>
   )
 }

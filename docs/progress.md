@@ -266,3 +266,199 @@ shows "Live", zero console errors, real live power-output data plotted.
 One bug caught and fixed this way: React Flow node handles were on the
 wrong sides (`source`/`target` swapped), making edges swoop off-canvas
 before reaching `grid` — fixed in `EnergyNode.jsx`, re-verified clean.
+
+# Module 2 — Digital Twin
+
+## Stage 1 — Twin state layer (done)
+
+**New, separate graph — does not touch Module 1's.** `app/twin/graph.py`
+(the `twin` singleton backing `GET /nodes` / the Live Data tab) is
+untouched, per this module's requirement that the Live Data tab stay
+exactly as Module 1 left it. `app/twin/digital_twin.py` adds a second
+NetworkX graph (`digital_twin` singleton) — same node set, but with the
+alternate-path structure and routing state the self-healing layer needs.
+Both graphs are fed from the same Module 1 pipeline: `app/ingestion/
+pipeline.py`'s single choke point now calls `twin.update_node(...)`
+(unchanged) and `digital_twin.update_node(...)` (new) on every normalized
+reading, so this is additive to Module 1's ingestion, not a fork of it.
+
+**Topology:** each of the 6 source nodes routes primarily through one of
+two collector buses (`bus_a`, `bus_b`), which both feed `grid`. The other
+bus is that node's one alternate route — `possible_connections` on each
+node is a 2-option list (`architecture.md`'s "even if only 2-3 options"
+bar). `rated_capacity_kw` per source (wind_01: 2000kW matching Module 1's
+power-curve rating; hydro_01: 400kW, illustrative — no real plant behind
+it; the 4 Kelmarsh nodes: 2050kW, the real Senvion MM92 rating) and
+`capacity_kw` per bus (bus_a: 5000, bus_b: 6500 — sized just above each
+bus's normal combined load) are demo figures for Stage 2's scoring
+function to weigh, not a load-flow study — that's pandapower's job later.
+
+**Mutation primitives live here, policy comes in Stage 2.** `reroute_node`,
+`isolate_node`, `set_load_share` are on `DigitalTwin` (the state layer) so
+Stage 2's decision engine has a clean API to call — but nothing calls them
+yet; no auto-triggering exists until Stage 2. Each has a code-comment
+human-override note: before any of these ever drive real actuation
+hardware, a human-approval gate must sit in front of the call — this basic
+pass applies automatically.
+
+**New endpoint (backend-verification only, not the real frontend):** `GET
+/twin/nodes` (`app/api/twin_routes.py`, its own router, prefix `/twin` —
+kept separate from `app/api/routes.py` for the same reason the two
+frontend tabs must stay separate). Returns the digital twin's nodes+edges.
+The real Digital Twin tab UI is Stage 4.
+
+**Verified:** imported `app.main` cleanly; ran the backend end-to-end
+(after killing a stale backend process left running from an earlier
+session on the same port — unrelated to this change) and confirmed `GET
+/nodes` (Module 1, unchanged) and `GET /twin/nodes` (new) both serve real
+live/replayed data concurrently. Sanity-checked the mutation primitives
+directly: rerouting `wind_scada_kelmarsh_2` from `bus_b` to `bus_a` moved
+its load correctly (`bus_a` 4450→6500kW, exactly at capacity; `bus_b`
+6150→4100kW) and updated its edge; isolating `wind_scada_kelmarsh_3`
+removed its edge and set `active_connection: null` / `isolated: true`;
+`set_load_share` on `wind_scada_kelmarsh_4` set `load_share: 0.5`. Also
+noted (not a bug): the real Kelmarsh 2016 data's winter-storm stop events
+mean all 4 SCADA nodes already load as `health_status: "fault"` on a fresh
+backend start — useful, since it means Stage 2's self-healing trigger will
+have something real to react to immediately without needing a synthetic
+fault injected.
+
+## Stage 2 — Self-healing decision layer (done)
+
+`app/twin/self_healing.py`. `maybe_trigger(node_id)` is called from
+`app/ingestion/pipeline.py` right after every `digital_twin.update_node()`
+call — same single choke point as everything else in the pipeline.
+
+**Edge-triggered, not level-triggered.** It only acts when a node's
+`health_status` *transitions into* `"fault"`/`"fault_predicted"` (tracked
+via an in-memory `_last_health_status` dict), not on every subsequent
+reading while it stays faulted. The Kelmarsh replay can hold a node in
+`"fault"` for many ticks in a row (real consecutive "Stop" events) — without
+edge-triggering, every one of those ticks would regenerate an identical
+decision and spam the log. This wasn't asked for explicitly but followed
+directly from "log the decision" implying each entry should represent a
+distinct event, not a duplicate.
+
+**Candidate generation** (`_generate_candidates`): 2-3 candidates per the
+node's current state — one `reroute` candidate per unused entry in
+`possible_connections` (normally 1, since each node has exactly 2), always
+one `isolate` candidate, and one `reduce_load_share` candidate (fixed
+50% curtailment — `CURTAIL_FRACTION`) unless the node is already isolated
+(nothing to curtail with no active route).
+
+**Scoring** (`_score`): returns `(unserved_kw, overload_kw)` per
+candidate — architecture's two explicit criteria, combined via equal
+weights (`WEIGHT_UNSERVED = WEIGHT_OVERLOAD = 1.0`, both in kW so directly
+comparable) into one number to minimize. `isolate` always costs its full
+contribution as unserved; `reroute`/`reduce_load_share` project the
+resulting load onto the affected bus (`digital_twin.bus_load_kw`) and
+compare to `BUS_CAPACITY_KW` to compute overload. Deliberately simple/
+explainable, not a solver, per architecture's explicit scope.
+
+**Auto-apply, no human gate.** `_apply` calls straight into
+`DigitalTwin.reroute_node`/`isolate_node`/`set_load_share` — see those
+methods' own human-override comments from Stage 1. Both the reconfigured
+node and both buses' `current_load_kw` are re-broadcast as
+`twin_node_update` WS messages right after applying, since the routing
+change wouldn't otherwise reach the frontend until an unrelated update.
+
+**Logging:** every decision records `trigger_health_status`,
+`trigger_summary` (the real `fault_label` if the dataset's ground truth
+fired, else a note that the statistical threshold fired), all candidates
+considered with their scores, the chosen action, and a human-readable
+`reason` string spelling out the full comparison — broadcast live as a
+`twin_decision` WS message and persisted (Stage 3).
+
+**Verified end-to-end:** on a fresh backend start, all 4 already-faulted
+Kelmarsh nodes correctly triggered exactly one decision each, and every
+logged score matched `bus_load_kw(via) + contribution` (reroute) or the
+equivalent isolate/curtail formula traced through by hand against the
+node's actual state at trigger time. Confirmed via direct `GET /twin/nodes`
+that each node's `active_connection`/`isolated`/`load_share` matched its
+logged decision.
+
+## Stage 3 — Historical state + decision replay (done)
+
+**New table, not a hypertable** (`app/db.py`): `twin_decisions` — one row
+per self-healing decision (not per reading; volume is far lower than
+`readings`), columns matching the decision dict Stage 2 builds, with
+`candidates`/`chosen_params` stored as `JSONB` via `psycopg.types.json.Jsonb`.
+`insert_decision()`/`fetch_decisions(node_id=None, limit=100)` mirror the
+existing `insert_reading`/`fetch_history` pattern exactly, including the
+same best-effort-on-read philosophy (callers catch and fall back to `[]`
+rather than erroring the endpoint if the DB is briefly down).
+
+**Deliberately did not add a separate "state snapshot" table.** Considered
+logging every health_status transition separately from decisions, but each
+self-healing decision already bundles both halves of "a fault happening AND
+the twin's response" (its `trigger_summary`/`trigger_health_status` *is*
+the fault moment, its `chosen_action`/`reason` *is* the response) — a
+second table would just duplicate that pairing for no benefit. Kept it
+simple, per this pass's "basic version" scope.
+
+**New endpoints** (`app/api/twin_routes.py`):
+- `GET /twin/nodes/{node_id}/history` — same underlying `readings` data as
+  Module 1's `/nodes/{id}/history`, re-exposed under `/twin` so the Digital
+  Twin tab's frontend code never calls into Module 1's API namespace.
+- `GET /twin/decisions?node_id=&limit=` — the decision log, most recent
+  first, optionally filtered to one node.
+
+**Verified:** restarted the backend (picking up Stage 1's node data) and
+confirmed decisions from *before* the restart were still returned by
+`GET /twin/decisions` — durability across a process restart was the actual
+point of persisting these rather than keeping them in memory.
+
+## Stage 4 — Digital Twin tab frontend (done)
+
+**New, fully separate frontend stack** — no shared state or view with
+`LiveDataTab` (Module 1's view, extracted verbatim from the old `App.jsx`
+into `frontend/src/tabs/LiveDataTab.jsx`, unchanged in substance):
+- `hooks/useDigitalTwinSocket.js` — its own `WebSocket` connection to
+  `/ws/updates` (same backend endpoint, but Module 1's `node_update`
+  messages are explicitly ignored; only `twin_node_update`/`twin_decision`
+  are consumed), plus initial `GET /twin/nodes` and `GET /twin/decisions`
+  fetches.
+- `components/DigitalTwinTopology.jsx` + `TwinNode.jsx` — a second React
+  Flow graph with its own node renderer: sources on the left, `bus_a`/
+  `bus_b` in the middle (this is where a reroute visibly swings an edge
+  from one column to the other, and an isolate removes the edge
+  entirely — since `digital_twin`'s NetworkX edges are the real, current
+  routing state, not a fixed decoration), `grid` on the right. Bus nodes
+  show a live load bar (`current_load_kw` vs `capacity_kw`) that turns red
+  when overloaded; source nodes show `CURTAILED TO n%` / `ISOLATED` badges
+  and which bus they're currently routed via.
+- `components/DecisionLogPanel.jsx` — the live decision feed, newest first,
+  each entry showing the trigger, the chosen action, and the full
+  score-comparison reasoning string from Stage 2.
+- `App.jsx` is now a thin tab shell (`Live Data` / `Digital Twin` buttons);
+  only one tab is ever mounted at a time.
+- `components/TimeSeriesPanel.jsx` gained one optional `historyUrl` prop
+  (defaults to Module 1's endpoint if omitted) so the Digital Twin tab could
+  reuse the existing Recharts widget against `/twin/nodes/{id}/history`
+  instead of duplicating a whole chart component for a one-line URL
+  difference — the only file shared between the two tabs, and it's a
+  generic chart, not a "view."
+- `vite.config.js` proxy gained a `/twin` entry alongside the existing
+  `/nodes`/`/health`/`/ws`.
+
+**Bug caught and fixed during verification:** `DigitalTwin.get_node()` was
+edited (Stage 1 follow-up, for this stage's bus load bars) to add a derived
+`current_load_kw` field for bus nodes, but the backend dev server still
+running from Stage 2/3 testing didn't pick up the change (uvicorn
+`reload=True` apparently didn't catch this edit). `TwinNode.jsx`'s
+`BusNode` crashed on `undefined.toFixed()` as a result — caught via a
+Playwright `pageerror` listener, root-caused by comparing the live
+`GET /twin/nodes` response against the file on disk, fixed by restarting
+the backend process (not a code bug). Lesson for next time: don't trust
+`reload=True` on a long-running dev server across a session — restart
+clean before a UI verification pass.
+
+**Verified in an actual headless browser** (Playwright installed fresh
+into the scratch dir again, `chromium-cli` still not available in this
+environment): both tabs render correctly and distinctly — Live Data
+unchanged from Stage 6, Digital Twin showing live bus overload
+(`bus_a: 5475/5000 kW, OVERLOADED`), curtailed/rerouted source nodes with
+their current routing, and a full, readable decision log with real
+Kelmarsh fault labels and score breakdowns. Zero console errors after the
+fix above. `GET /nodes` and `GET /twin/nodes` confirmed still serving
+correctly side by side (Module 1 untouched).

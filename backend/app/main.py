@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import db
 from app.api.routes import router as api_router
+from app.api.twin_routes import router as twin_router
 from app.ingestion.poller import run_live_poller
 from app.ingestion.scada_replay import run_scada_replay
 
@@ -50,6 +51,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+app.include_router(twin_router)
 
 
 @app.get("/health")

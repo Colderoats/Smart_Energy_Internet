@@ -13,13 +13,13 @@ function formatTime(iso) {
   return new Date(iso).toLocaleTimeString()
 }
 
-function TimeSeriesPanel({ nodeId, latestReading }) {
+function TimeSeriesPanel({ nodeId, latestReading, historyUrl }) {
   const [history, setHistory] = useState([])
 
   useEffect(() => {
     if (!nodeId) return
     setHistory([])
-    fetch(`/nodes/${nodeId}/history?limit=100`)
+    fetch(historyUrl ?? `/nodes/${nodeId}/history?limit=100`)
       .then((res) => res.json())
       .then((data) => {
         const rows = [...data.history].reverse().map((row) => ({
@@ -29,7 +29,7 @@ function TimeSeriesPanel({ nodeId, latestReading }) {
         setHistory(rows)
       })
       .catch((err) => console.error('Failed to load history', err))
-  }, [nodeId])
+  }, [nodeId, historyUrl])
 
   useEffect(() => {
     if (!latestReading || latestReading.node_id !== nodeId) return
