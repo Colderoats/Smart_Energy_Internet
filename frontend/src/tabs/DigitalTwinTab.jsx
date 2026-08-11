@@ -10,7 +10,7 @@ import { useDigitalTwinSocket } from '../hooks/useDigitalTwinSocket'
 // view except the generic TimeSeriesPanel chart widget (parameterized to
 // hit /twin/nodes/{id}/history instead of Module 1's /nodes/{id}/history).
 function DigitalTwinTab() {
-  const { nodes, edges, decisions, connected } = useDigitalTwinSocket()
+  const { nodes, decisions, connected } = useDigitalTwinSocket()
   const [selectedNodeId, setSelectedNodeId] = useState('wind_scada_kelmarsh_1')
 
   const handleSelectNode = useCallback((nodeId) => setSelectedNodeId(nodeId), [])
@@ -36,7 +36,6 @@ function DigitalTwinTab() {
         <div className="min-w-0 flex-1 border-r border-slate-800">
           <DigitalTwinTopology
             nodes={nodes}
-            edges={edges}
             onSelectNode={handleSelectNode}
             selectedNodeId={selectedNodeId}
           />

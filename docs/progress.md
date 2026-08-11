@@ -462,3 +462,33 @@ their current routing, and a full, readable decision log with real
 Kelmarsh fault labels and score breakdowns. Zero console errors after the
 fix above. `GET /nodes` and `GET /twin/nodes` confirmed still serving
 correctly side by side (Module 1 untouched).
+
+## Stage 5 — Rerouting-display bug fix + UI polish (done)
+
+**The self-healing decision logic itself (backend) was never the
+problem** — candidate generation, scoring (`min()` correctly picks the
+lowest combined `unserved + overload`, no inverted comparison), applying
+the chosen mutation, and the decision log all traced out correct on a
+full walkthrough. The actual bug was in `useDigitalTwinSocket.js`: it
+fetched `/twin/nodes`'s `edges` array once on mount and never updated it
+from the WebSocket stream, while `DigitalTwinTopology.jsx` drew the graph
+lines straight from that frozen array. So a live reroute/isolate updated
+the node's own badges/text correctly (those come from `twin_node_update`
+messages) but the line on the graph kept pointing at the node's original
+bus forever — state reached the frontend, the graph just never redrew
+it. Fixed by deriving edges live from each node's
+`active_connection`/`isolated` fields on every update instead of a
+one-time snapshot, plus a brief orange highlight flash on any edge whose
+target just changed. Verified the edge now visibly follows real logged
+reroutes (`wind_scada_kelmarsh_1` swinging `bus_a` <-> `bus_b` across two
+screenshots, matching the backend's decision log) via a raw WebSocket
+client and Playwright; couldn't catch the highlight's 2.5s flash itself
+on camera since the Kelmarsh dataset's fault cluster is front-loaded and
+stopped producing new reroutes partway through verification, but the
+data flow it depends on is confirmed correct.
+
+**UI polish, both requested by the user:** `EnergyNode.jsx` (Live Data
+tab) gained a colored LIVE/REPLAYED badge and a per-node "Updated
+HH:MM:SS" timestamp, both always visible on the node card, not a
+tooltip. `DecisionLogPanel.jsx` (Digital Twin tab) turned out to already
+render as a readable list, not raw JSON — no change was needed there.

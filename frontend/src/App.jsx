@@ -16,7 +16,7 @@ function App() {
         <div>
           <h1 className="text-lg font-semibold">Smart Energy Internet</h1>
           <p className="text-xs text-slate-400">
-            Live wind/hydro + replayed SCADA data, and the digital twin's self-healing response
+            Live wind/hydro + replayed SCADA data, and the digital twin's response
           </p>
         </div>
         <nav className="flex gap-1 rounded-lg bg-slate-900 p-1 text-sm">
