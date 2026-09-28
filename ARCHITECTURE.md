@@ -1,4 +1,4 @@
-# Architecture — Module 1, 2 & 3 (current scope; Module 3 added at the end)
+# Architecture — Module 1, 2, 3 & 4 (current scope; Modules 3 and 4 added at the end)
 
 Scope for this phase: NO solar/hardware yet. Two data sources only:
 1. LIVE data — wind/hydro power output + wind speed, pulled from external API
@@ -24,6 +24,16 @@ SCADA dataset (replay)─┘                              │
 
 Offline (Module 3): Kelmarsh CSVs ──> backend/ai (dataset → train/evaluate → artifacts/) ──> saved model
                                        loaded by the inference service above at backend startup.
+
+Offline (Module 4, federated layer):
+  Kelmarsh CSVs ──> ai/dataset (Module 3 pipeline) ──> one SHARD per turbine (ai/federated/artifacts/shards/)
+       client process T1..T4 (each opens ONLY its own shard, trains the TA-GNN locally)
+            │  ▲   ONLY model weights + allow-listed scalar metrics cross this line (wire.py, audited)
+            ▼  │
+       Flower server (FedAvg | FedProx | FedProx + adaptive weighting) ──> global model
+       global model ──> offline test evaluation (identical Module 3 split) ──> ai/federated/artifacts/
+       global model ──export (Module 3 artifact format)──> ai/federated/artifacts/model_federated/
+                        loaded by the SAME inference service when AI_MODEL_SOURCE=federated.
 
 ## Normalized data schema (all sources conform to this before storage)
 
@@ -91,10 +101,10 @@ Module 2 (added later): GET /twin/nodes, GET /twin/nodes/{id}/history, GET /twin
 (WS messages twin_node_update / twin_decision on the same /ws/updates).
 
 Module 3 (added): GET /ai/predictions — per-node detector verdicts + model card:
-  { "model": {loaded, name, task, horizon_min, operating_threshold_probability, data_provenance, ...},
+  { "model": {loaded, name, source ("centralized"|"federated", Module 4), task, horizon_min, operating_threshold_probability, data_provenance, ...},
     "predictions": [ {node_id, scored, health_status, flagged_by: ["rule_based"|"ta_gnn"...],
                       detectors: {rule_based: {status, flagged, basis},
-                                  ta_gnn: {flagged, probability, model, horizon_min, as_of, data}},
+                                  ta_gnn: {flagged, probability, model, model_source, horizon_min, as_of, data}},
                       last_updated}, ... ] }
   Live API nodes (wind_01, hydro_01) are listed with scored=false — they are never scored.
   The same `detectors` / `flagged_by` fields are on every SCADA node in GET /twin/nodes and in
@@ -114,15 +124,44 @@ health_status is the highest severity of the two and each node states which dete
 
 Twin node fields added by Module 3: `detectors` (per-detector verdicts) and `flagged_by`.
 
+## Module 4 — federated layer (adaptive federated learning)
+
+Goal: several simulated grid nodes train the Module 3 TA-GNN on their own data; only model updates are
+shared. One Flower client PROCESS per Kelmarsh turbine (a client is a partition of the replayed SCADA,
+not a separate physical site) plus a Flower server, over localhost gRPC. Code, artifacts and run
+instructions are all in backend/ai/federated/ (README-level docstring in its __init__.py). Own
+virtualenv (ai/federated/venv): Flower 1.38 pins fastapi/uvicorn/protobuf versions that conflict with
+backend/venv, and Ray-based simulation is not installable on Windows + Python 3.14. The backend itself
+needs no Flower: the final federated model is exported in Module 3's artifact format.
+
+Client/server boundary. A client's local graph is the twin's 9-node topology with only ITS turbine's
+dynamic features filled in (neighbours' raw data is not visible to it); same model, features, labels,
+taxonomy, chronological split and normaliser as Module 3. What crosses the boundary:
+  client -> server   model weights (exact TA-GNN parameter shapes, float32) + scalar metrics from a fixed
+                     allow-list (train/validation loss, PR-AUC, counts). Checked on send AND on receive.
+  server -> client   the global weights + round config (mu, epochs, learning rate, seed).
+Never crosses: readings, features, labels, windows. The held-out test set and the pooled validation set
+are used only by the offline evaluator, never by a client or the server. Not implemented (future work):
+differential privacy, secure aggregation, TLS.
+
+Aggregation: FedAvg = equal client weights; FedProx = FedAvg + proximal term (mu/2)||w - w_global||^2 in
+the local objective; FedProx + adaptive = per-client weight from an exponential moving average of the
+client's normalised validation loss and the server-measured update norm, with a 5% floor (rule in
+ai/federated/weighting.py). Per-round, per-client weights and factors are logged (round_log.json,
+adaptive_weights_by_round.csv) — the per-node contribution scores a later Module 5 ledger could record.
+SIMULATED dropout / degraded client / corrupted updates (ai/federated/simulated.py) are labelled as such
+everywhere. Serving: `AI_MODEL_SOURCE=centralized|federated` (default centralized) picks which exported
+model the AI service loads; every verdict and the model card state which one produced them.
+
 ## Module status map
 - Module 1 — ingestion (live Open-Meteo wind/hydro + Kelmarsh SCADA replay): done
 - Module 2 — digital twin, self-healing, decision log, Digital Twin tab: done
 - Module 3 — TA-GNN fault prediction (backend/ai, backend/app/ai_service, Digital Twin tab badges): built; see aiprogress.md for measured results
-- Module 4 — federated learning (Flower, FedProx + adaptive weighting): not started
+- Module 4 — federated learning (Flower, FedProx + adaptive weighting; backend/ai/federated, own venv): built; see aiprogress.md for measured results
 - Module 5 — blockchain: not started
 
 ## Out of scope (still)
 - Solar/EV hardware, MQTT, ESP32 firmware
-- Federated learning, blockchain
+- Blockchain (Module 5)
 - Human-approval gate / real actuation on the self-healing layer
 (Topology switching now exists via the Module 2 self-healing layer; the original "static topology" note above is historical.)

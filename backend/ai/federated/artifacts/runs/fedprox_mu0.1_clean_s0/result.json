@@ -1,0 +1,434 @@
+{
+ "config": {
+  "mode": "fedprox",
+  "mu": 0.1,
+  "seed": 0,
+  "rounds": 30,
+  "n_params": 28353,
+  "local_cfg": {
+   "local_epochs": 1,
+   "lr": 0.003,
+   "weight_decay": 0.0001,
+   "batch_size": 256,
+   "neg_keep_frac": 0.3
+  },
+  "scenario": {
+   "scenario": "clean",
+   "simulated": false,
+   "label": "none"
+  },
+  "best_round_by_client_val": 11,
+  "best_mean_client_val_pr_auc": 0.11407482087368935,
+  "rounds_to_convergence": 2,
+  "convergence_definition": "first round whose mean client validation PR-AUC >= 95% of the run's best",
+  "communication": {
+   "rounds_x_params": 850590,
+   "convergence_rounds_x_params": 56706,
+   "total_floats_transferred_both_directions": 6804720,
+   "total_megabytes_float32": 27.21888
+  },
+  "wall_seconds": 354.3,
+  "provenance": "Real Kelmarsh SCADA, REPLAYED; clients are partitions of it. No simulated degradation."
+ },
+ "selected_round": 11,
+ "selected": {
+  "full_view": {
+   "threshold_logit": 2.3267273902893066,
+   "val_pr_auc": 0.08376147020582324,
+   "val_roc_auc": 0.724176608650095,
+   "n_valid_test": 98392,
+   "n_positive_test": 27,
+   "prevalence_test": 0.00027441255386616796,
+   "detection": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "tp": 0,
+    "fp": 44,
+    "fn": 27,
+    "roc_auc": 0.2638735924965783,
+    "pr_auc": 0.00017747341318741247,
+    "false_alarm_samples_per_node_day": 0.06439547930726075,
+    "accuracy": 0.9992783966176112,
+    "balanced_accuracy": 0.49977634321150816,
+    "specificity": 0.9995526864230163
+   },
+   "localization": {
+    "n_snapshots": 27,
+    "mean_positive_nodes": 1.0,
+    "top1": 0.1111111111111111,
+    "chance_top1": 0.25925925925925924,
+    "top2": 0.5185185185185185,
+    "chance_top2": 0.5185185185185185
+   },
+   "lead_time": {
+    "events_with_valid_positive_samples": 5,
+    "events_detected": 0,
+    "event_recall": 0.0,
+    "median_lead_min": NaN,
+    "mean_lead_min": NaN
+   },
+   "per_client": {
+    "1": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 0,
+     "fn": 0,
+     "roc_auc": NaN,
+     "pr_auc": NaN,
+     "n_valid": 24683,
+     "n_positive": 0,
+     "accuracy": 1.0,
+     "balanced_accuracy": NaN,
+     "specificity": 1.0
+    },
+    "2": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 11,
+     "fn": 15,
+     "roc_auc": 0.4903944717162292,
+     "pr_auc": 0.0006401726927852665,
+     "n_valid": 24664,
+     "n_positive": 15,
+     "accuracy": 0.9989458319818358,
+     "balanced_accuracy": 0.4997768672157086,
+     "specificity": 0.9995537344314172
+    },
+    "3": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 12,
+     "fn": 12,
+     "roc_auc": 0.10312927964941113,
+     "pr_auc": 0.00028719355933260854,
+     "n_valid": 24352,
+     "n_positive": 12,
+     "accuracy": 0.9990144546649146,
+     "balanced_accuracy": 0.49975349219391946,
+     "specificity": 0.9995069843878389
+    },
+    "4": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 21,
+     "fn": 0,
+     "roc_auc": NaN,
+     "pr_auc": NaN,
+     "n_valid": 24693,
+     "n_positive": 0,
+     "accuracy": 0.9991495565544891,
+     "balanced_accuracy": NaN,
+     "specificity": 0.9991495565544891
+    }
+   }
+  },
+  "own_view": {
+   "threshold_logit": 1.722676157951355,
+   "val_pr_auc": 0.058873225491645066,
+   "val_roc_auc": 0.7627494413879623,
+   "n_valid_test": 98392,
+   "n_positive_test": 27,
+   "prevalence_test": 0.00027441255386616796,
+   "detection": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "tp": 0,
+    "fp": 17,
+    "fn": 27,
+    "roc_auc": 0.38284337812117003,
+    "pr_auc": 0.00021493939366301902,
+    "false_alarm_samples_per_node_day": 0.02488007155053256,
+    "accuracy": 0.9995528091714774,
+    "balanced_accuracy": 0.49991358714990086,
+    "specificity": 0.9998271742998017
+   },
+   "localization": {
+    "n_snapshots": 27,
+    "mean_positive_nodes": 1.0,
+    "top1": 0.48148148148148145,
+    "chance_top1": 0.25925925925925924,
+    "top2": 0.6666666666666666,
+    "chance_top2": 0.5185185185185185
+   },
+   "lead_time": {
+    "events_with_valid_positive_samples": 5,
+    "events_detected": 0,
+    "event_recall": 0.0,
+    "median_lead_min": NaN,
+    "mean_lead_min": NaN
+   },
+   "per_client": {
+    "1": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 8,
+     "fn": 0,
+     "roc_auc": NaN,
+     "pr_auc": NaN,
+     "n_valid": 24683,
+     "n_positive": 0,
+     "accuracy": 0.9996758902888628,
+     "balanced_accuracy": NaN,
+     "specificity": 0.9996758902888628
+    },
+    "2": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 2,
+     "fn": 15,
+     "roc_auc": 0.5016958091606151,
+     "pr_auc": 0.0006832679833775818,
+     "n_valid": 24664,
+     "n_positive": 15,
+     "accuracy": 0.9993107362958158,
+     "balanced_accuracy": 0.4999594304028561,
+     "specificity": 0.9999188608057122
+    },
+    "3": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 0,
+     "fn": 12,
+     "roc_auc": 0.28376472199397423,
+     "pr_auc": 0.00035119072294855094,
+     "n_valid": 24352,
+     "n_positive": 12,
+     "accuracy": 0.9995072273324573,
+     "balanced_accuracy": 0.5,
+     "specificity": 1.0
+    },
+    "4": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 7,
+     "fn": 0,
+     "roc_auc": NaN,
+     "pr_auc": NaN,
+     "n_valid": 24693,
+     "n_positive": 0,
+     "accuracy": 0.9997165188514964,
+     "balanced_accuracy": NaN,
+     "specificity": 0.9997165188514964
+    }
+   }
+  }
+ },
+ "final": {
+  "full_view": {
+   "threshold_logit": 3.6647427082061768,
+   "val_pr_auc": 0.06815259848381428,
+   "val_roc_auc": 0.7353532332022061,
+   "n_valid_test": 98392,
+   "n_positive_test": 27,
+   "prevalence_test": 0.00027441255386616796,
+   "detection": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "tp": 0,
+    "fp": 4,
+    "fn": 27,
+    "roc_auc": 0.2504986153235022,
+    "pr_auc": 0.0001722854332111789,
+    "false_alarm_samples_per_node_day": 0.00585413448247825,
+    "accuracy": 0.99968493373445,
+    "balanced_accuracy": 0.49997966756468254,
+    "specificity": 0.9999593351293651
+   },
+   "localization": {
+    "n_snapshots": 27,
+    "mean_positive_nodes": 1.0,
+    "top1": 0.14814814814814814,
+    "chance_top1": 0.25925925925925924,
+    "top2": 0.6296296296296297,
+    "chance_top2": 0.5185185185185185
+   },
+   "lead_time": {
+    "events_with_valid_positive_samples": 5,
+    "events_detected": 0,
+    "event_recall": 0.0,
+    "median_lead_min": NaN,
+    "mean_lead_min": NaN
+   },
+   "per_client": {
+    "1": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 0,
+     "fn": 0,
+     "roc_auc": NaN,
+     "pr_auc": NaN,
+     "n_valid": 24683,
+     "n_positive": 0,
+     "accuracy": 1.0,
+     "balanced_accuracy": NaN,
+     "specificity": 1.0
+    },
+    "2": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 2,
+     "fn": 15,
+     "roc_auc": 0.4177505510703612,
+     "pr_auc": 0.0005200430840381165,
+     "n_valid": 24664,
+     "n_positive": 15,
+     "accuracy": 0.9993107362958158,
+     "balanced_accuracy": 0.4999594304028561,
+     "specificity": 0.9999188608057122
+    },
+    "3": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 1,
+     "fn": 12,
+     "roc_auc": 0.1014345384826075,
+     "pr_auc": 0.00028883044586161457,
+     "n_valid": 24352,
+     "n_positive": 12,
+     "accuracy": 0.9994661629434954,
+     "balanced_accuracy": 0.49997945768282664,
+     "specificity": 0.9999589153656533
+    },
+    "4": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 1,
+     "fn": 0,
+     "roc_auc": NaN,
+     "pr_auc": NaN,
+     "n_valid": 24693,
+     "n_positive": 0,
+     "accuracy": 0.9999595026930709,
+     "balanced_accuracy": NaN,
+     "specificity": 0.9999595026930709
+    }
+   }
+  },
+  "own_view": {
+   "threshold_logit": 1.4546939134597778,
+   "val_pr_auc": 0.04813515215062564,
+   "val_roc_auc": 0.7655132977386043,
+   "n_valid_test": 98392,
+   "n_positive_test": 27,
+   "prevalence_test": 0.00027441255386616796,
+   "detection": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "tp": 0,
+    "fp": 9,
+    "fn": 27,
+    "roc_auc": 0.3684529087619618,
+    "pr_auc": 0.00020512973074105574,
+    "false_alarm_samples_per_node_day": 0.013171802585576061,
+    "accuracy": 0.9996341165948451,
+    "balanced_accuracy": 0.4999542520205358,
+    "specificity": 0.9999085040410716
+   },
+   "localization": {
+    "n_snapshots": 27,
+    "mean_positive_nodes": 1.0,
+    "top1": 0.48148148148148145,
+    "chance_top1": 0.25925925925925924,
+    "top2": 0.6666666666666666,
+    "chance_top2": 0.5185185185185185
+   },
+   "lead_time": {
+    "events_with_valid_positive_samples": 5,
+    "events_detected": 0,
+    "event_recall": 0.0,
+    "median_lead_min": NaN,
+    "mean_lead_min": NaN
+   },
+   "per_client": {
+    "1": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 7,
+     "fn": 0,
+     "roc_auc": NaN,
+     "pr_auc": NaN,
+     "n_valid": 24683,
+     "n_positive": 0,
+     "accuracy": 0.999716404002755,
+     "balanced_accuracy": NaN,
+     "specificity": 0.999716404002755
+    },
+    "2": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 1,
+     "fn": 15,
+     "roc_auc": 0.3672359933465861,
+     "pr_auc": 0.0004846939942180159,
+     "n_valid": 24664,
+     "n_positive": 15,
+     "accuracy": 0.9993512812195913,
+     "balanced_accuracy": 0.49997971520142803,
+     "specificity": 0.9999594304028561
+    },
+    "3": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 0,
+     "fn": 12,
+     "roc_auc": 0.36553341550260204,
+     "pr_auc": 0.00038749180543626137,
+     "n_valid": 24352,
+     "n_positive": 12,
+     "accuracy": 0.9995072273324573,
+     "balanced_accuracy": 0.5,
+     "specificity": 1.0
+    },
+    "4": {
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0,
+     "tp": 0,
+     "fp": 1,
+     "fn": 0,
+     "roc_auc": NaN,
+     "pr_auc": NaN,
+     "n_valid": 24693,
+     "n_positive": 0,
+     "accuracy": 0.9999595026930709,
+     "balanced_accuracy": NaN,
+     "specificity": 0.9999595026930709
+    }
+   }
+  }
+ }
+}

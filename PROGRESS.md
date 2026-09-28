@@ -580,3 +580,60 @@ in the running app) and §7 Q10–13 for decisions needed.
 
 Also a stopped stale dev backend (`reload=True`, started before this session) was replaced by a
 clean `python run.py`; the frontend dev server was left as it was.
+
+# Module 4 — Adaptive federated learning
+
+Model/experiment detail, measured results and the experiment log live in
+`aiprogress.md`; this entry is the platform-side record.
+
+## Stage 1 — Flower federation around the Module 3 TA-GNN (done)
+
+**Built (all new, in `backend/ai/federated/`, README-level docstring in its `__init__.py`):**
+- One Flower client PROCESS per Kelmarsh turbine plus a Flower server over localhost gRPC
+  (`client.py`, `server.py`, `strategies.py`); strategies FedAvg (equal weights), FedProx (proximal
+  term mu) and FedProx + adaptive weighting (`weighting.py`); local training with the proximal
+  term (`local.py`); per-turbine shards (`partition.py`); SIMULATED dropout / degraded client /
+  corrupted updates (`simulated.py`); the client/server boundary with an allow-list and per-run
+  audit (`wire.py`); offline evaluation on the identical Module 3 test split (`evaluate.py`);
+  grid runner, centralized reference, report, export, self-tests.
+- Export of the final federated model in Module 3's artifact format
+  (`ai/federated/artifacts/model_federated/`), loadable by the backend with plain torch.
+
+**Edits to existing code (all additive, smallest possible):**
+- `app/config.py`: new setting `ai_model_source` ("centralized" default | "federated"), env `AI_MODEL_SOURCE`.
+- `app/ai_service/predictor.py`: `FEDERATED_ARTIFACT_DIR`; `load()` picks the artifact dir from the setting;
+  `describe()` gains `source`.
+- `app/ai_service/integration.py`: the `ta_gnn` verdict gains `model_source`.
+- No frontend change: the Digital Twin tab tooltip already prints the verdict's model name, which now
+  says "federated". Live Data tab untouched. No other Module 1/2/3 file touched.
+- `ARCHITECTURE.md` / `INSTRUCTIONS.md` / `aiprogress.md`: federated layer, current focus, results.
+
+**Deviations / decisions worth knowing about:**
+1. **Separate virtualenv** (`backend/ai/federated/venv`, `requirements.txt`, approved): Flower 1.38 hard-pins
+   fastapi 0.138 / uvicorn 0.49 / protobuf<7, conflicting with `backend/venv`; installing it there would have
+   upgraded the Module 1-3 stack. Ray-based simulation is not installable on Windows + Python 3.14
+   (`flwr[simulation]` pulls Ray only on non-Windows for >=3.13), so clients run as separate OS processes.
+2. **Own-turbine client view** (approved): each client's graph has only its own turbine's features (a client
+   cannot see neighbours' raw data); results are reported on both the full-snapshot view (Module 3 / serving)
+   and the own-turbine view.
+3. Uses Flower's legacy `flwr.compat` server/client API (the only simple local-process path in 1.38).
+4. **The SIMULATED fault-tolerance comparison is mostly not run.** To finish quickly (on request) it was cut
+   and then stopped: only seed-0 dropout for FedAvg and FedProx finished. The degraded-client and
+   corrupted-update scenarios are implemented and self-tested but have no results. The clean grid
+   (35 runs, seeds 0-4) is complete. Finish with `python -m ai.federated.run_all --stage scenarios`.
+5. Centralized own-view reference: seed 0 only (Module 3's 5-seed numbers are the reused baseline).
+6. Shards (~50 MB), the eval bundle (~22 MB) and run outputs in `ai/federated/artifacts/` are regenerable
+   or bulky and are not git-ignored: your call.
+
+**Bugs found while building (fixed):** wire audit wrongly demanded parameter arrays on metric-only
+evaluation replies; the launcher waited on orphaned clients after a server crash; report writer used the
+Windows default encoding for non-ASCII characters.
+
+**Verified:** self-tests (adaptive rule maths, dropout schedule, wire allow-list rejections, prox term
+shrinks the local update, bit-exact reproducibility); every federated run end to end (server + 4 client
+processes + offline test evaluation); backend started cleanly on the default setting and with
+`AI_MODEL_SOURCE=federated` (model card and every ta_gnn verdict state the source); `GET /nodes` (7 nodes /
+6 edges), `GET /twin/nodes` (9 / 8), `GET /twin/decisions` unchanged.
+
+**Not verified:** how adaptive weighting responds to dropout, a degraded client or corrupted updates (not run); the federated model producing an organic live flag; the Digital Twin tab in a browser with
+the federated model (no frontend edit was made); TLS/DP/secure aggregation (not implemented).

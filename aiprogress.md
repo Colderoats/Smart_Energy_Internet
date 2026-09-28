@@ -10,7 +10,7 @@ here. If it is about *the platform*, log it there. A change that touches both
 (e.g. adding a training-data export endpoint) gets a one-line pointer in the
 other file.
 
-**Status (2026-09-28): Module 3 built and evaluated; Module 4 not started.**
+**Status (2026-09-28): Module 3 built and evaluated; Module 4 built and evaluated on the clean scenario (5 seeds); the SIMULATED fault-tolerance comparison is largely NOT run (see EXP-010).** On the held-out test split every federated strategy scores F1 = 0, exactly like Module 3, so the 81% → 94% claim is neither supported nor refuted (§4c).
 Module 3's pipeline, three comparable models, live inference and the Digital
 Twin tab display all exist and run. **The measured results do NOT demonstrate
 that the TA-GNN beats the rule-based detector** — on the pre-specified
@@ -25,7 +25,7 @@ Read §4b before quoting any number from this file.
 | | |
 |---|---|
 | Module 3 (TA-GNN) | **Built.** `backend/ai/` (train/evaluate), `backend/app/ai_service/` (live), `GET /ai/predictions`, Digital Twin tab badges. Results: §4b. |
-| Module 4 (Federated learning) | Not started — no Flower setup, no node partitions. Model code exposes `get_weights()/set_weights()` and `fit()/predict_logits()` for a later Flower wrapper. |
+| Module 4 (Federated learning) | **Built.** `backend/ai/federated/` (own venv; Flower 1.38, one client process per turbine). Clean-scenario grid finished (35 runs, 5 seeds). Simulated-degradation comparison: mostly not run (EXP-010). Results: §4c. Serving: `AI_MODEL_SOURCE=federated`. |
 | Baseline detector | Exists (`backend/app/twin/fault_detection.py`). Replayed offline with its ground-truth label override OFF it **never fires usefully**: 0 true alarms on test (§4b). |
 | Training data used | Real Kelmarsh SCADA, turbines 1–4, **2016–2018** (2017–2018 downloaded for training/eval only, `backend/data/scada/extra_years/`). 228 genuine fault events in total. |
 | Blocking issues | Test split has only 5 independent fault events with valid samples (of 25) — the comparison is statistically inconclusive; see §4b and §7 Q10. |
@@ -98,8 +98,8 @@ therefore not optional.**
 | 1 | Feature pipeline + train/val/test split | Windowed features per turbine; time-ordered (not random) split so no future data leaks into training. | **Done** — EXP-001/002; hard no-leakage assertions pass. |
 | 2 | Plain GNN (centralized) | Does a graph model beat the statistical baseline at all? | **Done** (GCN, 5 seeds) — no on test (F1 0); optimistic yes on val. |
 | 3 | TA-GNN (centralized) | Does topology adaptivity beat the plain GNN? | **Done** (5 seeds) — not demonstrated: ≈ GCN ≈ MLP; test F1 0. |
-| 4 | FedAvg over 4 turbine clients | Federated floor. Target ~81%. | Not started (Module 4) |
-| 5 | FedProx + adaptive weighting | The headline claim. Target ~94%. | Not started (Module 4) |
+| 4 | FedAvg over 4 turbine clients | Federated floor. Target ~81%. | **Done** (5 seeds) — test F1 0; accuracy 99.9% (all-negative already scores ~99.97%); §4c. |
+| 5 | FedProx + adaptive weighting | The headline claim. Target ~94%. | **Done** (5 seeds) — test F1 0, same as FedAvg; only optimistic validation PR-AUC differs (0.119 vs 0.052); §4c. |
 | 6 | Localization + restoration-time evaluation | Requires the definitions from §7 before it can start. | Localization: **done** (node-level top-k, §4b). Restoration time: **not measured** (§7 Q4-6 open). |
 | 7 | Topology-variation evaluation | Does the same weights run on changed edge sets; how stable are scores? | **Done** — EXP-004 (synthetic topologies, not headline). |
 
@@ -204,6 +204,38 @@ illustrative graph.
 - **Artifacts:** `ai/check_serving_parity.py`
 - **Follow-up:** live replay covers Jan 2016 (inside the training period), so live flags there are in-sample and say nothing about generalisation.
 
+### EXP-006 — Module 4 environment check (Flower on Python 3.14 / Windows)
+- **Date:** 2026-09-28
+- **Model / config:** n/a (Flower 1.38.0, torch 2.14.0+cpu, PyG 2.8.0.post1)
+- **Result:** Flower core installs from prebuilt wheels. `flwr[simulation]` pulls Ray only for non-Windows on Python >= 3.13, so **Ray simulation cannot run here**. Flower also hard-pins fastapi 0.138 / uvicorn 0.49 / starlette 1.3 / protobuf < 7, which conflicts with `backend/venv` (fastapi 0.115.6, protobuf 7.35).
+- **What worked:** a throwaway venv, then a Flower gRPC server plus two client processes ran FedProx rounds on Windows.
+- **Decision (user):** separate venv `backend/ai/federated/venv`, server and clients as separate OS processes. `backend/venv` untouched.
+
+### EXP-007 — Partitioning and pipeline bring-up
+- **Dataset & split:** Module 3's exact pipeline and split; one client per turbine. Per-client class balance is in §4c. A client's graph holds only its own turbine's features (approved), the other slots empty.
+- **What failed and why:** (1) the wire audit demanded parameter arrays on evaluation replies that carry only metrics; (2) after the server crashed the launcher waited on orphaned clients; (3) the report writer used the Windows default encoding. All fixed. A 3-round smoke run showed T1's local validation loss already worse than the no-skill baseline, so the adaptive rule floored T1 immediately. That is a real result of the pre-specified rule, not a bug; the rule was not tuned afterwards.
+- **Artifacts:** `ai/federated/artifacts/partition_report.json`, `shards/`, `eval_data.npz`.
+
+### EXP-008 — Clean-scenario grid (REAL replayed data, no injected degradation)
+- **Config (fixed a priori):** 30 rounds, 1 local epoch per round, AdamW lr 3e-3 wd 1e-4, batch 256, 30% negative subsampling, per-client `pos_weight = sqrt(neg/pos)`, seeds 0-4. FedAvg: equal client weights. FedProx: mu in {0.001, 0.01, 0.1, 1.0}. Adaptive rule (`ai/federated/weighting.py`, defined before any run): EMA (alpha 0.5) of each client's validation loss divided by its no-skill constant-predictor loss; loss factor `exp(-5·max(0, rel-1))` with rel = EMA / cohort median; update-norm factor `min(1, (1.5/rho)^2)` with rho = update norm / median update norm (measured by the server); weight proportional to the product, normalised, 5% floor.
+- **Selection:** the global model of each run is the round with the best mean client validation PR-AUC; mu* was chosen from the sweep by validation only (mean over seeds): 0.001 → 0.1305, 0.01 → 0.1292, 0.1 → 0.1292, **1.0 → 0.1355 (chosen)**. The differences are within seed noise and 1.0 is the edge of the sweep, so a larger mu was not explored.
+- **Result:** §4c. Test F1 is 0 for every strategy and seed.
+- **Artifacts:** `ai/federated/artifacts/runs/<run>/` (weights, `round_log.json` with per-round per-client weights, `result.json`, logs), `RESULTS.md`, `results_federated.json`, `adaptive_weights_by_round.csv`, `mu_selection.json`.
+
+### EXP-009 — Adaptive weighting alone (mu = 0 ablation), clean, 5 seeds
+- Test F1 0; optimistic validation PR-AUC 0.055 ± 0.005 vs FedAvg 0.052 ± 0.010, so adaptive weighting on its own changed nothing measurable.
+
+### EXP-010 — SIMULATED fault tolerance (dropout / degraded client / corrupted updates) — MOSTLY NOT RUN
+- **Built and tested:** all three scenarios exist in `ai/federated/simulated.py` (labelled SIMULATED in code, logs, run metadata). Dropout: each client unavailable with probability 0.3 per round. Degraded client (T3): feature noise sigma 2 plus 50% of positive labels dropped. Corrupted updates (T3): sign-flipped x3 update.
+- **Actually run:** only seed 0 dropout for FedAvg and FedProx (mu 1), both with test F1 0. The FedProx + adaptive dropout run and every degraded-client and corrupted-update run were **not completed**: each run takes about 10 to 30 minutes on this laptop and the user asked to finish quickly. **No claim about how adaptive weighting responds to a faulty client is supported by measurement.**
+- **Follow-up:** `python -m ai.federated.run_all --stage scenarios` (resumable; `--seeds`) runs the rest.
+
+### EXP-011 — Centralized own-view reference
+- Seed 0 only (of 5 planned): best epoch 8, validation PR-AUC 0.0815, full-view test F1 0. Module 3's five-seed numbers are the main centralized baseline (reused).
+
+### EXP-012 — Backend serving of the federated model
+- The final model (best validation seed of FedProx + adaptive, mu 1: run `fedprox_adaptive_mu1_clean_s3`) is exported in Module 3's format to `ai/federated/artifacts/model_federated/`. With `AI_MODEL_SOURCE=federated` the backend loaded it, `GET /ai/predictions` reported `source: federated` and each `ta_gnn` verdict carried `model_source: federated`; the default setting still loads the Module 3 model (`source: centralized`). `GET /nodes` (7/6), `GET /twin/nodes` (9/8) and `GET /twin/decisions` were unchanged. The flags were essentially all below threshold at that moment, so no organic federated flag was observed.
+
 ---
 
 ## 4b. Measured results (identical held-out test split; real replayed SCADA)
@@ -241,9 +273,46 @@ What this does and does not say: in-distribution (adjacent-in-time, storm-season
 | Fault detection +5–15% vs baseline | Test: F1 0 vs 0 (undefined). Val (optimistic): F1 0.212 vs 0.020 rule ≥3σ; TA-GNN vs GCN 0.212 vs 0.178. | Not demonstrated on held-out data |
 | Fault localization +10–20% | Test: top-1 0.237 ± 0.195 vs chance 0.259 (rule 0.259). Val: 0.400 vs chance 0.377. | Not demonstrated; at chance |
 | Service/restoration time −20–40% | Not measured (§7 Q4–6 unanswered; twin healing is instantaneous). | Not measured |
-| FedAvg ~81% → FedProx+adaptive ~94% | Module 4, not started. | n/a |
+| FedAvg ~81% → FedProx+adaptive ~94% | Test F1 0 vs 0; accuracy 99.92% vs 99.84% (all-negative scores ~99.97%). See §4c. | Not demonstrated, not refuted |
 
 Class balance, weighting and everything else needed to reproduce is in EXP-002.
+
+---
+
+## 4c. Module 4 measured results (identical held-out test split; real replayed SCADA; clean scenario)
+
+Full tables (both views, per client, mean ± std over seeds 0-4): `ai/federated/artifacts/RESULTS.md`. A federated "client" is a partition of the Kelmarsh replay, not a separate site. Test = H2 2018, 27 positives from 5 independent events, so **the test set cannot separate any two methods**.
+
+**Per-client partitions (train / validation / test valid samples and positives):**
+
+| Client | Train samples | Train positives | Train fault events | Val positives | Test positives |
+|---|---|---|---|---|---|
+| T1 | 96,850 | 112 | 48 | 22 | 0 |
+| T2 | 98,303 | 130 | 58 | 34 | 15 |
+| T3 | 97,257 | 81 | 34 | 31 | 12 |
+| T4 | 97,353 | 37 (7 events with a valid positive) | 32 | 28 | 0 |
+
+Non-IID and imbalanced, kept as is. T4 is thin but trainable. T1 and T4 have no test positives, so their per-client test recall and AUCs are undefined.
+
+**Full-view test (all four turbines' features, as Module 3 and the backend serve), val-selected round:**
+
+| Strategy | F1 | ROC-AUC | Accuracy | Optimistic val PR-AUC | Rounds to convergence | Rounds × params |
+|---|---|---|---|---|---|---|
+| Centralized Module 3 (reused, 5 seeds) | 0.000 | 0.338 ± 0.088 | 0.9994 | n/a | n/a | n/a |
+| FedAvg (equal weights) | 0.000 | 0.256 ± 0.026 | 0.9992 | 0.052 ± 0.010 | 3.4 ± 0.5 | 96,400 |
+| FedProx mu 0.001 / 0.01 / 0.1 | 0.000 | 0.228 / 0.311 / 0.275 | ~0.999 | 0.070 / 0.074 / 0.091 | 3.2 / 1.4 / 3.8 | 90,730 / 39,694 / 107,741 |
+| FedProx mu 1 | 0.000 | 0.404 ± 0.072 | 0.9985 | 0.096 ± 0.024 | 17.4 ± 9.0 | 493,342 |
+| FedProx mu 1 + adaptive | 0.000 | 0.392 ± 0.058 | 0.9984 | 0.119 ± 0.010 | 18.0 ± 4.0 | 510,354 |
+| Adaptive alone (mu 0) | 0.000 | 0.261 ± 0.034 | 0.9991 | 0.055 ± 0.005 | 5.6 ± 4.3 | 158,777 |
+
+Precision, recall, event recall are 0 everywhere; PR-AUC is about 0.0002 (chance 0.0003); ROC-AUC is below 0.5 for every method, the same regime-shift signature as Module 3 (EXP-002). Own-view test numbers are similar (RESULTS.md). Parameters: 28,353 per model.
+
+**Reading.**
+- **The 81% → 94% target:** the notes do not define the metric (§7 Q1); the user asked for all metrics with F1 as the headline. Accuracy is 99.8% to 99.97% for every method including plain FedAvg, because all-negative already scores about 99.97%, so it cannot reach or miss 81% and 94% meaningfully. On F1 (0 vs 0) the claim is undefined. **Not demonstrated, not refuted.**
+- **The only separating signal is optimistic** (validation PR-AUC, used for round and mu selection): it rises from FedAvg 0.052 to FedProx mu 1 at 0.096 to FedProx + adaptive at 0.119. Adaptive weighting alone (mu 0) did not help (0.055). The mu = 1 gain also costs about 5x more rounds.
+- **Adaptive weights (clean data, mean over rounds and seeds; equal = 0.25):** at mu 1, T1 0.113, T2 0.322, T3 0.236, T4 0.329. T1 is down-weighted because its local validation loss is worse than the no-skill baseline. Whether that helps is not measurable on this test set.
+- **Fault detection +5-15%, localization +10-20%, restoration time -20-40%:** not demonstrated (F1 0; full-view top-1 localization between 0.00 and 0.16 across federated strategies vs chance 0.26); restoration time not measured.
+- **Fault tolerance:** see EXP-010; not measured.
 
 ---
 
@@ -364,7 +433,7 @@ what gets built, so please define them:
 
 | Q | Status |
 |---|---|
-| 1 (81%/94%) | Still open — Module 4, not needed for Module 3. |
+| 1 (81%/94%) | **Handled for Module 4 by reporting every metric** (accuracy, balanced accuracy, precision, recall, F1, ROC/PR-AUC) with F1 as the headline; the metric behind the notes' numbers is still undefined. Accuracy cannot distinguish methods at ~0.03% positives. |
 | 2 (detection, relative to what) | **Answered:** per node, fault *start* within the next 60 min; primary metric F1 (plus PR-AUC) against the Module 2 rule-based detector on the identical split, label override off. |
 | 3 (localization) | **Answered:** node-level over the 4 labelled turbines; top-1/top-2 vs a rule-based ranking and vs chance. |
 | 4, 5, 6 (restoration time, resilience, critical loads) | Still open. Not measured; a restoration-time result would be a simulation on the illustrative topology. |
@@ -438,7 +507,9 @@ what gets built, so please define them:
 - **A live, organic TA-GNN flag in the running backend + browser.** I watched ~8 min (REST polling) and a 90 s WebSocket window; none occurred (the live replay starts in early Jan 2016 where most nodes are in labelled stopped states). The backend mechanics were proven in-process on real data and the UI rendering with a mocked message, but the two were not seen together in the running app.
 - **Held-out generalisation.** The test split (5 independent events) is inconclusive; the deployed model has no demonstrated out-of-distribution skill.
 - Restoration/service-time and resilience improvements (not defined or measured).
-- The 81%/94% federated targets (Module 4).
+- The 81%/94% federated targets: measured (§4c) but inconclusive on the held-out test set.
+- **Module 4 not verified:** the SIMULATED fault-tolerance comparison (EXP-010; only 2 seed-0 dropout runs finished); seeds 1-4 of the centralized own-view reference; adaptive weighting's response to a degraded or corrupted client; an organic live flag from the federated model; the Digital Twin tab in a browser (no frontend edit); TLS, differential privacy and secure aggregation (not implemented; localhost, unencrypted).
+- **Module 4 open decisions:** mu = 1 is the edge of the sweep (a larger mu was not tried); Module 3's test split is too thin to compare anything (§7 Q10) and this limits Module 4 equally.
 - Confidence intervals for the validation-split table, and CIs on test are degenerate (0 true alarms everywhere).
 - Long-run stability of the live service (memory, replay looping) beyond a few minutes; the per-reading cost is small (a 9-node graph forward pass) but I did not load-test it.
 - Frontend production build (`vite build`) and cross-browser behaviour.

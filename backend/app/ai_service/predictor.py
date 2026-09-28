@@ -31,6 +31,8 @@ import numpy as np
 logger = logging.getLogger("sei")
 
 ARTIFACT_ROOT = Path(__file__).resolve().parents[2] / "ai" / "artifacts"
+# Module 4: the federated global model, exported in the same format (ai/federated/export.py).
+FEDERATED_ARTIFACT_DIR = Path(__file__).resolve().parents[2] / "ai" / "federated" / "artifacts" / "model_federated"
 DEFAULT_KIND = "tag"
 MODEL_KIND_ENV_DEFAULT = DEFAULT_KIND
 
@@ -53,7 +55,10 @@ class FaultPredictor:
             from ai import features as F
             from ai.models import NodeClassifier
 
-            art = ARTIFACT_ROOT / self.kind
+            from app.config import settings
+
+            # AI_MODEL_SOURCE=federated selects the Module 4 model; default is the Module 3 model.
+            art = FEDERATED_ARTIFACT_DIR if settings.ai_model_source == "federated" else ARTIFACT_ROOT / self.kind
             meta = json.loads((art / "meta.json").read_text())
             model = NodeClassifier(**meta["model_config"])
             model.load_state_dict(torch.load(art / "model.pt", weights_only=True))
@@ -152,6 +157,7 @@ class FaultPredictor:
             "loaded": True,
             "name": self.meta["display_name"],
             "kind": self.meta["kind"],
+            "source": self.meta.get("model_source", "centralized"),  # "centralized" | "federated"
             "task": f"fault START within the next {self.meta['features']['horizon_steps'] * self.meta['features']['step_minutes']} min, per turbine node",
             "horizon_min": self.meta["features"]["horizon_steps"] * self.meta["features"]["step_minutes"],
             "operating_threshold_probability": round(thr_prob, 4),

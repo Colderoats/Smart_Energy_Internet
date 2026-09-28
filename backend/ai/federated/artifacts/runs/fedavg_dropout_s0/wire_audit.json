@@ -1,0 +1,83 @@
+{
+  "messages_audited": 176,
+  "param_elements_received": 2495064,
+  "parameter_shapes": [
+    [
+      64
+    ],
+    [
+      64,
+      46
+    ],
+    [
+      64,
+      46
+    ],
+    [
+      64,
+      46
+    ],
+    [
+      64,
+      46
+    ],
+    [
+      64
+    ],
+    [
+      64,
+      64
+    ],
+    [
+      64,
+      64
+    ],
+    [
+      64,
+      64
+    ],
+    [
+      64,
+      64
+    ],
+    [
+      1,
+      64
+    ],
+    [
+      1
+    ]
+  ],
+  "metric_keys_seen": [
+    "n_batches",
+    "prox_sq_dist",
+    "sim_scenario",
+    "train_loss",
+    "train_seconds",
+    "turbine",
+    "val_loss",
+    "val_loss_prior",
+    "val_n",
+    "val_norm_loss",
+    "val_pos",
+    "val_pr_auc",
+    "val_roc_auc"
+  ],
+  "allowed_metric_keys": [
+    "n_batches",
+    "prox_sq_dist",
+    "sim_scenario",
+    "train_loss",
+    "train_seconds",
+    "turbine",
+    "val_loss",
+    "val_loss_prior",
+    "val_n",
+    "val_norm_loss",
+    "val_pos",
+    "val_pr_auc",
+    "val_roc_auc"
+  ],
+  "violations": 0,
+  "note": "content/shape audit on one machine; does not cover weight-based leakage (no DP / secure aggregation)"
+}

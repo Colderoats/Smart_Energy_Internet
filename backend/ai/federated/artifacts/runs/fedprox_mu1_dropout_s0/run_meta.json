@@ -1,0 +1,33 @@
+{
+  "mode": "fedprox",
+  "mu": 1.0,
+  "seed": 0,
+  "rounds": 30,
+  "n_params": 28353,
+  "local_cfg": {
+    "local_epochs": 1,
+    "lr": 0.003,
+    "weight_decay": 0.0001,
+    "batch_size": 256,
+    "neg_keep_frac": 0.3
+  },
+  "scenario": {
+    "scenario": "dropout",
+    "simulated": true,
+    "label": "SIMULATED",
+    "dropout_probability": 0.3,
+    "min_clients_present": 2
+  },
+  "best_round_by_client_val": 19,
+  "best_mean_client_val_pr_auc": 0.14468682448848938,
+  "rounds_to_convergence": 19,
+  "convergence_definition": "first round whose mean client validation PR-AUC >= 95% of the run's best",
+  "communication": {
+    "rounds_x_params": 850590,
+    "convergence_rounds_x_params": 538707,
+    "total_floats_transferred_both_directions": 4990128,
+    "total_megabytes_float32": 19.960512
+  },
+  "wall_seconds": 744.5,
+  "provenance": "Real Kelmarsh SCADA, REPLAYED; clients are partitions of it. SIMULATED degradation injected (see scenario)."
+}

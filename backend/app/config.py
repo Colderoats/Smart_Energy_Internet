@@ -37,6 +37,14 @@ class Settings(BaseSettings):
     scada_data_dir: Path = REPO_ROOT / "backend" / "data" / "scada"
     scada_replay_interval_seconds: float = 2.0
 
+    # Module 4: which trained TA-GNN the AI service loads at startup.
+    #   "centralized" (default) - ai/artifacts/tag/  (Module 3, pooled training)
+    #   "federated"             - ai/federated/artifacts/model_federated/  (Module 4,
+    #                             FedProx + adaptive weighting; export with
+    #                             `python -m ai.federated.export --auto`)
+    # Set AI_MODEL_SOURCE in .env. Every prediction records which model produced it.
+    ai_model_source: str = "centralized"
+
     @property
     def database_url(self) -> str:
         return (

@@ -23,10 +23,14 @@ don't just switch or introduce a new dependency.
 ## Current focus
 Modules 1 (ingestion) and 2 (digital twin) are done. Module 3 (TA-GNN fault
 prediction) is built — code in backend/ai + backend/app/ai_service, results
-and experiment log in aiprogress.md. Module 4 (federated learning) is next:
-the model code exposes get_weights()/set_weights() and train/evaluate entry
-points for Flower to wrap. Do not scaffold Module 4 or Module 5 (blockchain)
-code unless I explicitly ask.
+and experiment log in aiprogress.md. Module 4 (adaptive federated learning,
+Flower: FedAvg / FedProx / FedProx + adaptive weighting) is built and evaluated —
+code, artifacts and run instructions in backend/ai/federated (own venv there:
+Flower's pins conflict with backend/venv), measured results in aiprogress.md.
+Module 5 (blockchain) is next but NOT started: do not scaffold Module 5 code
+(Solidity/web3) unless I explicitly ask. Module 4 keeps per-round, per-client
+weights in backend/ai/federated/artifacts (round_log.json, adaptive_weights_by_round.csv)
+as the data a later blockchain step could record.
 
 ## Data sourcing (important — don't get this wrong)
 - Solar + EV: real sensor data via ESP32 (INA219/ACS712) → MQTT → TimescaleDB

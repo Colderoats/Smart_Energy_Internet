@@ -52,6 +52,7 @@ def _ta_gnn_verdict(score: dict, as_of: str) -> dict:
         "flagged": score["flagged"],
         "probability": round(score["probability"], 4),
         "model": predictor.meta["display_name"],
+        "model_source": predictor.meta.get("model_source", "centralized"),  # which model produced this prediction
         "horizon_min": predictor.meta["features"]["horizon_steps"] * predictor.meta["features"]["step_minutes"],
         "as_of": as_of,
         "data": "replayed_scada_not_live",
