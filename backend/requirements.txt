@@ -14,3 +14,9 @@ torch_geometric==2.8.0.post1
 
 # Module 5 (blockchain ledger): Web3.py talks to the EnergyLedger contract.
 web3==8.0.0
+
+# Admin authentication (app/auth): argon2id password hashing + JWT access tokens.
+argon2-cffi==25.1.0
+PyJWT==2.10.1
+# Backend tests (tests/): python -m pytest tests
+pytest==8.4.2

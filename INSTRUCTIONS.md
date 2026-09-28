@@ -32,6 +32,20 @@ Module 5 (blockchain ledger) is built: Solidity EnergyLedger + Hardhat in blockc
 backend/app/blockchain, Blockchain tab in the frontend. It records self-healing redistributions,
 fault alerts, SIMULATED P2P trades and Module 4 federated rounds (replayed from round_log.json).
 Run instructions, measured results and limitations: PROGRESS.md "Module 5".
+Admin authentication is built (ARCHITECTURE.md "Admin authentication"). The whole dashboard, every
+REST route except /health + /auth/{login,register,refresh,logout}, and the /ws/updates WebSocket
+require an admin session. New routers MUST be included with `dependencies=protected` in
+app/main.py; tests/test_auth.py pins the protected-route list and fails if a route is added unprotected.
+
+## Auth quick reference
+- Needs `JWT_SECRET` (>= 32 chars) in the repo-root .env, or the backend will not start (see .env.example).
+- First admin (once): `cd backend && venv\Scripts\python scripts\create_admin.py` (prompts; or set
+  SEI_ADMIN_EMAIL / SEI_ADMIN_PASSWORD). Refuses if an admin exists unless `--force`. Further admins:
+  dashboard -> "Invite admin" -> send the one-time link.
+- Backend tests: `cd backend && venv\Scripts\python -m pytest tests -q` (needs TimescaleDB running;
+  uses its own `sei_auth_test` database, created automatically).
+- Auth libraries: argon2-cffi (password hashing) and PyJWT (access tokens), plus pytest for tests.
+  The frontend has no new dependency.
 
 ## Data sourcing (important — don't get this wrong)
 - Solar + EV: real sensor data via ESP32 (INA219/ACS712) → MQTT → TimescaleDB

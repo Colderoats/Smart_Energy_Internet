@@ -67,6 +67,35 @@ class Settings(BaseSettings):
     # Dev-only tamper demo endpoint. Defaults to on for local, off for Sepolia.
     blockchain_dev_tools: bool | None = None
 
+    # Admin authentication (app/auth/). JWT_SECRET has no default on purpose:
+    # the backend refuses to start without one (>= 32 chars) in .env.
+    jwt_secret: str = ""
+    jwt_algorithm: str = "HS256"
+    access_token_minutes: int = 15
+    refresh_token_days: int = 7
+    invite_ttl_hours: int = 48
+    # The ONLY origin allowed by CORS and by the Origin check on state-changing
+    # requests / WebSocket upgrades. Must match the browser's address bar
+    # (the Vite dev server proxies the API, so this is the frontend origin).
+    frontend_origin: str = "http://localhost:5173"
+    # Secure cookies need HTTPS; set COOKIE_SECURE=false only for local http dev.
+    cookie_secure: bool = True
+    cookie_domain: str | None = None
+    # Rate limits per client IP: "<max requests>/<window seconds>".
+    login_rate_limit: str = "10/60"
+    register_rate_limit: str = "5/60"
+    refresh_rate_limit: str = "30/60"
+    # X-Forwarded-For is honoured only when the direct peer is one of these
+    # (the Vite dev proxy runs on the same machine).
+    trusted_proxies: str = "127.0.0.1,::1"
+    lockout_threshold: int = 5
+    lockout_minutes: int = 15
+    # FastAPI's /docs and /openapi.json are public routes, so off by default.
+    api_docs_enabled: bool = False
+    # Tests set this false so the app starts without ingestion, the AI model
+    # and the ledger worker (they only need the DB and the routes).
+    run_background_tasks: bool = True
+
     @property
     def database_url(self) -> str:
         return (

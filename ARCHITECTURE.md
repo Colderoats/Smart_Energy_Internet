@@ -162,6 +162,7 @@ model the AI service loads; every verdict and the model card state which one pro
 - Module 3 — TA-GNN fault prediction (backend/ai, backend/app/ai_service, Digital Twin tab badges): built; see aiprogress.md for measured results
 - Module 4 — federated learning (Flower, FedProx + adaptive weighting; backend/ai/federated, own venv): built; see aiprogress.md for measured results
 - Module 5 — blockchain ledger (Solidity EnergyLedger + Hardhat in blockchain/, Web3.py service in backend/app/blockchain, Blockchain tab): built and verified on a local Hardhat node; Sepolia config ready but not exercised. See PROGRESS.md "Module 5"
+- Admin authentication (invite-only admins, cookie JWT + rotating refresh tokens, every REST route and the WebSocket protected): built and tested. See "Admin authentication" below and PROGRESS.md
 
 ## Module 5 — blockchain ledger
 
@@ -182,3 +183,104 @@ WS on /ws/updates: chain_record, chain_status. Network: BLOCKCHAIN_NETWORK=local
 - Real (non-simulated) P2P energy trading: Module 5 records SIMULATED trades only until hardware exists
 - Human-approval gate / real actuation on the self-healing layer
 (Topology switching now exists via the Module 2 self-healing layer; the original "static topology" note above is historical.)
+- 2FA/TOTP for admin login (the table and login flow are ready for it; see "Admin authentication")
+
+## Admin authentication (added 2026-09-28)
+
+Only registered admins can use the platform. There is no public registration. Unauthenticated visitors
+see only `/login`, plus `/register` when they have a valid invite token. Code: `backend/app/auth/`
+(passwords, tokens, store, rate limiting, dependencies), `backend/app/api/auth_routes.py`,
+`backend/scripts/create_admin.py`, and `frontend/src/auth/` + `frontend/src/pages/`.
+
+**Bootstrap and invites.** The first admin is created with `backend/scripts/create_admin.py`, which
+refuses to run if an admin already exists unless `--force` is passed. After that, an admin creates a
+single-use invite on the "Invite admin" page. It expires after `INVITE_TTL_HOURS` (48 by default). The
+raw token is shown once, and only its SHA-256 hash is stored. `POST /auth/register` checks the
+invite (it exists, is unused and has not expired), creates the user and marks the invite used, all in
+one transaction with the invite row locked `FOR UPDATE`.
+
+**Tables** (same migration approach as the rest of the backend: idempotent `CREATE ... IF NOT EXISTS`
+in `app/auth/store.py`, run at startup):
+- `users(id, email UNIQUE + CHECK lowercase, password_hash, role DEFAULT 'admin', is_active,
+  failed_login_count, locked_until, created_at, last_login_at, mfa_enabled DEFAULT false, mfa_secret NULL)`
+- `invites(id, token_hash UNIQUE, created_by -> users, created_at, expires_at, used_at, used_by -> users)`
+- `auth_audit_log(id, event_type, user_id NULL, email_attempted, ip, user_agent, created_at)`. Events:
+  `login_success`, `login_failure`, `login_failure_locked`, `account_locked`, `logout`, `invite_created`,
+  `invite_used`, `register_failure_invite`, `register_failure_email_taken`, `refresh_token_reuse`,
+  `admin_created_cli`, `admin_password_reset_cli`.
+- `refresh_tokens(id, user_id -> users, token_hash UNIQUE, family_id, created_at, expires_at, revoked_at,
+  replaced_by)`. This table is extra to the spec; it is needed so refresh tokens can be rotated and revoked.
+
+**Endpoints**
+
+| Method | Path | Access | Purpose |
+|---|---|---|---|
+| POST | /auth/login | public, rate-limited | email + password -> session cookies. Always returns the generic "Invalid credentials" on failure |
+| POST | /auth/refresh | public (refresh cookie), rate-limited | rotates the refresh token and issues a new access token |
+| POST | /auth/logout | public | revokes the refresh-token family and clears cookies. Works with an expired access token |
+| POST | /auth/register | public (invite token), rate-limited | creates an admin from an invite |
+| GET | /auth/me | admin | current user |
+| POST | /auth/invites | admin | creates an invite and returns the raw token + link **once** |
+| GET | /auth/invites | admin | lists invites (status pending/used/expired). Never returns tokens or hashes |
+
+**Tokens and cookies.** The access token is an HS256 JWT (`sub`, `email`, `role`, `type=access`, `iat`,
+`exp`, `jti`) that lives `ACCESS_TOKEN_MINUTES` (15). The refresh token is an opaque 256-bit random value
+that lives `REFRESH_TOKEN_DAYS` (7) and is stored hashed. Every refresh rotates it. If a rotated token is
+presented again more than 10 s later, that is treated as reuse and the whole token family is revoked.
+Within 10 s it is treated as a benign race between two tabs. Both tokens travel only as `HttpOnly`,
+`SameSite=Strict` cookies: `sei_access` on path `/` and `sei_refresh` on path `/auth`. They are `Secure`
+unless `COOKIE_SECURE=false` (local http dev only). The frontend never stores tokens in
+localStorage or sessionStorage. On each request, `require_admin` also reloads the user from the DB, so a
+deactivated account is locked out immediately.
+
+**CSRF: SameSite=Strict + Origin check.** Every POST/PUT/PATCH/DELETE must carry an `Origin` (or, failing
+that, a `Referer`) equal to `FRONTEND_ORIGIN`; otherwise it gets 403 (`origin_check_middleware` in
+`app/auth/deps.py`). No CSRF token is used. CORS allows only `FRONTEND_ORIGIN`, with credentials, and
+has no wildcard.
+
+**Login hardening.** Passwords are hashed with argon2id (argon2-cffi). The policy is at least 12 and at
+most 128 characters, not a common word or a common word padded with digits/symbols, and not a
+sequential-digit or ≤3-distinct-character string. It is mirrored client-side in
+`frontend/src/auth/passwordPolicy.js`, and a test keeps the two copies identical. An unknown email is
+still verified against a dummy hash, so it takes the same time as a wrong password. After 5 consecutive
+failures (`LOCKOUT_THRESHOLD`) the account is locked for 15 min (`LOCKOUT_MINUTES`). A locked account
+returns the same generic error. There are per-IP sliding-window limits: login 10/60 s, register 5/60 s,
+refresh 30/60 s. They are kept in memory (one uvicorn worker). `X-Forwarded-For` is trusted only from
+`TRUSTED_PROXIES` (the Vite dev proxy, which sets `xfwd`).
+
+**Server-side enforcement.** `require_admin` (`app/auth/deps.py`) is attached as a router-level
+dependency in `app/main.py`. The WebSocket authenticates itself on connect. Protected (verified by
+`tests/test_auth.py::test_every_non_public_route_requires_auth`, which pins this exact list):
+- `GET /nodes`, `GET /nodes/{node_id}/history`
+- `GET /twin/nodes`, `GET /twin/nodes/{node_id}/history`, `GET /twin/decisions`
+- `GET /ai/predictions`
+- `GET /chain/status`, `GET /chain/records`, `GET /chain/records/{record_id}`, `POST /chain/verify/{record_id}`,
+  `POST /chain/simulate-trade`, `POST /chain/replay-fl-rounds`, `POST /chain/dev/tamper/{record_id}`
+- `GET /auth/me`, `POST /auth/invites`, `GET /auth/invites`
+- `WS /ws/updates`. It checks the Origin and access cookie on connect. It accepts and then immediately
+  closes with **4403** (foreign origin) or **4401** (missing, invalid or expired token). An authenticated
+  socket is closed with 4401 when its access token expires. The frontend then refreshes once and
+  reconnects.
+
+Public: `GET /health`, `POST /auth/login`, `POST /auth/register`, `POST /auth/refresh`,
+`POST /auth/logout`. FastAPI's `/docs`, `/redoc` and `/openapi.json` are disabled unless
+`API_DOCS_ENABLED=true`.
+
+**Configuration** (repo-root `.env`, documented in `.env.example`): `JWT_SECRET` is required, at least 32
+characters, and the backend refuses to start without it. Also `FRONTEND_ORIGIN`, `COOKIE_SECURE`,
+`COOKIE_DOMAIN`, `ACCESS_TOKEN_MINUTES`, `REFRESH_TOKEN_DAYS`, `INVITE_TTL_HOURS`, `LOCKOUT_*`, `*_RATE_LIMIT`,
+`TRUSTED_PROXIES`, `API_DOCS_ENABLED`.
+
+**Frontend.** `AuthProvider` checks `/auth/me` on load. The route guard sends every `/dashboard/*` view
+to `/login?next=<path>` and returns the user there after login (`next` is limited to `/dashboard*`, so it
+cannot be used as an open redirect). The tabs moved to `/dashboard/live|twin|chain|invite`. They must not
+share the `/twin`, `/chain` or `/nodes` prefixes, which the Vite proxy forwards to the backend. Routing
+uses a small history-API helper (`src/auth/router.js`), so no router dependency was added. All API calls
+go through `apiFetch`. On a 401 it makes one deduplicated silent refresh and then retries. If that
+fails, the user is sent to `/login`. WebSockets open only inside the authenticated dashboard, through
+`openAuthedSocket`. The header shows the admin's email and a Log out button.
+
+**Future TOTP (out of scope now).** `users.mfa_enabled` / `mfa_secret` already exist. `POST /auth/login`
+branches on `mfa_enabled` after the password check and before `_issue_session()`. A TOTP step slots in
+there: it issues a short-lived `mfa_pending` token instead of a session, and a new `POST /auth/login/totp`
+verifies the code and calls `_issue_session()`. The cookie, refresh and guard code does not change.

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { apiFetch } from '../auth/api'
+import { openAuthedSocket } from '../auth/socket'
 
 const PAGE_SIZE = 50
 
@@ -16,7 +18,7 @@ export function useBlockchainSocket(eventType) {
   const knownIds = useRef(new Set())
 
   const fetchStatus = useCallback(() => {
-    return fetch('/chain/status')
+    return apiFetch('/chain/status')
       .then((res) => res.json())
       .then(setStatus)
       .catch((err) => console.error('Failed to load chain status', err))
@@ -26,7 +28,7 @@ export function useBlockchainSocket(eventType) {
     (offset) => {
       const qs = new URLSearchParams({ limit: PAGE_SIZE, offset })
       if (eventType) qs.set('event_type', eventType)
-      return fetch(`/chain/records?${qs}`)
+      return apiFetch(`/chain/records?${qs}`)
         .then(async (res) => {
           const data = await res.json()
           if (!res.ok) throw new Error(data.detail || res.statusText)
@@ -56,26 +58,25 @@ export function useBlockchainSocket(eventType) {
 
   useEffect(() => {
     fetchStatus()
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    const ws = new WebSocket(`${protocol}://${window.location.host}/ws/updates`)
-    ws.onopen = () => setConnected(true)
-    ws.onclose = () => setConnected(false)
-    ws.onerror = () => setConnected(false)
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data)
-      if (message.type === 'chain_record') {
-        const r = message.record
-        if (!knownIds.current.has(r.id)) {
-          knownIds.current.add(r.id)
-          if (!eventType || r.event_type === eventType) setTotal((t) => t + 1)
+    // Authenticated socket: refreshes + reconnects on 4401 (token expiry).
+    const ws = openAuthedSocket({
+      onOpen: () => setConnected(true),
+      onClose: () => setConnected(false),
+      onMessage: (message) => {
+        if (message.type === 'chain_record') {
+          const r = message.record
+          if (!knownIds.current.has(r.id)) {
+            knownIds.current.add(r.id)
+            if (!eventType || r.event_type === eventType) setTotal((t) => t + 1)
+          }
+          setRecords((prev) => ({ ...prev, [r.id]: r }))
+          setLastMessage(r)
+        } else if (message.type === 'chain_status') {
+          setStatus(message.status)
         }
-        setRecords((prev) => ({ ...prev, [r.id]: r }))
-        setLastMessage(r)
-      } else if (message.type === 'chain_status') {
-        setStatus(message.status)
-      }
-      // node_update / twin_* messages are ignored here on purpose.
-    }
+        // node_update / twin_* messages are ignored here on purpose.
+      },
+    })
     return () => ws.close()
   }, [fetchStatus, eventType])
 

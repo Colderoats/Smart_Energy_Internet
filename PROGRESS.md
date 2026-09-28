@@ -751,3 +751,100 @@ tamper demo is off unless `BLOCKCHAIN_DEV_TOOLS=true`.
   `python run.py` manually after code changes.
 - Found, not fixed (Module 1 scope): the live hydro node's `power_output` read 57,988 kW against a 400 kW
   rated capacity. Simulated trades now cap at rated capacity; the reading itself is unchanged.
+
+## Admin authentication (done, 2026-09-28)
+
+**Built:**
+- Access is invite-only for admins. Every dashboard view is behind login. `backend/app/auth/` holds the
+  argon2id password policy, JWT and opaque tokens, the DB store and schema, the in-memory per-IP rate
+  limiter, `require_admin`, WebSocket auth and the Origin-check middleware. `backend/app/api/auth_routes.py`
+  has login, logout, refresh, me, register, and create/list invites.
+- New tables: `users`, `invites`, `auth_audit_log`, and `refresh_tokens` (extra to the spec: rotated
+  refresh tokens have to be stored server-side to be revocable). Created at startup like every other table.
+- `backend/scripts/create_admin.py` bootstraps the first admin (prompts or `SEI_ADMIN_EMAIL`/`SEI_ADMIN_PASSWORD`).
+  It refuses if an admin exists; `--force` creates another admin, or resets an existing one's password.
+- Frontend: `/login`, `/register?token=`, and an "Invite admin" tab that shows the link once with a Copy
+  button, plus an invite list. `AuthProvider` + route guard with return-to-previous-view, `apiFetch` (one
+  silent refresh on 401, then to /login), `openAuthedSocket` (the WebSocket opens only after auth and
+  refreshes + reconnects on close code 4401), and the admin email + Log out in the header. Client-side
+  validation mirrors the backend password rules.
+- `backend/tests/` has 36 pytest tests against a separate `sei_auth_test` database.
+
+**Edits to existing code:**
+- `app/main.py`: calls the auth schema init, fails fast without `JWT_SECRET`, adds a
+  `RUN_BACKGROUND_TASKS=false` switch for tests, restricts CORS to `FRONTEND_ORIGIN` with credentials,
+  adds the Origin-check middleware, puts `dependencies=[Depends(require_admin)]` on the
+  nodes/twin/ai/chain routers, and turns API docs off by default.
+- `app/api/routes.py`: `/ws/updates` moved to its own `ws_router` (router-level dependencies cannot
+  apply to a WebSocket) and now authenticates on connect.
+- `app/config.py`: auth settings. `requirements.txt`: `argon2-cffi`, `PyJWT`, `pytest`.
+  `.env.example`: auth variables. The local `.env` got a generated `JWT_SECRET`, `COOKIE_SECURE=false`
+  and `FRONTEND_ORIGIN` (the file is gitignored).
+- Frontend: `App.jsx` (routing, guard, header), all `fetch(...)` calls in the hooks, `TimeSeriesPanel` and
+  `BlockchainTab` switched to `apiFetch`, the three socket hooks switched to `openAuthedSocket`, and
+  `vite.config.js` gained the `/auth` proxy plus `xfwd` for per-IP rate limiting.
+
+**How to run:**
+1. Make sure `JWT_SECRET` is set in the repo-root `.env` (see `.env.example`).
+2. `cd backend && venv\Scripts\python -m pip install -r requirements.txt`
+3. With TimescaleDB up, run `venv\Scripts\python scripts\create_admin.py` once.
+4. Start the backend and frontend as before, open http://localhost:5173 and sign in.
+5. Tests: `cd backend && venv\Scripts\python -m pytest tests -q`.
+
+**Decisions / deviations:**
+1. CSRF uses SameSite=Strict cookies plus an Origin/Referer check on every state-changing request.
+   There is no CSRF token. The WebSocket also checks Origin (close code 4403).
+2. No `react-router` dependency. A small history-API router is enough, and the stack rules say to
+   ask before adding dependencies. Dashboard URLs are `/dashboard/<tab>` because `/twin`, `/chain` and
+   `/nodes` are Vite proxy prefixes (a page reload on `/twin` would hit the backend).
+3. Rejected WebSockets are accepted and then closed immediately, with 4401 or 4403, so the browser can see
+   the code. Unauthenticated sockets are never added to the broadcast set. Authenticated sockets are
+   closed with 4401 when the access token expires. The client then refreshes and reconnects, so an open
+   socket never outlives its token.
+4. Logout is public (it works with an expired access token) and revokes the whole refresh-token family.
+5. A locked account returns the same generic "Invalid credentials". The login page explains the
+   5-attempt / 15-minute lock in its error text instead of confirming that the account exists.
+6. The users table carries `mfa_enabled` / `mfa_secret` for a later TOTP step; login already branches
+   on `mfa_enabled`. 2FA itself is not built.
+7. `/docs` and `/openapi.json` are off by default (they would otherwise be public). Set `API_DOCS_ENABLED=true`.
+
+**Measured (2026-09-28):**
+- `pytest tests`: 36 passed. Covered: login success (cookie flags, audit), generic failure for a wrong
+  email and a wrong password, lockout after 5 failures and unlock after expiry, inactive user, login
+  and register rate limits (429), foreign or missing Origin → 403, refresh rotation plus the grace
+  window plus reuse revoking the family, expired refresh token, logout revocation, expired/forged/garbage
+  JWT → 401, invite hashed and single-use, expired/used/invalid invite, weak/common/invalid registration
+  input without consuming the invite, duplicate email 409, invite list without tokens, the exact
+  protected-route list all 401 without a session, `/health` public, docs off, WebSocket 4401 without a
+  session or with a bad cookie, 4403 for a foreign origin, a valid socket closing at token expiry, the
+  password policy, and frontend/backend policy parity.
+- Manual check against the running backend (both :8000 directly and through the :5173 Vite proxy) with
+  no session: all 16 protected routes → 401, `/ws/updates` → close 4401, `/health` → 200. (Through :5173,
+  `/ai/predictions` returns the SPA's index.html, because `/ai` has never been proxied. It is not backend
+  data.) With a session, every GET → 200 and the socket delivered `node_update` frames. A foreign origin
+  → 4403. After logout, `/nodes` → 401. Registering with an invite → 201, reusing it → 400, and the
+  new admin could log in.
+- `create_admin.py`: the first run created the admin, a second run refused (exit 1), and a common
+  password was rejected even with `--force`.
+- Headless Chrome: `/dashboard/twin` with no session redirected to `/login?next=%2Fdashboard%2Ftwin`. A
+  wrong password showed the generic error. Login returned to `/dashboard/twin` (9 nodes rendered). The
+  header showed the email. `document.cookie`, localStorage and sessionStorage were all empty. The invite
+  page generated a link and listed invites. The Live tab badge showed "Live". Reload kept the session.
+  Log out went to `/login`. `/register` without a token showed "Invite required". The client rejected
+  `Password1234!` as too common. There were no console errors. With the access cookie replaced by an
+  invalid value, the next requests got 401, one `/auth/refresh` ran (200), the requests retried with 200,
+  and the WebSocket reconnected and received frames again. With the refresh cookie removed as well, the
+  next action landed on `/login?next=%2Fdashboard%2Fchain`.
+- The temporary verification accounts, invites and audit rows were deleted from `sei_db` afterwards, so
+  the auth tables start empty and the first admin still has to be created with `create_admin.py`.
+
+**Known limitations / not verified:**
+- The rate limiter is in-memory and per process. Limits reset on restart and would multiply with
+  several uvicorn workers.
+- A revoked session's access token stays valid until it expires (at most 15 min) for REST and WebSocket
+  calls, unless the user is deactivated (checked on every request). Logout clears the cookie in that browser.
+- `COOKIE_SECURE=false` is set for local http. Production must serve HTTPS and keep the default `true`.
+- Not exercised live: the 15-minute natural expiry of an open WebSocket in the browser. It is covered
+  by the server-side test with a 2-second token, and by the browser test with an invalid token.
+- There is no admin management UI yet (deactivate or remove admins, reset passwords). `create_admin.py --force`
+  resets a password from the CLI.

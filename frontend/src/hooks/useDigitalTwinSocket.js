@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { apiFetch } from '../auth/api'
+import { openAuthedSocket } from '../auth/socket'
 
 const MAX_DECISIONS = 100
 
@@ -15,7 +17,7 @@ export function useDigitalTwinSocket() {
   useEffect(() => {
     let cancelled = false
 
-    fetch('/twin/nodes')
+    apiFetch('/twin/nodes')
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return
@@ -26,7 +28,7 @@ export function useDigitalTwinSocket() {
       })
       .catch((err) => console.error('Failed to load initial twin state', err))
 
-    fetch('/twin/decisions?limit=50')
+    apiFetch('/twin/decisions?limit=50')
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return
@@ -34,22 +36,20 @@ export function useDigitalTwinSocket() {
       })
       .catch((err) => console.error('Failed to load decision log', err))
 
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    const ws = new WebSocket(`${protocol}://${window.location.host}/ws/updates`)
+    // Authenticated socket: refreshes + reconnects on 4401 (token expiry).
+    const ws = openAuthedSocket({
+      onOpen: () => setConnected(true),
+      onClose: () => setConnected(false),
+      onMessage: (message) => {
+        if (message.type === 'twin_node_update') {
+          setNodes((prev) => ({ ...prev, [message.node.node_id]: message.node }))
+        } else if (message.type === 'twin_decision') {
+          setDecisions((prev) => [message.decision, ...prev].slice(0, MAX_DECISIONS))
+        }
+        // 'node_update' (Module 1) is ignored here on purpose.
+      },
+    })
     socketRef.current = ws
-
-    ws.onopen = () => setConnected(true)
-    ws.onclose = () => setConnected(false)
-    ws.onerror = () => setConnected(false)
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data)
-      if (message.type === 'twin_node_update') {
-        setNodes((prev) => ({ ...prev, [message.node.node_id]: message.node }))
-      } else if (message.type === 'twin_decision') {
-        setDecisions((prev) => [message.decision, ...prev].slice(0, MAX_DECISIONS))
-      }
-      // 'node_update' (Module 1) is ignored here on purpose.
-    }
 
     return () => {
       cancelled = true

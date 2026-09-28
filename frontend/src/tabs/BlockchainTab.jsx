@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { apiFetch } from '../auth/api'
 import { useBlockchainSocket } from '../hooks/useBlockchainSocket'
 
 // Module 5 — Blockchain tab. Every grid action written to the EnergyLedger
@@ -334,7 +335,7 @@ function RecordDetail({ recordId, lastMessage, devTools, onClose }) {
   const [tampering, setTampering] = useState(false)
 
   const load = () =>
-    fetch(`/chain/records/${recordId}`)
+    apiFetch(`/chain/records/${recordId}`)
       .then(async (res) => {
         const data = await res.json()
         if (!res.ok) throw new Error(data.detail || res.statusText)
@@ -357,7 +358,7 @@ function RecordDetail({ recordId, lastMessage, devTools, onClose }) {
   const verify = async () => {
     setVerifying(true)
     try {
-      await fetch(`/chain/verify/${recordId}`, { method: 'POST' })
+      await apiFetch(`/chain/verify/${recordId}`, { method: 'POST' })
       await load()
     } finally {
       setVerifying(false)
@@ -368,7 +369,7 @@ function RecordDetail({ recordId, lastMessage, devTools, onClose }) {
     if (!window.confirm('DEV-ONLY DEMO: edit the off-chain database copy of this record so that Verify fails?')) return
     setTampering(true)
     try {
-      await fetch(`/chain/dev/tamper/${recordId}`, { method: 'POST' })
+      await apiFetch(`/chain/dev/tamper/${recordId}`, { method: 'POST' })
       await load()
     } finally {
       setTampering(false)
@@ -462,7 +463,7 @@ function BlockchainTab() {
     setBusy(label)
     setNotice(null)
     try {
-      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      const res = await apiFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || res.statusText)
       onOk(data)

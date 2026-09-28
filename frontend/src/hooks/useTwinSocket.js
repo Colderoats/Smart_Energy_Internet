@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { apiFetch } from '../auth/api'
+import { openAuthedSocket } from '../auth/socket'
 
 export function useTwinSocket() {
   const [nodes, setNodes] = useState({})
@@ -9,7 +11,7 @@ export function useTwinSocket() {
   useEffect(() => {
     let cancelled = false
 
-    fetch('/nodes')
+    apiFetch('/nodes')
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return
@@ -20,19 +22,17 @@ export function useTwinSocket() {
       })
       .catch((err) => console.error('Failed to load initial node state', err))
 
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    const ws = new WebSocket(`${protocol}://${window.location.host}/ws/updates`)
+    // Authenticated socket: refreshes + reconnects on 4401 (token expiry).
+    const ws = openAuthedSocket({
+      onOpen: () => setConnected(true),
+      onClose: () => setConnected(false),
+      onMessage: (message) => {
+        if (message.type === 'node_update') {
+          setNodes((prev) => ({ ...prev, [message.node.node_id]: message.node }))
+        }
+      },
+    })
     socketRef.current = ws
-
-    ws.onopen = () => setConnected(true)
-    ws.onclose = () => setConnected(false)
-    ws.onerror = () => setConnected(false)
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data)
-      if (message.type === 'node_update') {
-        setNodes((prev) => ({ ...prev, [message.node.node_id]: message.node }))
-      }
-    }
 
     return () => {
       cancelled = true

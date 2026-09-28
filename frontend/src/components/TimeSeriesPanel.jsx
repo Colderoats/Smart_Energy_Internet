@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { apiFetch } from '../auth/api'
 import {
   Line,
   LineChart,
@@ -19,7 +20,7 @@ function TimeSeriesPanel({ nodeId, latestReading, historyUrl }) {
   useEffect(() => {
     if (!nodeId) return
     setHistory([])
-    fetch(historyUrl ?? `/nodes/${nodeId}/history?limit=100`)
+    apiFetch(historyUrl ?? `/nodes/${nodeId}/history?limit=100`)
       .then((res) => res.json())
       .then((data) => {
         const rows = [...data.history].reverse().map((row) => ({
