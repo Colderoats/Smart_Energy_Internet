@@ -47,5 +47,5 @@ Do not scaffold Module 3 (GNN), Module 4 (federated learning), or Module 5
 - [add your code style / naming preferences here as you notice them]
 
 ## See also
-- docs/architecture.md — module details, data schemas, twin state model
-- docs/decisions.md — why each stack choice was made (avoid re-litigating)
+- ARCHITECTURE.md — module details, data schemas, twin state model and why each stack choice was made (avoid re-litigating)
+- PROGRESS.MD - to check what's been done so far and keep adding the updates to the file
