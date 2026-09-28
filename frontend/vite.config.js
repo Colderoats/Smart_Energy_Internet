@@ -12,6 +12,8 @@ export default defineConfig({
     proxy: {
       '/nodes': 'http://localhost:8000',
       '/twin': 'http://localhost:8000',
+      // Module 5 Blockchain tab (app/api/chain_routes.py).
+      '/chain': 'http://localhost:8000',
       '/health': 'http://localhost:8000',
       '/ws': {
         target: 'ws://localhost:8000',

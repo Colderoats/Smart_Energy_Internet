@@ -637,3 +637,117 @@ processes + offline test evaluation); backend started cleanly on the default set
 
 **Not verified:** how adaptive weighting responds to dropout, a degraded client or corrupted updates (not run); the federated model producing an organic live flag; the Digital Twin tab in a browser with
 the federated model (no frontend edit was made); TLS/DP/secure aggregation (not implemented).
+
+# Module 5 — Blockchain ledger
+
+## Stage 1 — EnergyLedger contract, ledger service, auto-recording, Blockchain tab (done)
+
+**Built (all new unless noted):**
+- `blockchain/` (Hardhat 2 project, repo root): `contracts/EnergyLedger.sol` (append-only: the only
+  write function is `appendRecord`, owner-only; stores id, event type, keccak256 of the off-chain
+  payload, actor/node id, block timestamp, recorder; emits `RecordAppended`), `test/EnergyLedger.test.js`,
+  `scripts/deploy.js` (writes `deployments/<network>.json` with address + ABI), `hardhat.config.js`
+  (localhost always; `sepolia` registered only when `SEPOLIA_RPC_URL` + `SEPOLIA_PRIVATE_KEY` are set).
+- `backend/app/blockchain/`: `hashing.py` (canonical JSON + keccak256), `chain_client.py` (Web3.py, sync,
+  always called from a thread), `store.py` (new `chain_records` table: full payload, hash, tx hash, block
+  number/hash, gas, status, confirmations, verification, tamper-demo info), `events.py` (payload builders;
+  provenance inside every hashed payload), `ledger.py` (queue worker, retry, confirmations, verify,
+  integrity check, dev tamper, step timeline, twin hook).
+- `backend/app/api/chain_routes.py`: `GET /chain/status`, `GET /chain/records` (paginated, `event_type`
+  filter), `GET /chain/records/{id}` (record + 7-step journey), `POST /chain/verify/{id}`,
+  `POST /chain/simulate-trade`, plus `POST /chain/replay-fl-rounds` (Module 4 ingest, idempotent) and
+  `POST /chain/dev/tamper/{id}` (dev only). WebSocket: `chain_record` and `chain_status` messages on the
+  existing `/ws/updates`.
+- Frontend: `tabs/BlockchainTab.jsx` + `hooks/useBlockchainSocket.js` (same pattern as the Digital Twin
+  hook: one initial fetch, then push only; no polling). Header (connection, network, contract, record
+  count, integrity badge + "Re-check all"), type filters, live newest-first log (type badge, provenance
+  badge, plain-English summary, status chip Pending/Sent/In a block/Confirmed, lock icon, short tx hash),
+  detail view with the 7 numbered steps, "what this means" tooltips, Verify button, a clearly labelled
+  dev-only tamper demo, and "Simulate P2P trade" / "Record federated rounds" buttons.
+
+**What gets recorded:**
+- `FAULT_ALERT` + `ENERGY_REDISTRIBUTION`: automatically, from the Module 2 self-healing layer, each time a
+  node transitions into fault / fault_predicted (the same edge-triggered point that logs a twin decision).
+  Includes which detector flagged it (rule_based / ta_gnn, probability, horizon), the chosen action,
+  source/target node, kW affected, reason, and `twin_decision_id` = `<node_id>@<decision time>`
+  (Module 2 decisions have no numeric id; this matches `GET /twin/decisions` rows).
+- `P2P_TRADE`: only via `POST /chain/simulate-trade`; always `provenance: simulated`, settled in
+  "demo credits". kWh defaults to 5-20 % of 15 min at the seller's latest reading, capped at rated capacity.
+- `FL_ROUND`: via `POST /chain/replay-fl-rounds?run=<run>`; default run `fedprox_adaptive_mu1_clean_s3`
+  (the exported federated model). Per-round, per-client weights and weighting factors come from that run's
+  `round_log.json`; each round is cross-checked against `adaptive_weights_by_round.csv`
+  (`csv_weights_match`, true for all 30 rounds). Labelled `offline_federated_run`.
+
+**Edits to existing code (additive, smallest possible):**
+- `app/twin/self_healing.py`: one import + one call (`ledger_hooks.on_self_healing(node, decision)`) after the
+  decision is logged. It only schedules a task; it never awaits the chain.
+- `app/main.py`: start/stop the ledger in the lifespan (started BEFORE ingestion so the first decisions are
+  recorded) and include the chain router.
+- `app/config.py`: `BLOCKCHAIN_*` / `SEPOLIA_*` settings. `app/db.py` untouched (the ledger creates its own table).
+- `frontend/src/App.jsx`: third tab. `frontend/vite.config.js`: `/chain` proxy.
+- `backend/requirements.txt`: `web3==8.0.0`. `.env.example`: blockchain variables. `.gitignore`: Hardhat
+  `artifacts/`, `cache/` and `deployments/localhost.json`.
+
+**How to run (local, default):**
+1. `cd blockchain && npm install && npm run compile` (once; the backend's auto-deploy needs the compiled artifact).
+2. `npm run node` (keep it running; local chain at http://127.0.0.1:8545, chain id 31337).
+3. `npm run deploy:local` (optional: the backend auto-deploys if the node has no contract).
+4. Start TimescaleDB and the backend as before (`python run.py`), then the frontend; open the Blockchain tab.
+5. Tests: `cd blockchain && npm test`.
+
+**Switching to Sepolia:** set `SEPOLIA_RPC_URL` and `SEPOLIA_PRIVATE_KEY` (an account funded with Sepolia
+test ETH) in the repo-root `.env`, run `cd blockchain && npm run deploy:sepolia` (writes
+`deployments/sepolia.json`), then set `BLOCKCHAIN_NETWORK=sepolia` and restart the backend. Records then
+need 3 confirmations to lock (`BLOCKCHAIN_CONFIRMATIONS_SEPOLIA`), the tx step links to Etherscan, and the
+tamper demo is off unless `BLOCKCHAIN_DEV_TOOLS=true`.
+
+**Decisions / deviations worth knowing about:**
+1. **Hardhat 2 (`hardhat@2.29`, toolbox 6) rather than Hardhat 3.** Same locked tool, mature CommonJS
+   toolchain and `hardhat node`; chosen for reliability. No Ethers.js in the frontend: the backend is the
+   only chain client and the UI reads everything through the API.
+2. **Only the deployer can append** (owner check in the contract) so third parties cannot spam the ledger.
+   The backend must hold that key. Locally that is Hardhat's publicly known account #0 key.
+3. **Deployment identity = contract address + deployment block hash.** A restarted Hardhat node redeploys to
+   the same address, so the address alone would make old records look tampered. Records from a previous
+   local chain show "written to an earlier ledger contract" and Verify says "unavailable", not "mismatch".
+4. **Step times are backend observation times.** Hardhat's own block timestamps ran about 40 s ahead of
+   wall-clock when it mined many blocks per second, so the block's own time is shown separately.
+5. The FAULT_ALERT is recorded at the same moment as the self-healing decision (on the transition into a
+   fault state), not on every faulted reading, matching the decision log.
+
+**Measured (local Hardhat node, 2026-09-28):**
+- Hardhat tests: 10 passing (happy path, ABI has only `appendRecord`, existing records unchanged after
+  further appends, owner-only, empty hash/actor/unknown type rejected, unknown id reverts, event
+  emission with arguments, hash verification incl. a tampered payload, canonical JSON form).
+- The Python and JavaScript canonical-JSON fingerprints of the same test object are identical.
+- End to end with the running backend: real twin decisions from the Kelmarsh replay were recorded
+  automatically (FAULT_ALERT then ENERGY_REDISTRIBUTION), plus simulated trades and the 30 FL rounds.
+  Every record reached Confirmed. Created-to-confirmed time over 88 records: median 0.21 s; the maximum,
+  62.8 s, was a record queued while the node was deliberately stopped.
+- Gas per append: ENERGY_REDISTRIBUTION 142,543-145,343; FAULT_ALERT 165,243-165,255;
+  P2P_TRADE 162,299-165,255; FL_ROUND 165,171-165,195.
+- Verify returned "match" on untouched records. After the dev tamper it returned "mismatch", and the
+  header integrity check listed exactly the tampered record ids.
+- Outage test: with the node stopped, `/chain/status` reported `unreachable`, a new trade was stored as
+  queued, and the API, twin and ingestion kept responding. After the node restarted, the backend
+  auto-deployed, sent the queued record, and it confirmed and verified.
+- Headless Chrome run of the Blockchain tab: the tab loads, a simulated trade shows steps 1-6 done, Verify
+  shows match, tamper then Verify shows mismatch, the type filter works, no console errors.
+- A second `replay-fl-rounds` call recorded 0 rounds and skipped 30.
+
+**Known limitations / not verified:**
+- **Sepolia is not exercised**: no RPC URL or funded key is available. The config, deploy script and
+  backend switch were checked to load, but no transaction was sent to Sepolia.
+- If TimescaleDB is down, new ledger events are logged and dropped (counted in
+  `/chain/status.skipped_without_db`); only chain outages are queued for retry.
+- Records from a reset local chain stay in the table and cannot be re-verified. FL rounds already recorded
+  are not re-recorded on a new chain because replay is idempotent by run and round.
+- The integrity check re-reads at most the 500 newest records of the current deployment on each
+  `/chain/status` call and after each verify.
+- The contract stores records in an unbounded array: fine for a demo and testnet, not tuned for gas at scale.
+- No human-approval gate: redistributions are recorded as twin-only actions; nothing physical is switched.
+- Found, not caused by Module 5 and not fixed: the backend's `reload=True` dev server hangs on reload
+  (the old worker never finishes shutting down; reproduced with `BLOCKCHAIN_ENABLED=false`). Restart
+  `python run.py` manually after code changes.
+- Found, not fixed (Module 1 scope): the live hydro node's `power_output` read 57,988 kW against a 400 kW
+  rated capacity. Simulated trades now cap at rated capacity; the reading itself is unchanged.

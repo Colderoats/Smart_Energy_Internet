@@ -8,7 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import db
 from app.ai_service.predictor import predictor
+from app.blockchain.ledger import ledger
 from app.api.ai_routes import router as ai_router
+from app.api.chain_routes import router as chain_router
 from app.api.routes import router as api_router
 from app.api.twin_routes import router as twin_router
 from app.ingestion.poller import run_live_poller
@@ -37,11 +39,17 @@ async def lifespan(app: FastAPI):
     # Missing torch/artifact disables scoring; the rule-based detector runs regardless.
     await asyncio.to_thread(predictor.load)
 
+    # Module 5: blockchain ledger worker + chain health loop. Started before
+    # ingestion so the first twin decisions are recorded. Never fatal and never
+    # waits on the chain: an unreachable node just leaves records queued.
+    await ledger.start()
+
     background_tasks.append(asyncio.create_task(run_live_poller()))
     background_tasks.append(asyncio.create_task(run_scada_replay()))
 
     yield
 
+    await ledger.stop()
     for task in background_tasks:
         task.cancel()
     await db.disconnect()
@@ -59,6 +67,7 @@ app.add_middleware(
 app.include_router(api_router)
 app.include_router(twin_router)
 app.include_router(ai_router)
+app.include_router(chain_router)
 
 
 @app.get("/health")

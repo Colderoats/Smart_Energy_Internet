@@ -16,3 +16,9 @@ __pycache__/
 !/backend/data/scada/.gitkeep
 
 *.log
+
+# Module 5 — Hardhat build output and the local dev-chain deployment (the local
+# chain is wiped on every node restart). deployments/sepolia.json is kept.
+/blockchain/artifacts/
+/blockchain/cache/
+/blockchain/deployments/localhost.json

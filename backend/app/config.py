@@ -45,6 +45,28 @@ class Settings(BaseSettings):
     # Set AI_MODEL_SOURCE in .env. Every prediction records which model produced it.
     ai_model_source: str = "centralized"
 
+    # Module 5 (blockchain ledger, app/blockchain/). "local" = Hardhat node
+    # (`npm run node` in <repo>/blockchain); "sepolia" = public testnet, needs
+    # SEPOLIA_RPC_URL + SEPOLIA_PRIVATE_KEY (same account that ran
+    # `npm run deploy:sepolia`, since only the deployer may append).
+    blockchain_enabled: bool = True
+    blockchain_network: str = "local"
+    blockchain_local_rpc_url: str = "http://127.0.0.1:8545"
+    # Hardhat's default account #0 — a PUBLICLY KNOWN dev key, only ever used
+    # against the local Hardhat node. Never used for Sepolia.
+    blockchain_local_private_key: str = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+    sepolia_rpc_url: str = ""
+    sepolia_private_key: str = ""
+    # Confirmations before a record counts as "confirmed / locked". Hardhat
+    # mines one block per tx, so 1 locally; 3 on Sepolia (~36 s).
+    blockchain_confirmations_local: int = 1
+    blockchain_confirmations_sepolia: int = 3
+    # Local only: deploy EnergyLedger automatically if the Hardhat node was
+    # restarted (fresh chain, no code at the recorded address).
+    blockchain_auto_deploy_local: bool = True
+    # Dev-only tamper demo endpoint. Defaults to on for local, off for Sepolia.
+    blockchain_dev_tools: bool | None = None
+
     @property
     def database_url(self) -> str:
         return (

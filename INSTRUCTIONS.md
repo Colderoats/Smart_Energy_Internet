@@ -27,10 +27,11 @@ and experiment log in aiprogress.md. Module 4 (adaptive federated learning,
 Flower: FedAvg / FedProx / FedProx + adaptive weighting) is built and evaluated —
 code, artifacts and run instructions in backend/ai/federated (own venv there:
 Flower's pins conflict with backend/venv), measured results in aiprogress.md.
-Module 5 (blockchain) is next but NOT started: do not scaffold Module 5 code
-(Solidity/web3) unless I explicitly ask. Module 4 keeps per-round, per-client
-weights in backend/ai/federated/artifacts (round_log.json, adaptive_weights_by_round.csv)
-as the data a later blockchain step could record.
+Module 5 (blockchain ledger) is built: Solidity EnergyLedger + Hardhat in blockchain/
+(local Hardhat node by default, Sepolia config ready but not exercised), Web3.py service in
+backend/app/blockchain, Blockchain tab in the frontend. It records self-healing redistributions,
+fault alerts, SIMULATED P2P trades and Module 4 federated rounds (replayed from round_log.json).
+Run instructions, measured results and limitations: PROGRESS.md "Module 5".
 
 ## Data sourcing (important — don't get this wrong)
 - Solar + EV: real sensor data via ESP32 (INA219/ACS712) → MQTT → TimescaleDB

@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import LiveDataTab from './tabs/LiveDataTab'
 import DigitalTwinTab from './tabs/DigitalTwinTab'
+import BlockchainTab from './tabs/BlockchainTab'
 
 const TABS = [
   { id: 'live', label: 'Live Data' },
   { id: 'twin', label: 'Digital Twin' },
+  { id: 'chain', label: 'Blockchain' },
 ]
 
 function App() {
@@ -37,7 +39,9 @@ function App() {
       {/* Only one tab is ever mounted at a time — they don't share state or
           a socket connection, per the requirement that these be genuinely
           separate views, not one graph with extra info bolted on. */}
-      {tab === 'live' ? <LiveDataTab /> : <DigitalTwinTab />}
+      {tab === 'live' && <LiveDataTab />}
+      {tab === 'twin' && <DigitalTwinTab />}
+      {tab === 'chain' && <BlockchainTab />}
     </div>
   )
 }

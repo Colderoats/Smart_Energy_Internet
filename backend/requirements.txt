@@ -12,3 +12,5 @@ networkx==3.4.2
 torch==2.14.0
 torch_geometric==2.8.0.post1
 
+# Module 5 (blockchain ledger): Web3.py talks to the EnergyLedger contract.
+web3==8.0.0

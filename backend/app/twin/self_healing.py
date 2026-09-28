@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 
 from app import db
 from app.api.ws_manager import manager
+from app.blockchain import ledger as ledger_hooks
 from app.twin.digital_twin import BUS_A, BUS_B, BUS_CAPACITY_KW, digital_twin
 
 logger = logging.getLogger("sei")
@@ -90,6 +91,11 @@ async def _handle_fault(node: dict) -> None:
     }
 
     await _record(decision)
+
+    # Module 5: put the triggering fault and this redistribution on the
+    # blockchain ledger. Only schedules work — never waits on or fails
+    # because of the chain (app/blockchain/ledger.py).
+    ledger_hooks.on_self_healing(node, decision)
 
 
 def _combined(score: tuple[float, float]) -> float:

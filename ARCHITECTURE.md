@@ -1,7 +1,7 @@
 # Description
 The Smart Energy Internet is an intelligent smart grid platform integrating module 1: hardware for solar and live data from real sites for hydro and wind. module 2: Self-Healing and self optimizing Digital Twin of microgrid. module 3: Topology Adaptive Graph Neural Networks (TA-GNN). module 4: Adaptive Federated learning (FedProx and adaptive weighting), and module 5: Blockchain for secure, autonomous energy management. ESP32-based IoT nodes deployed across houses, renewable energy plants, and EV charging stations continuously stream voltage, current, and power data through MQTT. A self-optimizing and self-healing Digital Twin mirrors the physical grid in real time, predicts failures, and autonomously reconfigures energy flow to maintain grid stability. Federated TA-GNN learns from distributed energy nodes without transferring raw data, preserving privacy while accurately forecasting demand, detecting faults, and adapting to dynamic grid topology. Ethereum smart contracts securely record peer-to-peer energy trading with transparent, tamper-proof settlement. A React-based dashboard provides live monitoring, AI-driven predictions, self-healing actions, topology visualization, and blockchain transaction logs, enabling a resilient and intelligent energy ecosystem.
 
-# Architecture — Module 1, 2, 3 & 4 (current scope; Modules 3 and 4 added at the end)
+# Architecture — Modules 1-5 (current scope; Modules 3, 4 and 5 added at the end)
 
 Scope for this phase: NO solar/hardware yet. Two data sources only:
 1. LIVE data — wind/hydro power output + wind speed, pulled from external API
@@ -161,10 +161,24 @@ model the AI service loads; every verdict and the model card state which one pro
 - Module 2 — digital twin, self-healing, decision log, Digital Twin tab: done
 - Module 3 — TA-GNN fault prediction (backend/ai, backend/app/ai_service, Digital Twin tab badges): built; see aiprogress.md for measured results
 - Module 4 — federated learning (Flower, FedProx + adaptive weighting; backend/ai/federated, own venv): built; see aiprogress.md for measured results
-- Module 5 — blockchain: not started
+- Module 5 — blockchain ledger (Solidity EnergyLedger + Hardhat in blockchain/, Web3.py service in backend/app/blockchain, Blockchain tab): built and verified on a local Hardhat node; Sepolia config ready but not exercised. See PROGRESS.md "Module 5"
+
+## Module 5 — blockchain ledger
+
+Append-only EnergyLedger contract (no update/delete; owner-only append) stores, per record: id, event type
+(ENERGY_REDISTRIBUTION | P2P_TRADE | FAULT_ALERT | FL_ROUND), keccak256 of the canonical-JSON payload,
+actor/node id, block timestamp. The full payload lives off-chain in TimescaleDB `chain_records`.
+Verification = re-hash the stored payload and compare with the on-chain hash.
+Flow: self-healing decision (Module 2) -> hook schedules FAULT_ALERT + ENERGY_REDISTRIBUTION -> ledger worker
+(async, retries, never blocks ingestion) -> tx -> receipt -> confirmations -> `chain_record` WS message.
+P2P trades are SIMULATED (POST /chain/simulate-trade); FL rounds are replayed from the offline Module 4 run.
+Every payload carries `provenance` (live_api | replayed_scada | simulated | offline_federated_run).
+API: GET /chain/status, GET /chain/records, GET /chain/records/{id}, POST /chain/verify/{id},
+POST /chain/simulate-trade, POST /chain/replay-fl-rounds, POST /chain/dev/tamper/{id} (dev only).
+WS on /ws/updates: chain_record, chain_status. Network: BLOCKCHAIN_NETWORK=local (default) | sepolia.
 
 ## Out of scope (still)
 - Solar/EV hardware, MQTT, ESP32 firmware
-- Blockchain (Module 5)
+- Real (non-simulated) P2P energy trading: Module 5 records SIMULATED trades only until hardware exists
 - Human-approval gate / real actuation on the self-healing layer
 (Topology switching now exists via the Module 2 self-healing layer; the original "static topology" note above is historical.)
