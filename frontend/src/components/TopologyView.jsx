@@ -2,8 +2,11 @@ import { useMemo } from 'react'
 import { ReactFlow, Background, Controls } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import EnergyNode from './EnergyNode'
+import FlowEdge, { flowWidth } from './FlowEdge'
+import { SOURCE_COLORS } from '../ui/theme'
 
 const nodeTypes = { energyNode: EnergyNode }
+const edgeTypes = { flow: FlowEdge }
 
 // Fixed demo layout — topology itself is static for this phase (see
 // docs/architecture.md), so hand-placed positions are fine.
@@ -14,7 +17,7 @@ const POSITIONS = {
   wind_scada_kelmarsh_2: { x: 0, y: 320 },
   wind_scada_kelmarsh_3: { x: 0, y: 420 },
   wind_scada_kelmarsh_4: { x: 0, y: 520 },
-  grid: { x: 320, y: 260 },
+  grid: { x: 360, y: 260 },
 }
 
 function TopologyView({ nodes, edges, onSelectNode, selectedNodeId }) {
@@ -30,17 +33,23 @@ function TopologyView({ nodes, edges, onSelectNode, selectedNodeId }) {
     [nodes, onSelectNode, selectedNodeId],
   )
 
-  const flowEdges = useMemo(
-    () =>
-      edges.map((edge) => ({
+  // Edge thickness = the source's latest power output; a dot travels
+  // source -> grid while it is producing.
+  const flowEdges = useMemo(() => {
+    const kwOf = (id) => nodes[id]?.latest_reading?.power_output ?? 0
+    const maxKw = Math.max(1, ...edges.map((e) => kwOf(e.source)))
+    return edges.map((edge) => {
+      const kw = kwOf(edge.source)
+      const color = SOURCE_COLORS[nodes[edge.source]?.type] ?? SOURCE_COLORS.grid
+      return {
         id: `${edge.source}-${edge.target}`,
         source: edge.source,
         target: edge.target,
-        animated: true,
-        style: { stroke: '#64748b' },
-      })),
-    [edges],
-  )
+        type: 'flow',
+        data: { width: flowWidth(kw, maxKw), color, dotColor: color, flowing: kw > 0 },
+      }
+    })
+  }, [edges, nodes])
 
   return (
     <div className="h-full w-full">
@@ -48,10 +57,11 @@ function TopologyView({ nodes, edges, onSelectNode, selectedNodeId }) {
         nodes={flowNodes}
         edges={flowEdges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#1e293b" gap={20} />
+        <Background color="#e2e8f0" gap={22} />
         <Controls />
       </ReactFlow>
     </div>

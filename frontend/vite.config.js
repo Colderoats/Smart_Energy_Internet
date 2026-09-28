@@ -22,6 +22,9 @@ export default defineConfig({
       '/twin': api,
       // Module 5 Blockchain tab (app/api/chain_routes.py).
       '/chain': api,
+      // Module 3 AI predictions + model card (app/api/ai_routes.py), read by
+      // the AI Insights view. No SPA route starts with /ai.
+      '/ai': api,
       // Admin authentication (app/api/auth_routes.py).
       '/auth': api,
       '/health': api,

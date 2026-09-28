@@ -36,6 +36,8 @@ Admin authentication is built (ARCHITECTURE.md "Admin authentication"). The whol
 REST route except /health + /auth/{login,register,refresh,logout}, and the /ws/updates WebSocket
 require an admin session. New routers MUST be included with `dependencies=protected` in
 app/main.py; tests/test_auth.py pins the protected-route list and fails if a route is added unprotected.
+The frontend UI was redesigned (presentation layer only): sidebar shell, design tokens and the view map
+are in ARCHITECTURE.md "Frontend structure (UI redesign)"; what is mocked is in PROGRESS.md "UI redesign".
 
 ## Auth quick reference
 - Needs `JWT_SECRET` (>= 32 chars) in the repo-root .env, or the backend will not start (see .env.example).
@@ -75,6 +77,10 @@ app/main.py; tests/test_auth.py pins the protected-route list and fails if a rou
   never tuned toward the targets. Extra Kelmarsh years live in
   backend/data/scada/extra_years/ (training/eval only; Module 1's replay does
   not read them).
+- Frontend conventions (UI redesign): reuse `src/ui/` (theme colours, Card/StatCard/Pill, icons)
+  instead of ad-hoc styles; colour = meaning (Solar amber, Wind teal, Hydro blue, Grid slate,
+  blockchain violet; green/amber/red only for status). Data no endpoint exposes goes ONLY in
+  `src/mocks/uiMocks.js`, tagged MOCK or SNAPSHOT, shown with a "Mock data" tag, and listed in PROGRESS.md.
 
 ## See also
 - ARCHITECTURE.md — module details, data schemas, twin state model and why each stack choice was made (avoid re-litigating)

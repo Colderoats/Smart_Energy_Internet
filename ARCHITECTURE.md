@@ -163,6 +163,7 @@ model the AI service loads; every verdict and the model card state which one pro
 - Module 4 — federated learning (Flower, FedProx + adaptive weighting; backend/ai/federated, own venv): built; see aiprogress.md for measured results
 - Module 5 — blockchain ledger (Solidity EnergyLedger + Hardhat in blockchain/, Web3.py service in backend/app/blockchain, Blockchain tab): built and verified on a local Hardhat node; Sepolia config ready but not exercised. See PROGRESS.md "Module 5"
 - Admin authentication (invite-only admins, cookie JWT + rotating refresh tokens, every REST route and the WebSocket protected): built and tested. See "Admin authentication" below and PROGRESS.md
+- UI redesign (presentation layer only: design system, sidebar shell, 7 screens incl. new Federated Learning and Analytics views): built and verified in a browser. See "Frontend structure (UI redesign)" at the end and PROGRESS.md
 
 ## Module 5 — blockchain ledger
 
@@ -273,8 +274,9 @@ characters, and the backend refuses to start without it. Also `FRONTEND_ORIGIN`,
 
 **Frontend.** `AuthProvider` checks `/auth/me` on load. The route guard sends every `/dashboard/*` view
 to `/login?next=<path>` and returns the user there after login (`next` is limited to `/dashboard*`, so it
-cannot be used as an open redirect). The tabs moved to `/dashboard/live|twin|chain|invite`. They must not
-share the `/twin`, `/chain` or `/nodes` prefixes, which the Vite proxy forwards to the backend. Routing
+cannot be used as an open redirect). Views live at `/dashboard/<view>` (since the UI redesign:
+`home|map|sources|chain|ai|analytics|settings`; the older `live|twin|invite` URLs redirect). They must not
+share the `/twin`, `/chain`, `/nodes` or `/ai` prefixes, which the Vite proxy forwards to the backend. Routing
 uses a small history-API helper (`src/auth/router.js`), so no router dependency was added. All API calls
 go through `apiFetch`. On a 401 it makes one deduplicated silent refresh and then retries. If that
 fails, the user is sent to `/login`. WebSockets open only inside the authenticated dashboard, through
@@ -284,3 +286,48 @@ fails, the user is sent to `/login`. WebSockets open only inside the authenticat
 branches on `mfa_enabled` after the password check and before `_issue_session()`. A TOTP step slots in
 there: it issues a short-lived `mfa_pending` token instead of a session, and a new `POST /auth/login/totp`
 verifies the code and calls `_issue_session()`. The cookie, refresh and guard code does not change.
+
+## Frontend structure (UI redesign, added 2026-09-28)
+
+Presentation layer only. It reads the same hooks and endpoints as before and adds no backend
+contract. Code is in `frontend/src/`.
+
+**Shell.** `ui/AppShell.jsx`: a dark navy sidebar (order fixed in `ui/nav.js`), a light content area
+and a top bar (page title, live indicator, admin avatar). The live indicator shows the mounted
+page's own socket via `useReportConnection(connected)`. The shell opens no socket and never polls.
+Only one view is mounted at a time.
+
+**Design tokens** (`ui/theme.js`). Colour means the same thing on every screen: Solar amber, Wind
+teal, Hydro blue, Grid/Storage slate, blockchain violet, one indigo UI accent. Green, amber and red are
+used only for status. Primitives are in `ui/components.jsx` and icons are inline SVG in `ui/icons.jsx`
+(no icon dependency).
+
+| View (route) | Component | Data source (existing) |
+|---|---|---|
+| Dashboard (`home`) | `tabs/DashboardTab` | `useDigitalTwinSocket` (twin nodes + decisions) |
+| Grid Map (`map`) Topology: Live View / Digital Twin | `tabs/GridMapTab` -> `LiveDataTab` / `DigitalTwinTab` | `useTwinSocket` / `useDigitalTwinSocket` (still separate) |
+| Grid Map (`map?tab=fl`) Federated Learning | `components/FederatedPanel` | `useBlockchainSocket('FL_ROUND')`, fallback snapshot |
+| Sources (`sources`) | `tabs/SourcesTab` | `useDigitalTwinSocket` + `GET /twin/nodes/{id}/history` |
+| Redistribution (`chain`) | `tabs/RedistributionTab` (+ existing `BlockchainTab` as the ledger explorer) | `useBlockchainSocket` (all, and `P2P_TRADE`), `useDigitalTwinSocket` decisions |
+| AI Insights (`ai`) | `tabs/AIInsightsTab` | twin node `detectors` + `GET /ai/predictions` model card |
+| Analytics (`analytics`) | `tabs/AnalyticsTab` | twin nodes/decisions, `P2P_TRADE` records, snapshots, mocks |
+| Settings (`settings`) | `tabs/SettingsTab` (+ existing `InviteAdminPage` as "Admins") | `useAuth` user, `/health`, `/chain/status`, `/ai/predictions` |
+
+**Topology rendering.** Nodes are compact icon cards whose colour shows status. The Live/Replayed
+badge stays always visible (data-sourcing rule). `components/FlowEdge.jsx` sets stroke width from the
+power on the line (source output x load share; bus -> grid = bus load) and animates a dot in the
+direction of flow. Twin edges are still derived live from each node's `active_connection` /
+`isolated`.
+
+**Topology changes on chain.** A twin decision is joined to its `ENERGY_REDISTRIBUTION` ledger record
+by `payload.twin_decision_id` (`<node_id>@<decision time>`, the same key as Module 5), which gives the
+block number. The block strip shows only `deployment_current` records, so blocks from a restarted
+local chain do not mix in.
+
+**Mocks.** Any value no endpoint exposes lives in `src/mocks/uiMocks.js`, tagged MOCK (invented
+placeholder) or SNAPSHOT (measured numbers copied from a repo artifact). The UI marks MOCK values with
+a "Mock data" tag. The current list is in PROGRESS.md "UI redesign". Replace a mock by wiring the
+real source in the view and deleting the export.
+
+Vite proxy: `/ai` was added (for `GET /ai/predictions`) next to `/nodes`, `/twin`, `/chain`, `/auth`,
+`/health` and `/ws`.

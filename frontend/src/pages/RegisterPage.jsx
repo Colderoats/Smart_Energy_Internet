@@ -21,7 +21,7 @@ export default function RegisterPage({ search }) {
             Registration is invite-only. Open the full invite link you were given, or ask an existing admin for a new
             one.
           </Alert>
-          <button onClick={() => navigate('/login')} className="text-sm text-sky-400 hover:text-sky-300">
+          <button onClick={() => navigate('/login')} className="text-sm text-indigo-600 hover:text-indigo-700">
             Go to sign in
           </button>
         </div>

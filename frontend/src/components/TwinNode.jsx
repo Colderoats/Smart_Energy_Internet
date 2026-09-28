@@ -1,11 +1,15 @@
 import { Handle, Position } from '@xyflow/react'
-import { healthStyle } from '../healthStatus'
+import Icon, { SourceIcon } from '../ui/icons'
+import { HEALTH_LABEL, HEALTH_TONE, SOURCE_COLORS, STATUS_COLORS, nodeLabel } from '../ui/theme'
+import { SourceBadge } from './EnergyNode'
 
 // Module 3: which detector said what. Rule-based (Module 2) and TA-GNN run side
 // by side; `flagged_by` says which one(s) raised the current flag. TA-GNN output
 // is a forecast on REPLAYED SCADA data, and the rule-based "fault" on replayed
 // nodes is usually the replayed status-log label, not a statistic.
-function DetectorRows({ data }) {
+// Rendered in the Grid Map side panel for the selected node (kept off the
+// node card to declutter the graph).
+export function DetectorRows({ data }) {
   const detectors = data.detectors
   if (!detectors) return null
   const rule = detectors.rule_based
@@ -14,14 +18,14 @@ function DetectorRows({ data }) {
   const fromLabel = rule?.basis === 'replayed_ground_truth_label'
 
   return (
-    <div className="mt-2 space-y-1 rounded bg-black/30 px-1.5 py-1 text-[10px]">
+    <div className="space-y-2 text-sm">
       {flaggedBy.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1.5">
           {flaggedBy.includes('ta_gnn') && (
-            <span className="rounded bg-violet-600 px-1 py-0.5 font-semibold uppercase">Flagged: TA-GNN</span>
+            <span className="rounded-md bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700">Flagged: TA-GNN</span>
           )}
           {flaggedBy.includes('rule_based') && (
-            <span className="rounded bg-slate-600 px-1 py-0.5 font-semibold uppercase">Flagged: rule-based</span>
+            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">Flagged: rule-based</span>
           )}
         </div>
       )}
@@ -34,8 +38,8 @@ function DetectorRows({ data }) {
               : 'Module 2 rolling temperature z-score rule'
           }
         >
-          <span className="opacity-70">Rule-based</span>
-          <span className={rule.flagged ? 'font-semibold text-amber-300' : 'opacity-80'}>
+          <span className="text-slate-500">Rule-based</span>
+          <span className={rule.flagged ? 'font-semibold text-amber-700' : 'text-slate-700'}>
             {rule.flagged ? (fromLabel ? 'FAULT (replayed label)' : 'FLAG') : 'clear'}
           </span>
         </div>
@@ -45,8 +49,8 @@ function DetectorRows({ data }) {
           className="flex justify-between gap-2"
           title={`${gnn.model}: probability that a fault starts within ${gnn.horizon_min} min. Forecast on replayed SCADA data, not sensed.`}
         >
-          <span className="opacity-70">TA-GNN</span>
-          <span className={gnn.flagged ? 'font-semibold text-violet-300' : 'opacity-80'}>
+          <span className="text-slate-500">TA-GNN</span>
+          <span className={gnn.flagged ? 'font-semibold text-violet-700' : 'text-slate-700'}>
             {gnn.flagged
               ? `FLAG ${(gnn.probability * 100).toFixed(0)}% ≤${gnn.horizon_min}min`
               : `${(gnn.probability * 100).toFixed(1)}%`}
@@ -57,85 +61,91 @@ function DetectorRows({ data }) {
   )
 }
 
-function SourceNode({ data }) {
-  const style = healthStyle(data.health_status)
+function SourceNode({ data, selected }) {
+  const tone = HEALTH_TONE[data.health_status] ?? 'ok'
+  const statusColor = data.isolated ? STATUS_COLORS.bad : STATUS_COLORS[tone]
   const reading = data.latest_reading
   const curtailed = data.load_share < 1
+  const color = SOURCE_COLORS[data.type] ?? SOURCE_COLORS.grid
+  const gnnFlag = (data.flagged_by ?? []).includes('ta_gnn')
 
   return (
     <div
-      className="min-w-[160px] cursor-pointer rounded-lg border-2 px-3 py-2 text-xs text-white shadow-md"
-      style={{ backgroundColor: style.bg, borderColor: style.border }}
+      className={`min-w-[176px] cursor-pointer rounded-2xl border-2 bg-white px-3 py-2.5 text-slate-800 shadow-sm transition-shadow hover:shadow-md ${
+        selected ? 'ring-4 ring-indigo-100' : ''
+      } ${data.isolated ? 'border-dashed opacity-80' : ''}`}
+      style={{ borderColor: statusColor }}
       onClick={() => data.onSelect?.(data.node_id)}
+      title={`${data.node_id} · ${HEALTH_LABEL[data.health_status] ?? 'Normal'}`}
     >
       <Handle type="target" position={Position.Left} className="invisible" />
       <Handle type="source" position={Position.Right} className="invisible" />
-      <div className="font-semibold">{data.node_id}</div>
-      <div className="opacity-80">
-        {data.type} · {data.source_type}
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: `${color}1f`, color }}>
+          <SourceIcon type={data.type} size={19} />
+        </span>
+        <div className="min-w-0 flex-1 leading-tight">
+          <div className="truncate text-sm font-semibold">{nodeLabel(data.node_id)}</div>
+          <div className="text-sm text-slate-600">{reading ? `${reading.power_output.toFixed(0)} kW` : '—'}</div>
+        </div>
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: statusColor }} />
       </div>
-      {reading && <div className="mt-1 opacity-90">{reading.power_output.toFixed(1)} kW</div>}
-      <div className="mt-1 text-[10px] uppercase tracking-wide opacity-80">{style.label}</div>
-      <DetectorRows data={data} />
-      {data.isolated && (
-        <div className="mt-1 rounded bg-black/30 px-1 py-0.5 text-[10px] font-semibold uppercase">
-          Isolated — no route to grid
-        </div>
-      )}
-      {!data.isolated && curtailed && (
-        <div className="mt-1 rounded bg-black/30 px-1 py-0.5 text-[10px] font-semibold uppercase">
-          Curtailed to {Math.round(data.load_share * 100)}%
-        </div>
-      )}
-      {!data.isolated && (
-        <div className="mt-1 text-[10px] opacity-70">via {data.active_connection}</div>
-      )}
+      <div className="mt-1.5 flex flex-wrap items-center gap-1">
+        <SourceBadge sourceType={data.source_type} />
+        {gnnFlag && <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-violet-700">TA-GNN</span>}
+        {data.isolated && <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-red-700">Isolated</span>}
+        {!data.isolated && curtailed && (
+          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
+            {Math.round(data.load_share * 100)}%
+          </span>
+        )}
+      </div>
     </div>
   )
 }
 
-function BusNode({ data }) {
+function BusNode({ data, selected }) {
   const overloaded = data.current_load_kw > data.capacity_kw
   const pct = Math.min(100, (data.current_load_kw / data.capacity_kw) * 100)
 
   return (
     <div
-      className={`min-w-[150px] rounded-lg border-2 bg-slate-800 px-3 py-2 text-xs text-white shadow-md ${
-        overloaded ? 'border-red-500' : 'border-slate-500'
-      }`}
+      className={`min-w-[170px] cursor-pointer rounded-2xl border-2 bg-white px-3 py-2.5 text-slate-800 shadow-sm ${
+        overloaded ? 'border-red-500' : 'border-slate-300'
+      } ${selected ? 'ring-4 ring-indigo-100' : ''}`}
+      onClick={() => data.onSelect?.(data.node_id)}
     >
       <Handle type="target" position={Position.Left} className="invisible" />
       <Handle type="source" position={Position.Right} className="invisible" />
-      <div className="font-semibold">{data.node_id}</div>
-      <div className="mt-1 opacity-80">
+      <div className="flex items-center gap-2">
+        <Icon name="bus" size={18} className="text-slate-500" />
+        <span className="text-sm font-semibold">{nodeLabel(data.node_id)}</span>
+        {overloaded && <span className="ml-auto text-[10px] font-semibold uppercase text-red-600">Overloaded</span>}
+      </div>
+      <div className="mt-1 text-xs text-slate-500">
         {data.current_load_kw.toFixed(0)} / {data.capacity_kw.toFixed(0)} kW
       </div>
-      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-700">
-        <div
-          className={`h-full ${overloaded ? 'bg-red-500' : 'bg-sky-400'}`}
-          style={{ width: `${pct}%` }}
-        />
+      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+        <div className={`h-full ${overloaded ? 'bg-red-500' : 'bg-slate-500'}`} style={{ width: `${pct}%` }} />
       </div>
-      {overloaded && (
-        <div className="mt-1 text-[10px] font-semibold uppercase text-red-400">Overloaded</div>
-      )}
     </div>
   )
 }
 
 function GridNode({ data }) {
   return (
-    <div className="min-w-[110px] rounded-lg border-2 border-emerald-500 bg-emerald-950 px-3 py-2 text-xs font-semibold text-emerald-200 shadow-md">
+    <div className="flex min-w-[120px] items-center gap-2 rounded-2xl border-2 border-slate-400 bg-slate-800 px-3 py-2.5 text-sm font-semibold text-white shadow-sm">
       <Handle type="target" position={Position.Left} className="invisible" />
-      {data.node_id.toUpperCase()}
+      <Icon name="grid" size={18} />
+      {nodeLabel(data.node_id)}
     </div>
   )
 }
 
-function TwinNode({ data }) {
-  if (data.type === 'bus') return <BusNode data={data} />
+function TwinNode({ data, selected }) {
+  if (data.type === 'bus') return <BusNode data={data} selected={selected} />
   if (data.type === 'grid') return <GridNode data={data} />
-  return <SourceNode data={data} />
+  return <SourceNode data={data} selected={selected} />
 }
 
 export default TwinNode

@@ -8,25 +8,25 @@ import { useBlockchainSocket } from '../hooks/useBlockchainSocket'
 // chain_status); nothing here polls.
 
 const EVENT_TYPES = {
-  ENERGY_REDISTRIBUTION: { label: 'Energy redistribution', icon: '🔀', badge: 'bg-sky-900 text-sky-300' },
-  P2P_TRADE: { label: 'P2P trade', icon: '🤝', badge: 'bg-amber-900 text-amber-300' },
-  FAULT_ALERT: { label: 'Fault alert', icon: '⚠️', badge: 'bg-red-900 text-red-300' },
-  FL_ROUND: { label: 'Federated round', icon: '🧠', badge: 'bg-teal-900 text-teal-300' },
+  ENERGY_REDISTRIBUTION: { label: 'Energy redistribution', icon: '🔀', badge: 'bg-sky-50 text-sky-700' },
+  P2P_TRADE: { label: 'P2P trade', icon: '🤝', badge: 'bg-amber-50 text-amber-700' },
+  FAULT_ALERT: { label: 'Fault alert', icon: '⚠️', badge: 'bg-red-50 text-red-700' },
+  FL_ROUND: { label: 'Federated round', icon: '🧠', badge: 'bg-teal-50 text-teal-700' },
 }
 
 const PROVENANCE = {
-  simulated: { label: 'Simulated', cls: 'border-amber-500 text-amber-300' },
-  replayed_scada: { label: 'Replayed SCADA', cls: 'border-violet-500 text-violet-300' },
-  live_api: { label: 'Live API', cls: 'border-sky-500 text-sky-300' },
-  offline_federated_run: { label: 'Offline federated run', cls: 'border-teal-500 text-teal-300' },
+  simulated: { label: 'Simulated', cls: 'border-amber-300 text-amber-700' },
+  replayed_scada: { label: 'Replayed SCADA', cls: 'border-violet-300 text-violet-700' },
+  live_api: { label: 'Live API', cls: 'border-sky-300 text-sky-700' },
+  offline_federated_run: { label: 'Offline federated run', cls: 'border-teal-300 text-teal-700' },
 }
 
 const STATUS = {
-  queued: { label: 'Pending', cls: 'bg-slate-700 text-slate-200' },
-  submitted: { label: 'Sent', cls: 'bg-indigo-800 text-indigo-200' },
-  included: { label: 'In a block', cls: 'bg-blue-800 text-blue-200' },
-  confirmed: { label: 'Confirmed', cls: 'bg-emerald-800 text-emerald-200' },
-  failed: { label: 'Failed', cls: 'bg-red-800 text-red-200' },
+  queued: { label: 'Pending', cls: 'bg-slate-200 text-slate-800' },
+  submitted: { label: 'Sent', cls: 'bg-indigo-100 text-indigo-700' },
+  included: { label: 'In a block', cls: 'bg-blue-100 text-blue-700' },
+  confirmed: { label: 'Confirmed', cls: 'bg-emerald-100 text-emerald-700' },
+  failed: { label: 'Failed', cls: 'bg-red-100 text-red-700' },
 }
 
 const STEPS = {
@@ -63,7 +63,7 @@ const STEPS = {
 const STEP_DOT = {
   done: 'bg-emerald-500 text-emerald-950',
   active: 'bg-amber-400 text-amber-950 animate-pulse',
-  pending: 'bg-slate-700 text-slate-300',
+  pending: 'bg-slate-200 text-slate-600',
   failed: 'bg-red-500 text-red-950',
 }
 
@@ -79,12 +79,12 @@ function fmtTime(iso) {
 }
 
 function ProvenanceBadge({ value }) {
-  const p = PROVENANCE[value] ?? { label: value, cls: 'border-slate-500 text-slate-300' }
+  const p = PROVENANCE[value] ?? { label: value, cls: 'border-slate-500 text-slate-600' }
   return <span className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${p.cls}`}>{p.label}</span>
 }
 
 function StatusChip({ record }) {
-  const s = STATUS[record.status] ?? { label: record.status, cls: 'bg-slate-700' }
+  const s = STATUS[record.status] ?? { label: record.status, cls: 'bg-slate-200' }
   const retrying = record.status === 'queued' && record.last_error
   return (
     <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.cls}`}>
@@ -99,8 +99,8 @@ function StatusChip({ record }) {
 function Explainer({ text }) {
   return (
     <span className="group relative ml-1 inline-block cursor-help align-middle">
-      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-700 text-[10px] font-bold text-slate-300">?</span>
-      <span className="pointer-events-none absolute left-5 top-0 z-20 hidden w-64 rounded-md border border-slate-700 bg-slate-900 p-2 text-[11px] font-normal text-slate-300 shadow-lg group-hover:block">
+      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-600">?</span>
+      <span className="pointer-events-none absolute left-5 top-0 z-20 hidden w-64 rounded-md border border-slate-300 bg-white p-2 text-[11px] font-normal text-slate-600 shadow-lg group-hover:block">
         {text}
       </span>
     </span>
@@ -109,37 +109,37 @@ function Explainer({ text }) {
 
 function Header({ status, wsConnected, onRecheck, checking }) {
   if (!status) {
-    return <div className="border-b border-slate-800 px-4 py-3 text-xs text-slate-400">Loading blockchain status…</div>
+    return <div className="border-b border-slate-200 px-4 py-3 text-xs text-slate-500">Loading blockchain status…</div>
   }
   const integrity = status.integrity
   const integrityView =
     !integrity || integrity.state === 'unknown'
-      ? { label: 'Integrity unknown', cls: 'bg-slate-800 text-slate-300', icon: '❔' }
+      ? { label: 'Integrity unknown', cls: 'bg-slate-100 text-slate-600', icon: '❔' }
       : integrity.state === 'intact'
-        ? { label: 'Chain integrity: intact', cls: 'bg-emerald-900 text-emerald-300', icon: '🛡️' }
-        : { label: 'Chain integrity: MISMATCH', cls: 'bg-red-900 text-red-200', icon: '🚨' }
+        ? { label: 'Chain integrity: intact', cls: 'bg-emerald-50 text-emerald-700', icon: '🛡️' }
+        : { label: 'Chain integrity: MISMATCH', cls: 'bg-red-50 text-red-700', icon: '🚨' }
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-slate-800 px-4 py-2 text-xs">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-slate-200 px-4 py-2 text-xs">
       <span className="flex items-center gap-1.5">
         <span className={`h-2 w-2 rounded-full ${status.connected ? 'bg-emerald-400' : 'bg-red-400'}`} />
-        <span className="font-semibold text-slate-200">
+        <span className="font-semibold text-slate-800">
           {status.connected ? 'Blockchain connected' : status.enabled ? 'Blockchain unreachable' : 'Ledger disabled'}
         </span>
       </span>
-      <span className="text-slate-400">
-        Network: <span className="text-slate-200">{status.network_label ?? status.network}</span>
+      <span className="text-slate-500">
+        Network: <span className="text-slate-800">{status.network_label ?? status.network}</span>
         {status.chain_id ? <span className="text-slate-500"> (chain {status.chain_id})</span> : null}
       </span>
-      <span className="text-slate-400" title={status.contract_address ?? ''}>
-        Contract: <span className="font-mono text-slate-200">{short(status.contract_address)}</span>
+      <span className="text-slate-500" title={status.contract_address ?? ''}>
+        Contract: <span className="font-mono text-slate-800">{short(status.contract_address)}</span>
       </span>
-      <span className="text-slate-400">
-        Records: <span className="text-slate-200">{status.offchain?.total ?? '—'}</span>
+      <span className="text-slate-500">
+        Records: <span className="text-slate-800">{status.offchain?.total ?? '—'}</span>
         {status.onchain_record_count != null && (
           <span className="text-slate-500"> ({status.onchain_record_count} on the current chain)</span>
         )}
       </span>
-      {status.queue_depth > 0 && <span className="text-amber-300">{status.queue_depth} waiting to be sent</span>}
+      {status.queue_depth > 0 && <span className="text-amber-700">{status.queue_depth} waiting to be sent</span>}
       <span className="ml-auto flex items-center gap-2">
         <span
           className={`rounded-full px-2 py-1 font-semibold ${integrityView.cls}`}
@@ -156,19 +156,19 @@ function Header({ status, wsConnected, onRecheck, checking }) {
         <button
           onClick={onRecheck}
           disabled={checking}
-          className="rounded-md border border-slate-700 px-2 py-1 text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+          className="rounded-md border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
         >
           {checking ? 'Checking…' : 'Re-check all'}
         </button>
         <span
-          className={`flex items-center gap-1.5 rounded-full px-2 py-1 ${wsConnected ? 'bg-emerald-950 text-emerald-300' : 'bg-red-950 text-red-300'}`}
+          className={`flex items-center gap-1.5 rounded-full px-2 py-1 ${wsConnected ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${wsConnected ? 'bg-emerald-400' : 'bg-red-400'}`} />
           {wsConnected ? 'Live updates' : 'Updates disconnected'}
         </span>
       </span>
       {!status.connected && status.last_error && (
-        <div className="w-full rounded bg-red-950/60 px-2 py-1 text-red-300">
+        <div className="w-full rounded bg-red-50 px-2 py-1 text-red-700">
           {status.last_error}. New records are kept and will be sent automatically when the node is back.
         </div>
       )}
@@ -177,12 +177,12 @@ function Header({ status, wsConnected, onRecheck, checking }) {
 }
 
 function RecordRow({ record, selected, onSelect }) {
-  const et = EVENT_TYPES[record.event_type] ?? { label: record.event_type, icon: '•', badge: 'bg-slate-800' }
+  const et = EVENT_TYPES[record.event_type] ?? { label: record.event_type, icon: '•', badge: 'bg-slate-100' }
   return (
     <li>
       <button
         onClick={() => onSelect(record.id)}
-        className={`w-full px-4 py-2.5 text-left text-xs transition-colors ${selected ? 'bg-slate-800' : 'hover:bg-slate-900'}`}
+        className={`w-full px-4 py-2.5 text-left text-xs transition-colors ${selected ? 'bg-slate-100' : 'hover:bg-slate-50'}`}
       >
         <div className="flex items-center gap-2">
           <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${et.badge}`}>
@@ -190,11 +190,11 @@ function RecordRow({ record, selected, onSelect }) {
           </span>
           <ProvenanceBadge value={record.provenance} />
           {record.tampered_at && (
-            <span className="rounded bg-red-900 px-1.5 py-0.5 text-[10px] font-semibold text-red-200">TAMPERED (dev demo)</span>
+            <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">TAMPERED (dev demo)</span>
           )}
           <span className="ml-auto text-slate-500">{new Date(record.created_at).toLocaleTimeString()}</span>
         </div>
-        <div className="mt-1 text-slate-200">{record.summary}</div>
+        <div className="mt-1 text-slate-800">{record.summary}</div>
         <div className="mt-1 flex items-center gap-2 text-slate-500">
           <StatusChip record={record} />
           {record.locked && <span title="Confirmed: can no longer be edited or deleted">🔒</span>}
@@ -212,12 +212,12 @@ function StepData({ step, record, onVerify, verifying }) {
     case 'what_happened':
       return (
         <div className="space-y-1">
-          <div className="text-slate-200">{d.summary}</div>
+          <div className="text-slate-800">{d.summary}</div>
           <div>
-            Node / actor: <span className="text-slate-200">{d.actor}</span>
+            Node / actor: <span className="text-slate-800">{d.actor}</span>
             {d.source_ref && (
               <>
-                {' · '}Reference: <span className="font-mono text-slate-300">{d.source_ref}</span>
+                {' · '}Reference: <span className="font-mono text-slate-600">{d.source_ref}</span>
               </>
             )}
           </div>
@@ -229,23 +229,23 @@ function StepData({ step, record, onVerify, verifying }) {
       )
     case 'data_packaged':
       return (
-        <pre className="max-h-64 overflow-auto rounded bg-slate-950 p-2 font-mono text-[11px] text-slate-300">
+        <pre className="max-h-64 overflow-auto rounded bg-slate-50 p-2 font-mono text-[11px] text-slate-600">
           {JSON.stringify(d.payload, null, 2)}
         </pre>
       )
     case 'fingerprint':
       return (
         <div>
-          <div className="break-all font-mono text-slate-200">{d.payload_hash}</div>
+          <div className="break-all font-mono text-slate-800">{d.payload_hash}</div>
           <div className="mt-1 text-slate-500">Method: {d.algorithm}. Only this fingerprint goes on the blockchain, not the data itself.</div>
         </div>
       )
     case 'tx_sent':
       return d.tx_hash ? (
         <div>
-          Transaction hash: <span className="break-all font-mono text-slate-200">{d.tx_hash}</span>
+          Transaction hash: <span className="break-all font-mono text-slate-800">{d.tx_hash}</span>
           {d.explorer_url && (
-            <a href={d.explorer_url} target="_blank" rel="noreferrer" className="ml-2 text-sky-400 underline">
+            <a href={d.explorer_url} target="_blank" rel="noreferrer" className="ml-2 text-indigo-600 underline">
               view on Etherscan
             </a>
           )}
@@ -254,23 +254,23 @@ function StepData({ step, record, onVerify, verifying }) {
       ) : (
         <div>
           Waiting to be sent.
-          {d.last_error && <div className="text-amber-300">Last attempt: {d.last_error} (retrying automatically)</div>}
+          {d.last_error && <div className="text-amber-700">Last attempt: {d.last_error} (retrying automatically)</div>}
         </div>
       )
     case 'in_block':
       return d.block_number != null ? (
         <div className="space-y-0.5">
           <div>
-            Block <span className="text-slate-200">#{d.block_number}</span> · Gas used{' '}
-            <span className="text-slate-200">{d.gas_used?.toLocaleString()}</span> · Ledger entry{' '}
-            <span className="text-slate-200">#{d.chain_record_id}</span>
+            Block <span className="text-slate-800">#{d.block_number}</span> · Gas used{' '}
+            <span className="text-slate-800">{d.gas_used?.toLocaleString()}</span> · Ledger entry{' '}
+            <span className="text-slate-800">#{d.chain_record_id}</span>
           </div>
           <div>
-            Block hash: <span className="break-all font-mono text-slate-300">{d.block_hash}</span>
+            Block hash: <span className="break-all font-mono text-slate-600">{d.block_hash}</span>
           </div>
           {d.block_timestamp && <div className="text-slate-500">Block time (as reported by the chain): {fmtTime(d.block_timestamp)}</div>}
           {!record.deployment_current && (
-            <div className="text-amber-300">
+            <div className="text-amber-700">
               This record was written to an earlier ledger contract; the local dev chain has since been restarted.
             </div>
           )}
@@ -280,7 +280,7 @@ function StepData({ step, record, onVerify, verifying }) {
       )
     case 'confirmed_locked':
       return step.status === 'done' ? (
-        <div className="text-emerald-300">
+        <div className="text-emerald-700">
           🔒 Locked with {d.confirmations} confirmation{d.confirmations === 1 ? '' : 's'}. It cannot be edited or deleted.
         </div>
       ) : (
@@ -299,16 +299,16 @@ function StepData({ step, record, onVerify, verifying }) {
             {verifying ? 'Verifying…' : 'Verify integrity'}
           </button>
           {d.result === 'match' && (
-            <div className="rounded border border-emerald-600 bg-emerald-950 p-2 text-emerald-200">
+            <div className="rounded border border-emerald-300 bg-emerald-50 p-2 text-emerald-700">
               ✅ <span className="font-semibold">Match.</span> {d.explanation}
             </div>
           )}
           {d.result === 'mismatch' && (
-            <div className="rounded border border-red-600 bg-red-950 p-2 text-red-200">
+            <div className="rounded border border-red-300 bg-red-50 p-2 text-red-700">
               ❌ <span className="font-semibold">Mismatch.</span> {d.explanation}
             </div>
           )}
-          {d.result && !['match', 'mismatch'].includes(d.result) && <div className="text-amber-300">{d.explanation}</div>}
+          {d.result && !['match', 'mismatch'].includes(d.result) && <div className="text-amber-700">{d.explanation}</div>}
           {d.recomputed_hash && (
             <div className="space-y-0.5 font-mono text-[11px]">
               <div>
@@ -376,14 +376,14 @@ function RecordDetail({ recordId, lastMessage, devTools, onClose }) {
     }
   }
 
-  if (error) return <div className="p-4 text-sm text-red-300">Could not load record #{recordId}: {error}</div>
-  if (!detail) return <div className="p-4 text-sm text-slate-400">Loading record #{recordId}…</div>
+  if (error) return <div className="p-4 text-sm text-red-700">Could not load record #{recordId}: {error}</div>
+  if (!detail) return <div className="p-4 text-sm text-slate-500">Loading record #{recordId}…</div>
 
   const { record, steps } = detail
-  const et = EVENT_TYPES[record.event_type] ?? { label: record.event_type, icon: '•', badge: 'bg-slate-800' }
+  const et = EVENT_TYPES[record.event_type] ?? { label: record.event_type, icon: '•', badge: 'bg-slate-100' }
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b border-slate-800 px-4 py-3">
+      <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
         <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${et.badge}`}>
           {et.icon} {et.label}
         </span>
@@ -391,21 +391,21 @@ function RecordDetail({ recordId, lastMessage, devTools, onClose }) {
         <StatusChip record={record} />
         {record.locked && <span title="Immutable">🔒</span>}
         <span className="text-xs text-slate-500">Record #{record.id}</span>
-        <button onClick={onClose} className="ml-auto text-xs text-slate-400 hover:text-slate-200">
+        <button onClick={onClose} className="ml-auto text-xs text-slate-500 hover:text-slate-900">
           Close ✕
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-        <h3 className="mb-3 text-sm font-semibold text-slate-100">{record.summary}</h3>
+        <h3 className="mb-3 text-sm font-semibold text-slate-800">{record.summary}</h3>
         {record.tampered_at && (
-          <div className="mb-3 rounded border border-red-700 bg-red-950/60 p-2 text-xs text-red-200">
+          <div className="mb-3 rounded border border-red-300 bg-red-50 p-2 text-xs text-red-700">
             DEV-ONLY tamper demo applied {fmtTime(record.tampered_at)}: field <span className="font-mono">{record.tamper_detail?.field}</span>{' '}
             changed from <span className="font-mono">{JSON.stringify(record.tamper_detail?.old_value)}</span> to{' '}
             <span className="font-mono">{JSON.stringify(record.tamper_detail?.new_value)}</span> in the database copy only. The
             blockchain copy was not (and cannot be) changed.
           </div>
         )}
-        <ol className="relative space-y-4 border-l border-slate-700 pl-6">
+        <ol className="relative space-y-4 border-l border-slate-300 pl-6">
           {steps.map((step) => {
             const meta = STEPS[step.key]
             return (
@@ -416,13 +416,13 @@ function RecordDetail({ recordId, lastMessage, devTools, onClose }) {
                   {step.status === 'done' ? '✓' : step.status === 'failed' ? '✕' : step.n}
                 </span>
                 <div className="flex items-center text-xs">
-                  <span className="font-semibold text-slate-100">
+                  <span className="font-semibold text-slate-800">
                     {step.n}. {meta.title}
                   </span>
                   <Explainer text={meta.explain} />
                   <span className="ml-auto text-[11px] text-slate-500">{fmtTime(step.at) ?? '—'}</span>
                 </div>
-                <div className="mt-1 text-xs text-slate-400">
+                <div className="mt-1 text-xs text-slate-500">
                   <StepData step={step} record={record} onVerify={verify} verifying={verifying} />
                 </div>
               </li>
@@ -430,16 +430,16 @@ function RecordDetail({ recordId, lastMessage, devTools, onClose }) {
           })}
         </ol>
         {devTools && (
-          <div className="mt-6 rounded border border-dashed border-red-800 p-3 text-xs">
-            <div className="font-semibold text-red-300">Developer demo only</div>
-            <p className="mt-1 text-slate-400">
+          <div className="mt-6 rounded border border-dashed border-red-300 p-3 text-xs">
+            <div className="font-semibold text-red-700">Developer demo only</div>
+            <p className="mt-1 text-slate-500">
               Simulates someone secretly editing the database copy of this record. The blockchain copy stays as it was, so
               Verify will then show a mismatch.
             </p>
             <button
               onClick={tamper}
               disabled={tampering}
-              className="mt-2 rounded-md border border-red-700 px-3 py-1.5 font-semibold text-red-300 hover:bg-red-950 disabled:opacity-50"
+              className="mt-2 rounded-md border border-red-300 px-3 py-1.5 font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
             >
               {tampering ? 'Tampering…' : 'Tamper with off-chain copy (dev only)'}
             </button>
@@ -450,9 +450,14 @@ function RecordDetail({ recordId, lastMessage, devTools, onClose }) {
   )
 }
 
-function BlockchainTab() {
+// Rendered as the "Ledger explorer" section of the Redistribution screen.
+// `selected` / `onSelect` are optional: when given, the parent controls which
+// record's journey is open (so the block strip and trade table can open it).
+function BlockchainTab({ selected: selectedProp, onSelect } = {}) {
   const [filter, setFilter] = useState(null)
-  const [selected, setSelected] = useState(null)
+  const [selectedLocal, setSelectedLocal] = useState(null)
+  const selected = selectedProp !== undefined ? selectedProp : selectedLocal
+  const setSelected = onSelect ?? setSelectedLocal
   const [busy, setBusy] = useState(null)
   const [notice, setNotice] = useState(null)
   const [checking, setChecking] = useState(false)
@@ -501,14 +506,14 @@ function BlockchainTab() {
     <div className="flex min-h-0 flex-1 flex-col">
       <Header status={status} wsConnected={connected} onRecheck={recheck} checking={checking} />
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 px-4 py-2 text-xs">
-        <span className="text-slate-400">Show:</span>
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-2 text-xs">
+        <span className="text-slate-500">Show:</span>
         {[null, ...Object.keys(EVENT_TYPES)].map((key) => (
           <button
             key={key ?? 'all'}
             onClick={() => setFilter(key)}
             className={`rounded-md px-2.5 py-1 font-medium ${
-              filter === key ? 'bg-sky-600 text-white' : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+              filter === key ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:text-slate-900'
             }`}
           >
             {key ? `${EVENT_TYPES[key].icon} ${EVENT_TYPES[key].label}` : 'All'}
@@ -518,7 +523,7 @@ function BlockchainTab() {
           <button
             onClick={replayFl}
             disabled={busy !== null}
-            className="rounded-md border border-teal-700 px-3 py-1 font-semibold text-teal-300 hover:bg-teal-950 disabled:opacity-50"
+            className="rounded-md border border-teal-300 px-3 py-1 font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-50"
             title="Record each round of the offline Module 4 federated run (round_log.json) on the ledger"
           >
             {busy === 'Federated replay' ? 'Recording…' : '🧠 Record federated rounds'}
@@ -537,7 +542,7 @@ function BlockchainTab() {
       {notice && (
         <div
           className={`border-b px-4 py-1.5 text-xs ${
-            notice.kind === 'error' ? 'border-red-900 bg-red-950/50 text-red-300' : 'border-emerald-900 bg-emerald-950/50 text-emerald-300'
+            notice.kind === 'error' ? 'border-red-300 bg-red-50 text-red-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700'
           }`}
         >
           {notice.text}
@@ -545,26 +550,26 @@ function BlockchainTab() {
       )}
 
       <div className="flex min-h-0 flex-1">
-        <div className="flex w-[46%] min-w-[360px] flex-col border-r border-slate-800">
-          <div className="border-b border-slate-800 px-4 py-2 text-[11px] text-slate-500">
+        <div className="flex w-[46%] min-w-[360px] flex-col border-r border-slate-200">
+          <div className="border-b border-slate-200 px-4 py-2 text-[11px] text-slate-500">
             Newest first · {total} record{total === 1 ? '' : 's'}
             {filter ? ` of type ${EVENT_TYPES[filter].label}` : ''}. Energy trades are simulated: no solar/EV hardware exists
             yet.
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {loadError && <p className="p-4 text-sm text-red-300">Could not load the ledger: {loadError}</p>}
+            {loadError && <p className="p-4 text-sm text-red-700">Could not load the ledger: {loadError}</p>}
             {!loadError && records.length === 0 && (
-              <p className="p-4 text-sm text-slate-400">
+              <p className="p-4 text-sm text-slate-500">
                 No records yet. They appear automatically when the digital twin reacts to a fault, or use the buttons above.
               </p>
             )}
-            <ul className="divide-y divide-slate-800">
+            <ul className="divide-y divide-slate-100">
               {records.map((r) => (
                 <RecordRow key={r.id} record={r} selected={r.id === selected} onSelect={setSelected} />
               ))}
             </ul>
             {hasMore && (
-              <button onClick={loadMore} className="w-full py-2 text-xs text-sky-400 hover:bg-slate-900">
+              <button onClick={loadMore} className="w-full py-2 text-xs text-indigo-600 hover:bg-slate-50">
                 Load older records
               </button>
             )}
@@ -580,7 +585,7 @@ function BlockchainTab() {
               onClose={() => setSelected(null)}
             />
           ) : (
-            <div className="flex h-full items-center justify-center p-8 text-center text-sm text-slate-400">
+            <div className="flex h-full items-center justify-center p-8 text-center text-sm text-slate-500">
               <div className="max-w-md space-y-2">
                 <div className="text-3xl">⛓️</div>
                 <p>Select a record to see its journey onto the blockchain, step by step.</p>

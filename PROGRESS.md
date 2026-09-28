@@ -848,3 +848,159 @@ tamper demo is off unless `BLOCKCHAIN_DEV_TOOLS=true`.
   by the server-side test with a 2-second token, and by the browser test with an invalid token.
 - There is no admin management UI yet (deactivate or remove admins, reset passwords). `create_admin.py --force`
   resets a password from the CLI.
+
+
+# UI redesign — presentation layer (done, 2026-09-28)
+
+Frontend-only. No backend, API, WebSocket payload, data model, auth, ML/FL or contract change. Every
+existing feature still works; the views were restyled and regrouped.
+
+**Built:**
+- Design system in `frontend/src/ui/`: `theme.js` (colour = meaning: Solar amber, Wind teal, Hydro
+  blue, Grid/Storage slate, blockchain violet, one indigo accent; green/amber/red only for status;
+  friendly node names), `icons.jsx` (inline SVG icon set), `components.jsx` (Card, StatCard, Pill
+  (Online/Offline/Training/Charging/Sold/Not sold/Pending), MockTag, Tabs, Segmented, Details
+  expander, EmptyState, CopyButton, Button), `format.js`, `nav.js`, `AppShell.jsx` (dark navy
+  sidebar in the fixed order Dashboard · Grid Map · Sources · Redistribution · AI Insights ·
+  Analytics · Settings, admin avatar + name + log out at the bottom, top bar with page title,
+  live indicator and avatar). Light content area, 14px+ body, 28-32px key numbers.
+- Routes: `/dashboard/home|map|sources|chain|ai|analytics|settings`. Old URLs redirect:
+  `live` -> `home`, `twin` -> `map?view=twin`, `invite` -> `settings?tab=admins`, so `?next=` links and
+  bookmarks keep working. `safeNext` is unchanged.
+- The top-bar live indicator shows the current page's own socket state: pages call
+  `useReportConnection(connected)`. The shell opens no socket and does not poll.
+- Screens:
+  - **Login**: split screen. Left: title, tagline, inline-SVG hero (turbines, solar array, city at
+    dusk, animated power line) and IoT / Digital Twin / AI / Blockchain chips. Right: Login form.
+    "Register?" opens an inline invite box that accepts the full link or the raw token and hands off
+    to the existing `/register?token=` flow. Registration stays invite-only.
+  - **Dashboard**: 4 stat cards, one live "Energy flow" chart (wind / hydro / to grid; solar appears
+    only when data exists), a live stream panel ("Attribute : Value" rows, newest first, about 8
+    visible), and Live alerts. All derived client-side from `useDigitalTwinSocket` pushes.
+  - **Grid Map**: tabs Topology | Federated Learning. Topology has a Live View / Digital Twin
+    toggle. These are the existing `LiveDataTab` and `DigitalTwinTab`, still separate hooks and
+    sockets, one mounted at a time. Nodes are compact icon cards (type icon, name, kW, status colour,
+    Live/Replayed badge, updated time). The new `FlowEdge` sets line thickness from power carried and
+    runs a dot in the direction of flow. The reroute highlight flash is kept. Clicking a node opens a
+    side panel with its key values, detector verdicts (moved off the card), history chart and, in
+    the twin, the decision log.
+  - **Federated Learning** (new, `components/FederatedPanel.jsx`): a replay of the offline Module 4
+    run. It shows a hub-and-spoke diagram with the Global Model (FedProx) in the centre and T1-T4
+    around it. Each client's circle size is its adaptive weight, and its status ring cycles Training
+    locally -> Uploading -> Aggregated. Dots animate updates going up to the hub and the global model
+    coming back down. It also has a "Round N of 30" tracker with play/pause, a validation PR-AUC per
+    round chart (FedAvg vs FedProx + adaptive), a train/validation loss chart, and a weights table
+    with horizontal bars, local samples and last update/block. Weights come from the `FL_ROUND`
+    ledger records when they exist, otherwise from the same run's snapshot.
+  - **Sources**: cards grouped Turbines / Hydro / Solar with a type filter. Each card shows a status
+    pill, current output, efficiency (output / rated capacity) and a sparkline (existing
+    `/twin/nodes/{id}/history` plus pushes). Click to expand the details. Solar shows an empty state
+    because there is no hardware yet.
+  - **Redistribution (Blockchain)**: flow cards (seller/surplus green -> kWh + ₹ -> buyer/deficit
+    red for trades; faulted node -> new bus for self-healing), each with a "Recorded / Verified on
+    chain · block" badge. A horizontal strip of recent blocks (click one to list its records). A
+    transactions table (Buyer, Seller, Qty, Amount ₹, Sold / Not sold / Pending, short tx hash + copy).
+    A new "Topology changes on chain" timeline built from twin decisions (reroute / isolate / curtail)
+    joined to the block of their `ENERGY_REDISTRIBUTION` record via `payload.twin_decision_id`, with
+    the reason behind "Why". The full existing ledger explorer (filters, 7-step journey, Verify,
+    dev tamper demo, Simulate P2P trade, Record federated rounds) is below, restyled. Clicking a
+    card, block or trade opens that record in it.
+  - **AI Insights**: fault-risk card (Low/Medium/High plus the reason and the highest TA-GNN score,
+    labelled "TA-GNN · centralized|federated"), a fault-detection card, a 24h demand forecast with
+    the peak marked, and up to 3 rule-based recommendation cards with one action button each. Detail
+    sits behind "Details".
+  - **Analytics** (new, before Settings): 4 stat cards (Money saved ₹, Energy redistributed kWh, CO₂
+    avoided, Grid dependency reduced), a cost chart (with SEI vs grid only; Daily / Weekly / Monthly),
+    a generation-mix donut, a self-healing card, a baseline-vs-SEI bar (FedAvg vs FedProx + adaptive)
+    and a 7 / 30 day range selector.
+  - **Settings**: profile card (avatar, name, role, email, member since, Edit Profile) plus tabs
+    Profile, Security, Notifications, System (backend, DB, ledger, AI model status, fetched once) and
+    Admins (the existing Invite admin page, unchanged).
+
+**Mocks** (all in `frontend/src/mocks/uiMocks.js`; the UI shows a "Mock data" tag wherever a MOCK
+value is displayed):
+- MOCK `mockConsumptionKw` / `MOCK_CONSUMPTION_RATIO` (0.82 x generation). There is no consumption metering.
+- MOCK `mockDemandForecast24h`. No demand-forecast model exists; TA-GNN forecasts faults only.
+- MOCK `MOCK_TARIFFS`, `MOCK_CO2_TONNES_PER_MWH`, `mockCostSeries`, `MOCK_GRID_DEPENDENCY`: Money
+  saved, CO₂ avoided, Grid dependency and the cost chart. No billing or emissions data exists.
+- MOCK `MOCK_DOWNTIME_MIN_PER_HEAL` (18 min per self-healing action): "Est. downtime avoided".
+- MOCK `MOCK_NOTIFICATION_PREFS`: Settings -> Notifications toggles (local state, not saved).
+- SNAPSHOT (real measured numbers, copied statically) `FL_RUN_SNAPSHOT`: per-round validation
+  PR-AUC for `fedavg_clean_s3` and `fedprox_adaptive_mu1_clean_s3`, train loss, normalised validation
+  loss and adaptive weights, from each run's `round_log.json`. Used for the comparison and loss
+  charts, and as the weights fallback when no FL_ROUND records are on the ledger.
+- SNAPSHOT `FL_CLIENTS`: training samples per client, from `partition_report.json`.
+- SNAPSHOT `FL_BASELINE_COMPARISON`: validation PR-AUC, test ROC-AUC and localisation top-1 (5-seed
+  means, clean scenario), from `RESULTS.md`.
+
+**Real data used (no mock):** generation, stability, active nodes, energy-flow chart, stream, alerts,
+sources, generation mix, TA-GNN risk and detection (twin nodes); self-healing counts and the topology
+timeline (`/twin/decisions`); flow cards, blocks, trades, "Energy redistributed" kWh and FL weights
+(`/chain/records`); model card and system status (`/ai/predictions`, `/health`, `/chain/status`).
+
+**Edits to existing code (presentation only):**
+- `App.jsx`: new shell, routes and legacy redirects. Auth guard logic unchanged.
+- `BlockchainTab.jsx`: dark classes mapped to light ones, plus an optional controlled
+  `selected`/`onSelect` prop. Logic, API calls and features unchanged.
+- `LiveDataTab.jsx`, `DigitalTwinTab.jsx`: new layout and side panel; same hooks and components.
+- `EnergyNode.jsx`, `TwinNode.jsx`: compact icon cards. `DetectorRows` is now exported and shown in the
+  side panel. `TopologyView.jsx`, `DigitalTwinTopology.jsx`: `FlowEdge`, a tighter layout and a light
+  canvas. Edge derivation and the reroute highlight are unchanged.
+- `TimeSeriesPanel.jsx`: light colours and an optional `color` prop. Data logic unchanged.
+- `DecisionLogPanel.jsx`, `InviteAdminPage.jsx`, `RegisterPage.jsx`, `AuthForm.jsx`, `LoginPage.jsx`,
+  `index.css`: restyled. The login/register validation and flows are unchanged.
+- `vite.config.js`: added the `/ai` proxy. `GET /ai/predictions` was never proxied (noted in the auth
+  section above) and AI Insights / Settings need its model card.
+- No new dependency. lucide-react is not installed, so an inline SVG icon set is used instead
+  (INSTRUCTIONS.md: ask before adding dependencies). Recharts was already present.
+
+**Decisions / deviations:**
+1. The two briefs conflicted on colours and the tagline. I used the later brief: Wind teal, Hydro blue,
+   Grid slate. Blockchain is violet and the accent is indigo. Tagline: "Path to a sustainable future".
+2. Accuracy is not charted for FL. At about 0.1% positives, a model that never predicts a fault
+   scores 99.9%. The charts use validation PR-AUC and loss, and the "About this metric" note says
+   test-set PR-AUC is near chance (RESULTS.md).
+3. P2P amounts are demo credits shown with a ₹ sign as the brief asked. Every trade is tagged
+   "Simulated", and the table footnote says no real money moved.
+4. FL training is offline. The FL tab is a labelled replay, not live training.
+5. The Topology timeline shows only event types the twin actually produces (reroute, isolate =
+   "node removed from grid", curtail). Node-added events do not exist (fixed topology), so none are
+   invented.
+6. Redistribution opens 3 sockets (unfiltered overview, trades, explorer) plus the twin socket for
+   decisions. They are separate uses of the existing hooks; the hooks were not changed.
+7. Node cards keep the always-visible Live/Replayed badge and "Updated" time (an earlier user
+   request and the data-sourcing rule). Detector rows moved to the side panel.
+
+**Verified (2026-09-28, headless Chrome through the Vite proxy, backend + TimescaleDB + Hardhat running):**
+- `npm run build` and `npm run lint` (oxlint): clean, 0 warnings.
+- `/dashboard/twin` without a session -> `/login?next=...`. The inline Register? box rejects a bad
+  invite. After login the user lands on `/dashboard/map?view=twin`, and `/dashboard/invite` lands on
+  Settings -> Admins.
+- Every screen rendered with live data and the top-bar indicator showed "Live": all 6 sources, bus
+  loads, decisions, 211 ledger records (8 trades in the table, 30 FL rounds read from the ledger,
+  "From ledger"), the TA-GNN model card ("centralized") and system status all Online.
+- Clicking a trade opened its record journey with Verify in the explorer.
+- No page errors. The only console errors were the expected 401s from the pre-login `/auth/me`
+  session check.
+- A temporary admin was created for the check with `create_admin.py --force` and deleted afterwards
+  (user, audit rows, refresh tokens). Only the original admin remains.
+
+**Failures hit during the work (fixed):**
+- The first build failed: a scripted import insert matched every `import {` line in
+  `TimeSeriesPanel.jsx` (duplicate declarations). Fixed.
+- The trades table was empty because the unfiltered newest-50 page held only fault and FL records.
+  Fixed with a dedicated `P2P_TRADE` hook.
+- The block strip mixed block numbers from a previous local-chain deployment (#94 above the current
+  chain's #21). It now shows only `deployment_current` records.
+- The map legend overlapped React Flow's zoom controls. Moved to the top-right.
+- AI Insights showed "High" next to a 0.5% top score without saying why. It now states the reason
+  (for example "2 nodes are already in a fault state").
+
+**Known limitations / not verified:**
+- The FL diagram replays the recorded run. It does not reflect a training job in progress.
+- Mocked values (list above) are placeholders to be wired to real sources later.
+- The live hydro reading (57,988 kW vs 400 kW rated, the Module 1 issue above) dominates the
+  energy-flow chart scale, edge widths and the donut. The UI shows it as-is.
+- Not checked: narrow and mobile widths (the layout targets desktop, with a fixed 240px sidebar), and
+  the animations with `prefers-reduced-motion` beyond the CSS rule.
+- Edit Profile is disabled: there is no profile-update endpoint.

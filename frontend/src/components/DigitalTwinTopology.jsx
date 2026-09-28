@@ -2,8 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ReactFlow, Background, Controls } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import TwinNode from './TwinNode'
+import FlowEdge, { flowWidth } from './FlowEdge'
+import { SOURCE_COLORS } from '../ui/theme'
 
 const nodeTypes = { twinNode: TwinNode }
+const edgeTypes = { flow: FlowEdge }
 
 // How long a just-changed edge stays visibly highlighted after a
 // reroute/isolate, so the reconfiguration reads as an event, not a silent
@@ -14,17 +17,17 @@ const HIGHLIGHT_MS = 2500
 // the left, the two collector buses in the middle (this is where reroutes
 // visibly swing an edge from one column to the other), grid on the right.
 const POSITIONS = {
+  // Compact icon cards (UI redesign) — tighter spacing than the Module 3
+  // detector-row cards, which now live in the side panel instead.
   wind_01: { x: 0, y: 0 },
   hydro_01: { x: 0, y: 100 },
-  // Module 3 added detector rows to the SCADA cards (taller), so these are
-  // spaced further apart than Module 2's original 120px.
-  wind_scada_kelmarsh_1: { x: 0, y: 220 },
-  wind_scada_kelmarsh_2: { x: 0, y: 450 },
-  wind_scada_kelmarsh_3: { x: 0, y: 680 },
-  wind_scada_kelmarsh_4: { x: 0, y: 910 },
-  bus_a: { x: 340, y: 200 },
-  bus_b: { x: 340, y: 640 },
-  grid: { x: 620, y: 420 },
+  wind_scada_kelmarsh_1: { x: 0, y: 200 },
+  wind_scada_kelmarsh_2: { x: 0, y: 300 },
+  wind_scada_kelmarsh_3: { x: 0, y: 400 },
+  wind_scada_kelmarsh_4: { x: 0, y: 500 },
+  bus_a: { x: 330, y: 120 },
+  bus_b: { x: 330, y: 390 },
+  grid: { x: 630, y: 260 },
 }
 
 function DigitalTwinTopology({ nodes, onSelectNode, selectedNodeId }) {
@@ -49,7 +52,14 @@ function DigitalTwinTopology({ nodes, onSelectNode, selectedNodeId }) {
     () =>
       Object.values(nodes)
         .filter((node) => node.type !== 'bus' && node.type !== 'grid' && !node.isolated && node.active_connection)
-        .map((node) => ({ id: `${node.node_id}-${node.active_connection}`, source: node.node_id, target: node.active_connection })),
+        .map((node) => ({
+          id: `${node.node_id}-${node.active_connection}`,
+          source: node.node_id,
+          target: node.active_connection,
+          // Twin estimate of power on this line: latest output x load share.
+          kw: (node.latest_reading?.power_output ?? 0) * (node.load_share ?? 1),
+          color: SOURCE_COLORS[node.type] ?? SOURCE_COLORS.grid,
+        })),
     [nodes],
   )
 
@@ -59,24 +69,35 @@ function DigitalTwinTopology({ nodes, onSelectNode, selectedNodeId }) {
     () =>
       Object.values(nodes)
         .filter((node) => node.type === 'bus')
-        .map((node) => ({ id: `${node.node_id}-grid`, source: node.node_id, target: 'grid' })),
+        .map((node) => ({
+          id: `${node.node_id}-grid`,
+          source: node.node_id,
+          target: 'grid',
+          kw: node.current_load_kw ?? 0,
+          color: SOURCE_COLORS.grid,
+        })),
     [nodes],
   )
 
   const highlightedEdgeIds = useRecentlyChangedEdges(sourceEdges)
 
-  const flowEdges = useMemo(
-    () =>
-      [...sourceEdges, ...busEdges].map((edge) => {
-        const highlighted = highlightedEdgeIds.has(edge.id)
-        return {
-          ...edge,
-          animated: true,
-          style: highlighted ? { stroke: '#f97316', strokeWidth: 3 } : { stroke: '#64748b' },
-        }
-      }),
-    [sourceEdges, busEdges, highlightedEdgeIds],
-  )
+  const flowEdges = useMemo(() => {
+    const all = [...sourceEdges, ...busEdges]
+    const maxKw = Math.max(1, ...all.map((e) => e.kw))
+    return all.map(({ kw, color, ...edge }) => {
+      const highlighted = highlightedEdgeIds.has(edge.id)
+      return {
+        ...edge,
+        type: 'flow',
+        data: {
+          width: highlighted ? Math.max(4, flowWidth(kw, maxKw)) : flowWidth(kw, maxKw),
+          color: highlighted ? '#f97316' : color,
+          dotColor: highlighted ? '#f97316' : color,
+          flowing: kw > 0,
+        },
+      }
+    })
+  }, [sourceEdges, busEdges, highlightedEdgeIds])
 
   return (
     <div className="h-full w-full">
@@ -84,10 +105,11 @@ function DigitalTwinTopology({ nodes, onSelectNode, selectedNodeId }) {
         nodes={flowNodes}
         edges={flowEdges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#1e293b" gap={20} />
+        <Background color="#e2e8f0" gap={22} />
         <Controls />
       </ReactFlow>
     </div>

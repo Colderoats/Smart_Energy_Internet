@@ -11,30 +11,30 @@ function formatTime(iso) {
 function DecisionLogPanel({ decisions }) {
   return (
     <div className="flex h-full flex-col">
-      <h2 className="border-b border-slate-800 px-4 py-3 text-sm font-semibold text-slate-200">
+      <h2 className="border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800">
         Self-healing decision log
       </h2>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {decisions.length === 0 && (
-          <p className="p-4 text-sm text-slate-400">
+          <p className="p-4 text-sm text-slate-500">
             No reconfigurations yet — waiting for a node to fault.
           </p>
         )}
-        <ul className="divide-y divide-slate-800">
+        <ul className="divide-y divide-slate-100">
           {decisions.map((d, i) => (
             <li key={`${d.node_id}-${d.time}-${i}`} className="px-4 py-3 text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-100">{d.node_id}</span>
+                <span className="font-semibold text-slate-800">{d.node_id}</span>
                 <span className="text-slate-500">{formatTime(d.time)}</span>
               </div>
-              <div className="mt-1 text-slate-400">Trigger: {d.trigger_summary}</div>
+              <div className="mt-1 text-slate-500">Trigger: {d.trigger_summary}</div>
               <div className="mt-1">
-                <span className="rounded bg-sky-900 px-1.5 py-0.5 font-semibold text-sky-300">
+                <span className="rounded bg-sky-50 px-1.5 py-0.5 font-semibold text-sky-700">
                   {ACTION_LABELS[d.chosen_action] ?? d.chosen_action}
                 </span>
                 <span className="ml-1.5 text-slate-500">score {d.chosen_score}</span>
               </div>
-              <div className="mt-1 text-slate-400">{d.reason}</div>
+              <div className="mt-1 text-slate-500">{d.reason}</div>
             </li>
           ))}
         </ul>
