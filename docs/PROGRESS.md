@@ -581,6 +581,20 @@ in the running app) and §7 Q10–13 for decisions needed.
 Also a stopped stale dev backend (`reload=True`, started before this session) was replaced by a
 clean `python run.py`; the frontend dev server was left as it was.
 
+## Stage 2 — More data, new split, retrained model (2026-09-29)
+
+Pointer entry; details in aiprogress.md EXP-013 to EXP-015 and §4b.
+- **Data:** Kelmarsh SCADA 2019–2022 (Zenodo 8252025, turbines 1–4) added to
+  `backend/data/scada/extra_years/` (training/eval only; Module 1's replay does not read it).
+- **Code:** `ai/dataset.py` now has named splits (`SPLITS`, `ACTIVE_SPLIT = "exp013"`: train 2016–2019,
+  val 2020, test 2021–2022) with an explicit `test_end`. `ai/run_experiments.py` gained `--split`, and
+  writes one results file per kind subset. No serving code changed.
+- **Deployed model replaced:** `ai/artifacts/tag/` is now the `exp013` TA-GNN (it beat the rule
+  baseline on the new test split, as the pre-registered rule required). Previous artifact backed up to
+  `ai/artifacts/tag_exp002/`. Serving parity re-checked (max logit difference 4.8e-7).
+- **Not done:** Module 4 was not re-run on the new split; the wind-regime feature experiment (EXP-015)
+  was not run.
+
 # Module 4 — Adaptive federated learning
 
 Model/experiment detail, measured results and the experiment log live in

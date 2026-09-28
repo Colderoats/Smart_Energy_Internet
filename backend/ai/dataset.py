@@ -4,7 +4,7 @@ SCADA CSVs (replayed historical data — never live, never simulated).
 Why CSVs and not TimescaleDB: the `readings` table only holds whatever a few
 short demo replays happened to ingest (a few days of Jan-Feb 2016, no
 temperature). The full-year data lives in backend/data/scada/ (2016) and
-backend/data/scada/extra_years/ (2017-2018, downloaded for training/evaluation
+backend/data/scada/extra_years/ (2017-2022, downloaded for training/evaluation
 only; Module 1's replay never reads that subfolder). Readings are
 produced by the SAME parser the live replay uses
 (app.ingestion.scada_replay._iter_turbine_readings), so feature values are
@@ -51,7 +51,7 @@ logger = logging.getLogger("sei.ai")
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = BACKEND_DIR / "data" / "scada"
-# Extra Kelmarsh years (2017, 2018) downloaded for TRAINING/EVALUATION ONLY.
+# Extra Kelmarsh years (2017-2022) downloaded for TRAINING/EVALUATION ONLY.
 # Deliberately a subfolder: Module 1's replay globs DATA_DIR non-recursively,
 # so it never sees these files and its behaviour is unchanged.
 EXTRA_DATA_DIR = DATA_DIR / "extra_years"
@@ -64,16 +64,29 @@ TURBINES = {1: "wind_scada_kelmarsh_1", 2: "wind_scada_kelmarsh_2", 3: "wind_sca
 NODE_IDS = list(TURBINES.values())  # index k in every [.., 4, ..] array below == SCORED_NODES[k]
 STEP_S = F.STEP_MINUTES * 60
 
-# Chronological split boundaries (UTC): train = start of data .. 2017-12-31,
-# validation = H1 2018, test = H2 2018 (the last six months, touched only for
-# the final report). Chosen from genuine-fault counts per month only (never
-# from any model result): ~172 / ~31 / ~25 events. Faults cluster in winter
-# storm periods, so val is fault-dense and test is mostly quiet plus a
-# Nov-Dec cluster — see aiprogress.md for the per-month counts.
-SPLIT_BOUNDS = {
-    "val_start": datetime(2018, 1, 1, tzinfo=timezone.utc),
-    "test_start": datetime(2018, 7, 1, tzinfo=timezone.utc),
+# Chronological split boundaries (UTC), each chosen from genuine-fault counts
+# per month only (never from any model result); see aiprogress.md.
+#   exp002: train = start of data .. 2017-12-31, val = H1 2018, test = H2 2018.
+#           Only 5 test events had a valid positive sample (inconclusive).
+#   exp013: train = start of data .. 2019-12-31 (274 genuine-fault events),
+#           val = calendar 2020 (86), test = 2021-01-01 .. 2022-12-31 (189).
+#           Fixed from the 2016-2022 per-month counts before any model was
+#           trained or scored on it; full years so no split is season-skewed.
+# test_end is explicit so adding more years never silently changes a split.
+SPLITS = {
+    "exp002": {
+        "val_start": datetime(2018, 1, 1, tzinfo=timezone.utc),
+        "test_start": datetime(2018, 7, 1, tzinfo=timezone.utc),
+        "test_end": datetime(2019, 1, 1, tzinfo=timezone.utc),
+    },
+    "exp013": {
+        "val_start": datetime(2020, 1, 1, tzinfo=timezone.utc),
+        "test_start": datetime(2021, 1, 1, tzinfo=timezone.utc),
+        "test_end": datetime(2023, 1, 1, tzinfo=timezone.utc),
+    },
 }
+ACTIVE_SPLIT = "exp013"
+SPLIT_BOUNDS = SPLITS[ACTIVE_SPLIT]
 
 
 @dataclass
@@ -299,14 +312,15 @@ class Splits:
     gap_steps: int
 
 
-def make_splits(arr: KelmarshArrays) -> Splits:
+def make_splits(arr: KelmarshArrays, name: str | None = None) -> Splits:
     gap = F.WINDOW_STEPS + F.HORIZON_STEPS
+    bounds = SPLITS[name or ACTIVE_SPLIT]
 
     def step_of(dt: datetime) -> int:
         return int((dt - arr.t0).total_seconds() // STEP_S)
 
-    a, b = step_of(SPLIT_BOUNDS["val_start"]), step_of(SPLIT_BOUNDS["test_start"])
-    T = arr.n_steps
+    a, b = step_of(bounds["val_start"]), step_of(bounds["test_start"])
+    T = min(arr.n_steps, step_of(bounds["test_end"]))
     return Splits(
         train=np.arange(0, a - gap),
         val=np.arange(a, b - gap),

@@ -23,7 +23,8 @@ don't just switch or introduce a new dependency.
 ## Current focus
 Modules 1 (ingestion) and 2 (digital twin) are done. Module 3 (TA-GNN fault
 prediction) is built — code in backend/ai + backend/app/ai_service, results
-and experiment log in aiprogress.md. Module 4 (adaptive federated learning,
+and experiment log in aiprogress.md. Module 3 now trains/evaluates on 2016–2022 with split `exp013`
+(test 2021–2022); Module 4 still needs re-running on that split. Module 4 (adaptive federated learning,
 Flower: FedAvg / FedProx / FedProx + adaptive weighting) is built and evaluated —
 code, artifacts and run instructions in backend/ai/federated (own venv there:
 Flower's pins conflict with backend/venv), measured results in aiprogress.md.
@@ -75,7 +76,7 @@ are in ARCHITECTURE.md "Frontend structure (UI redesign)"; what is mocked is in 
   estimated vs synthetic). Synthetic data (e.g. topology variants) is labelled
   synthetic and kept out of headline metrics. Report measured numbers only,
   never tuned toward the targets. Extra Kelmarsh years live in
-  backend/data/scada/extra_years/ (training/eval only; Module 1's replay does
+  backend/data/scada/extra_years/ (2017-2022; training/eval only; Module 1's replay does
   not read them).
 - Frontend conventions (UI redesign): reuse `src/ui/` (theme colours, Card/StatCard/Pill, icons)
   instead of ad-hoc styles; colour = meaning (Solar amber, Wind teal, Hydro blue, Grid slate,

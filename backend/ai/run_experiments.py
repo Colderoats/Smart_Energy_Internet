@@ -8,8 +8,10 @@ Run from backend/ :
 
 Writes ai/artifacts/results.json and, per model kind, the best-on-validation
 seed's deployable artifact under ai/artifacts/<kind>/ (model.pt, meta.json).
-All data is the REAL Kelmarsh SCADA export, REPLAYED (not live). The test
-split is the last ~10 weeks of 2016 and is touched only for the final report.
+All data is the REAL Kelmarsh SCADA export, REPLAYED (not live). The split is
+a named entry of ai/dataset.SPLITS (--split; default ACTIVE_SPLIT); its test
+span is touched only for the final report. Use a --tag other than "main" to
+keep the deployed ai/artifacts/<kind>/ untouched.
 """
 
 from __future__ import annotations
@@ -36,7 +38,7 @@ from ai.models import DISPLAY_NAME, NodeClassifier, get_weights  # noqa: E402
 
 ARTIFACT_DIR = D.BACKEND_DIR / "ai" / "artifacts"
 PROVENANCE = (
-    "Real Kelmarsh wind-farm SCADA (Zenodo 8252025, CC BY 4.0), turbines 1-4, 2016-2018, REPLAYED historical data - "
+    "Real Kelmarsh wind-farm SCADA (Zenodo 8252025, CC BY 4.0), turbines 1-4, 2016-2022 (years actually loaded are listed under class_balance), REPLAYED historical data - "
     "not live, not simulated. Topology (bus_a/bus_b/grid) is the twin's illustrative graph."
 )
 
@@ -65,6 +67,7 @@ def main() -> None:
     ap.add_argument("--hidden", type=int, default=64)
     ap.add_argument("--K", type=int, default=3)
     ap.add_argument("--tag", default="main", help="results file suffix")
+    ap.add_argument("--split", default=None, choices=sorted(D.SPLITS), help="named split in ai/dataset.SPLITS (default: ACTIVE_SPLIT)")
     args = ap.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -72,7 +75,9 @@ def main() -> None:
 
     arr = D.build_arrays()
     labels = D.make_labels(arr)
-    splits = D.make_splits(arr)
+    splits = D.make_splits(arr, args.split)
+    split_name = args.split or D.ACTIVE_SPLIT
+    print(f"split: {split_name}")
     leak = D.check_no_leakage(arr, labels, splits)
     print(f"no-leakage checks {leak['checks']} (purge gap {leak['gap_minutes']} min between splits)")
     balance = D.class_balance(arr, labels, splits)
@@ -97,6 +102,7 @@ def main() -> None:
         "leakage_checks": leak,
         "class_balance": balance,
         "class_weight": {"pos_weight": pw, "rule": "sqrt(neg/pos) on train valid samples"},
+        "split": split_name,
         "seeds": args.seeds,
         "models": {},
     }
@@ -178,6 +184,7 @@ def main() -> None:
                          "horizon_steps": F.HORIZON_STEPS, "node_order": F.NODE_ORDER, "node_features": F.NODE_FEATURES},
             "provenance": PROVENANCE,
             "trained_at": datetime.now(timezone.utc).isoformat(),
+            "split_name": split_name,
             "split": {k: {"from": v["from"], "to": v["to"]} for k, v in balance.items()},
             "best_epoch": best["hist"]["best_epoch"],
         }
@@ -185,7 +192,9 @@ def main() -> None:
         np.savez(out / "weights.npz", *get_weights(best["model"]))  # Flower-style ndarray list
 
     results["wall_seconds"] = round(time.time() - t_start, 1)
-    path = ARTIFACT_DIR / f"results_{args.tag}.json"
+    # one file per kind subset, so kinds can run as parallel processes without overwriting each other
+    suffix = "" if args.kinds == ["gcn", "tag", "mlp"] else "_" + "-".join(args.kinds)
+    path = ARTIFACT_DIR / f"results_{args.tag}{suffix}.json"
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(results, indent=2, default=float))
     print(f"\nwrote {path}")

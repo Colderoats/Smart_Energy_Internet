@@ -1,0 +1,489 @@
+{
+  "provenance": "Real Kelmarsh wind-farm SCADA (Zenodo 8252025, CC BY 4.0), turbines 1-4, 2016-2022 (years actually loaded are listed under class_balance), REPLAYED historical data - not live, not simulated. Topology (bus_a/bus_b/grid) is the twin's illustrative graph.",
+  "run_at": "2026-09-28T18:20:54.043077+00:00",
+  "horizon_min": 60,
+  "window_min": 60,
+  "leakage_checks": {
+    "gap_steps": 12,
+    "gap_minutes": 120,
+    "checks": "passed"
+  },
+  "class_balance": {
+    "train": {
+      "steps": 210372,
+      "from": "2016-01-01",
+      "to": "2019-12-31",
+      "valid_node_samples": 797513,
+      "masked_node_samples": 43975,
+      "positives": 629,
+      "positive_rate": 0.00079,
+      "genuine_fault_events": 274,
+      "non_fault_stop_events": 1744
+    },
+    "val": {
+      "steps": 52692,
+      "from": "2020-01-01",
+      "to": "2020-12-31",
+      "valid_node_samples": 203062,
+      "masked_node_samples": 7706,
+      "positives": 174,
+      "positive_rate": 0.00086,
+      "genuine_fault_events": 86,
+      "non_fault_stop_events": 408
+    },
+    "test": {
+      "steps": 105120,
+      "from": "2021-01-01",
+      "to": "2023-01-01",
+      "valid_node_samples": 402090,
+      "masked_node_samples": 18390,
+      "positives": 584,
+      "positive_rate": 0.00145,
+      "genuine_fault_events": 189,
+      "non_fault_stop_events": 888
+    }
+  },
+  "class_weight": {
+    "pos_weight": 35.593625838315,
+    "rule": "sqrt(neg/pos) on train valid samples"
+  },
+  "split": "exp013",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "models": {
+    "mlp": {
+      "display_name": "MLP (no graph, ablation)",
+      "runs": [
+        {
+          "n_valid_node_samples": 402090,
+          "n_positive": 584,
+          "detection": {
+            "precision": 0.1392857142857143,
+            "recall": 0.06678082191780822,
+            "f1": 0.09027777777777779,
+            "tp": 39,
+            "fp": 241,
+            "fn": 545,
+            "roc_auc": 0.7130959834340148,
+            "pr_auc": 0.032203212821106116,
+            "false_alarm_samples_per_node_day": 0.08630903529060659,
+            "ci95": {
+              "precision": [
+                0.02247191011235955,
+                0.33342776203965996
+              ],
+              "recall": [
+                0.003590024225783018,
+                0.1476404348109093
+              ],
+              "f1": [
+                0.006169120928157072,
+                0.18428633427647076
+              ]
+            }
+          },
+          "localization": {
+            "n_snapshots": 555,
+            "mean_positive_nodes": 1.0522522522522522,
+            "top1": 0.3027027027027027,
+            "chance_top1": 0.2875375375375376,
+            "top2": 0.5171171171171172,
+            "chance_top2": 0.5459459459459464
+          },
+          "lead_time": {
+            "events_with_valid_positive_samples": 110,
+            "events_detected": 11,
+            "event_recall": 0.1,
+            "median_lead_min": 38.733333333333334,
+            "mean_lead_min": 40.018181818181816
+          },
+          "seed": 0,
+          "threshold_logit": 2.6136293411254883,
+          "best_epoch": 2,
+          "best_val_pr_auc": 0.17201359195514115,
+          "train_seconds": 39.1,
+          "n_params": 7233
+        },
+        {
+          "n_valid_node_samples": 402090,
+          "n_positive": 584,
+          "detection": {
+            "precision": 0.16521739130434782,
+            "recall": 0.06506849315068493,
+            "f1": 0.09336609336609336,
+            "tp": 38,
+            "fp": 192,
+            "fn": 546,
+            "roc_auc": 0.6987215906086188,
+            "pr_auc": 0.03427035848006303,
+            "false_alarm_samples_per_node_day": 0.06876072521077371,
+            "ci95": {
+              "precision": [
+                0.01537878787878788,
+                0.3637003841229193
+              ],
+              "recall": [
+                0.0019372448073850523,
+                0.14912484599067682
+              ],
+              "f1": [
+                0.0032982076342682504,
+                0.19604792395443751
+              ]
+            }
+          },
+          "localization": {
+            "n_snapshots": 555,
+            "mean_positive_nodes": 1.0522522522522522,
+            "top1": 0.3045045045045045,
+            "chance_top1": 0.2875375375375376,
+            "top2": 0.5369369369369369,
+            "chance_top2": 0.5459459459459464
+          },
+          "lead_time": {
+            "events_with_valid_positive_samples": 110,
+            "events_detected": 10,
+            "event_recall": 0.09090909090909091,
+            "median_lead_min": 49.575,
+            "mean_lead_min": 41.858333333333334
+          },
+          "seed": 1,
+          "threshold_logit": 2.1337664127349854,
+          "best_epoch": 1,
+          "best_val_pr_auc": 0.1493908347591231,
+          "train_seconds": 35.2,
+          "n_params": 7233
+        },
+        {
+          "n_valid_node_samples": 402090,
+          "n_positive": 584,
+          "detection": {
+            "precision": 0.18072289156626506,
+            "recall": 0.05136986301369863,
+            "f1": 0.07999999999999999,
+            "tp": 30,
+            "fp": 136,
+            "fn": 554,
+            "roc_auc": 0.6993316972386635,
+            "pr_auc": 0.031580622084696766,
+            "false_alarm_samples_per_node_day": 0.048705513690964715,
+            "ci95": {
+              "precision": [
+                0.0,
+                0.38898809523809513
+              ],
+              "recall": [
+                0.0,
+                0.12770957619228243
+              ],
+              "f1": [
+                0.0,
+                0.18105882989467606
+              ]
+            }
+          },
+          "localization": {
+            "n_snapshots": 555,
+            "mean_positive_nodes": 1.0522522522522522,
+            "top1": 0.27387387387387385,
+            "chance_top1": 0.2875375375375376,
+            "top2": 0.5387387387387388,
+            "chance_top2": 0.5459459459459464
+          },
+          "lead_time": {
+            "events_with_valid_positive_samples": 110,
+            "events_detected": 8,
+            "event_recall": 0.07272727272727272,
+            "median_lead_min": 43.56666666666667,
+            "mean_lead_min": 40.53333333333333
+          },
+          "seed": 2,
+          "threshold_logit": 2.8260061740875244,
+          "best_epoch": 2,
+          "best_val_pr_auc": 0.13069190064062847,
+          "train_seconds": 39.3,
+          "n_params": 7233
+        },
+        {
+          "n_valid_node_samples": 402090,
+          "n_positive": 584,
+          "detection": {
+            "precision": 0.1484375,
+            "recall": 0.06506849315068493,
+            "f1": 0.09047619047619047,
+            "tp": 38,
+            "fp": 218,
+            "fn": 546,
+            "roc_auc": 0.7122608933870825,
+            "pr_auc": 0.0284022148121159,
+            "false_alarm_samples_per_node_day": 0.07807207341639932,
+            "ci95": {
+              "precision": [
+                0.0,
+                0.2795861396667848
+              ],
+              "recall": [
+                0.0,
+                0.14958482821526298
+              ],
+              "f1": [
+                0.0,
+                0.18705495178325424
+              ]
+            }
+          },
+          "localization": {
+            "n_snapshots": 555,
+            "mean_positive_nodes": 1.0522522522522522,
+            "top1": 0.2990990990990991,
+            "chance_top1": 0.2875375375375376,
+            "top2": 0.5117117117117117,
+            "chance_top2": 0.5459459459459464
+          },
+          "lead_time": {
+            "events_with_valid_positive_samples": 110,
+            "events_detected": 9,
+            "event_recall": 0.08181818181818182,
+            "median_lead_min": 45.9,
+            "mean_lead_min": 41.55
+          },
+          "seed": 3,
+          "threshold_logit": 2.068711519241333,
+          "best_epoch": 2,
+          "best_val_pr_auc": 0.15254916692345974,
+          "train_seconds": 39.2,
+          "n_params": 7233
+        },
+        {
+          "n_valid_node_samples": 402090,
+          "n_positive": 584,
+          "detection": {
+            "precision": 0.12188365650969529,
+            "recall": 0.07534246575342465,
+            "f1": 0.09312169312169312,
+            "tp": 44,
+            "fp": 317,
+            "fn": 540,
+            "roc_auc": 0.7477657642093954,
+            "pr_auc": 0.027001742325441915,
+            "false_alarm_samples_per_node_day": 0.1135268223532045,
+            "ci95": {
+              "precision": [
+                0.023239390356063594,
+                0.25472660762418176
+              ],
+              "recall": [
+                0.006295560392831832,
+                0.1634296418438856
+              ],
+              "f1": [
+                0.010936962586463869,
+                0.18107594814241482
+              ]
+            }
+          },
+          "localization": {
+            "n_snapshots": 555,
+            "mean_positive_nodes": 1.0522522522522522,
+            "top1": 0.37117117117117115,
+            "chance_top1": 0.2875375375375376,
+            "top2": 0.5801801801801801,
+            "chance_top2": 0.5459459459459464
+          },
+          "lead_time": {
+            "events_with_valid_positive_samples": 110,
+            "events_detected": 11,
+            "event_recall": 0.1,
+            "median_lead_min": 53.25,
+            "mean_lead_min": 45.486363636363635
+          },
+          "seed": 4,
+          "threshold_logit": 1.310553789138794,
+          "best_epoch": 0,
+          "best_val_pr_auc": 0.16656291988895955,
+          "train_seconds": 32.5,
+          "n_params": 7233
+        }
+      ],
+      "aggregate": {
+        "precision": {
+          "mean": 0.15110943073320451,
+          "std": 0.02038174171863325
+        },
+        "recall": {
+          "mean": 0.06472602739726027,
+          "std": 0.007688337096110838
+        },
+        "f1": {
+          "mean": 0.08944835094835094,
+          "std": 0.004896077756282049
+        },
+        "roc_auc": {
+          "mean": 0.7142351857755551,
+          "std": 0.01784534061367795
+        },
+        "pr_auc": {
+          "mean": 0.030691630104684748,
+          "std": 0.002635874808829163
+        },
+        "top1": {
+          "mean": 0.31027027027027027,
+          "std": 0.03240038456647066
+        },
+        "top2": {
+          "mean": 0.5369369369369369,
+          "std": 0.024092994090734073
+        },
+        "event_recall": {
+          "mean": 0.08909090909090908,
+          "std": 0.01060173071790055
+        },
+        "median_lead_min": {
+          "mean": 46.205,
+          "std": 4.9773196713804815
+        }
+      },
+      "deployed_seed": 0
+    }
+  },
+  "baseline0_rule": {
+    "fault_predicted": {
+      "n_valid_node_samples": 402090,
+      "n_positive": 584,
+      "detection": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 230,
+        "fn": 584,
+        "roc_auc": 0.5143288856496387,
+        "pr_auc": 0.0017394088603707872,
+        "false_alarm_samples_per_node_day": 0.08236961874207267,
+        "ci95": {
+          "precision": [
+            0.0,
+            0.0
+          ],
+          "recall": [
+            0.0,
+            0.0
+          ],
+          "f1": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "localization": {
+        "n_snapshots": 555,
+        "mean_positive_nodes": 1.0522522522522522,
+        "top1": 0.3207207207207207,
+        "chance_top1": 0.2875375375375376,
+        "top2": 0.5405405405405406,
+        "chance_top2": 0.5459459459459464
+      },
+      "lead_time": {
+        "events_with_valid_positive_samples": 110,
+        "events_detected": 0,
+        "event_recall": 0.0,
+        "median_lead_min": NaN,
+        "mean_lead_min": NaN
+      }
+    },
+    "warning": {
+      "n_valid_node_samples": 402090,
+      "n_positive": 584,
+      "detection": {
+        "precision": 0.0024055809477988932,
+        "recall": 0.017123287671232876,
+        "f1": 0.004218519299725796,
+        "tp": 10,
+        "fp": 4147,
+        "fn": 574,
+        "roc_auc": 0.5143288856496387,
+        "pr_auc": 0.0017394088603707872,
+        "false_alarm_samples_per_node_day": 1.4851600387972843,
+        "ci95": {
+          "precision": [
+            0.00045412745315095466,
+            0.004998444886318169
+          ],
+          "recall": [
+            0.003310849144091559,
+            0.03428817028243962
+          ],
+          "f1": [
+            0.0008091639608846213,
+            0.008548079217370554
+          ]
+        }
+      },
+      "localization": {
+        "n_snapshots": 555,
+        "mean_positive_nodes": 1.0522522522522522,
+        "top1": 0.3207207207207207,
+        "chance_top1": 0.2875375375375376,
+        "top2": 0.5405405405405406,
+        "chance_top2": 0.5459459459459464
+      },
+      "lead_time": {
+        "events_with_valid_positive_samples": 110,
+        "events_detected": 4,
+        "event_recall": 0.03636363636363636,
+        "median_lead_min": 54.016666666666666,
+        "mean_lead_min": 44.170833333333334
+      }
+    },
+    "fault_predicted_w": {
+      "n_valid_node_samples": 402090,
+      "n_positive": 584,
+      "detection": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 557,
+        "fn": 584,
+        "roc_auc": 0.48087097198909123,
+        "pr_auc": 0.0015087182563555802,
+        "false_alarm_samples_per_node_day": 0.19947772886667164,
+        "ci95": {
+          "precision": [
+            0.0,
+            0.0
+          ],
+          "recall": [
+            0.0,
+            0.0
+          ],
+          "f1": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "localization": {
+        "n_snapshots": 555,
+        "mean_positive_nodes": 1.0522522522522522,
+        "top1": 0.3117117117117117,
+        "chance_top1": 0.2875375375375376,
+        "top2": 0.5747747747747748,
+        "chance_top2": 0.5459459459459464
+      },
+      "lead_time": {
+        "events_with_valid_positive_samples": 110,
+        "events_detected": 0,
+        "event_recall": 0.0,
+        "median_lead_min": NaN,
+        "mean_lead_min": NaN
+      }
+    }
+  },
+  "wall_seconds": 196.9
+}

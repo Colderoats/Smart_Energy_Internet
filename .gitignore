@@ -22,3 +22,5 @@ __pycache__/
 /blockchain/artifacts/
 /blockchain/cache/
 /blockchain/deployments/localhost.json
+
+/backend/ai/artifacts/cache/
