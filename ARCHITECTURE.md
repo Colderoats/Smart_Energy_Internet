@@ -1,4 +1,4 @@
-# Architecture — Module 1 & 2 (current scope)
+# Architecture — Module 1, 2 & 3 (current scope; Module 3 added at the end)
 
 Scope for this phase: NO solar/hardware yet. Two data sources only:
 1. LIVE data — wind/hydro power output + wind speed, pulled from external API
@@ -15,6 +15,15 @@ External API (live) ──┐
                        ├──> Ingestion service ──> TimescaleDB ──> FastAPI ──> WebSocket ──> React dashboard
 SCADA dataset (replay)─┘                              │
                                                         └──> Digital Twin state (NetworkX graph)
+                                                                   │  ▲
+                                          (Module 3, added)        ▼  │ health_status = max(rule-based, TA-GNN)
+                                            AI inference service (TA-GNN, backend/app/ai_service)
+                                            — scores replayed SCADA nodes on the twin's CURRENT edges,
+                                              runs alongside the rule-based detector; result rides on the
+                                              existing twin_node_update WebSocket message.
+
+Offline (Module 3): Kelmarsh CSVs ──> backend/ai (dataset → train/evaluate → artifacts/) ──> saved model
+                                       loaded by the inference service above at backend startup.
 
 ## Normalized data schema (all sources conform to this before storage)
 
@@ -28,6 +37,11 @@ SCADA dataset (replay)─┘                              │
   "vibration": float | null,  // historical/SCADA source only
   "temperature": float | null,// historical/SCADA source only
   "fault_label": string | null // historical source only, ground truth if present
+  "scada_channels": {string: float} | null // Module 3 addition; historical source only: extra REAL
+                                           // replayed SCADA channels (wind_speed_ms, rotor_speed_rpm,
+                                           // generator_rpm, pitch_angle_deg, gen_bearing_front_temp_c,
+                                           // gear_oil_temp_c, nacelle_temp_c, nacelle_ambient_temp_c);
+                                           // NaN channels omitted. Not the live-API `wind_speed`.
 }
 
 ## Digital Twin state (NetworkX graph, in-memory in FastAPI backend)
@@ -73,8 +87,42 @@ GET  /nodes                  — current state of all nodes
 WS   /ws/updates              — push stream of node state changes
 GET  /nodes/{id}/history      — recent time-series for one node
 
-## Explicitly out of scope for this phase
+Module 2 (added later): GET /twin/nodes, GET /twin/nodes/{id}/history, GET /twin/decisions
+(WS messages twin_node_update / twin_decision on the same /ws/updates).
+
+Module 3 (added): GET /ai/predictions — per-node detector verdicts + model card:
+  { "model": {loaded, name, task, horizon_min, operating_threshold_probability, data_provenance, ...},
+    "predictions": [ {node_id, scored, health_status, flagged_by: ["rule_based"|"ta_gnn"...],
+                      detectors: {rule_based: {status, flagged, basis},
+                                  ta_gnn: {flagged, probability, model, horizon_min, as_of, data}},
+                      last_updated}, ... ] }
+  Live API nodes (wind_01, hydro_01) are listed with scored=false — they are never scored.
+  The same `detectors` / `flagged_by` fields are on every SCADA node in GET /twin/nodes and in
+  twin_node_update WS messages. rule_based.basis is "replayed_ground_truth_label" when the replayed
+  status log (not a statistic) set the rule-based fault. TA-GNN output is a FORECAST on REPLAYED data.
+
+## Module 3 — AI layer (TA-GNN fault prediction)
+
+Task: per turbine node, "will a genuine equipment fault START within the next 60 min?", plus node
+ranking for localization. Graph = the twin's NetworkX topology (sources → bus_a/bus_b → grid) as an
+undirected edge_index taken from the twin's CURRENT edges, so reroute/isolate changes the graph the
+model sees with no code change. Only replayed Kelmarsh SCADA nodes are scored; live API nodes and
+buses/grid are graph structure only. Training/evaluation code, artifacts and the run instructions are
+in backend/ai/ (README-level docstring in backend/ai/__init__.py); serving is backend/app/ai_service/.
+`fault_label` is never a model input. The rule-based detector keeps running; the twin's
+health_status is the highest severity of the two and each node states which detector flagged it.
+
+Twin node fields added by Module 3: `detectors` (per-detector verdicts) and `flagged_by`.
+
+## Module status map
+- Module 1 — ingestion (live Open-Meteo wind/hydro + Kelmarsh SCADA replay): done
+- Module 2 — digital twin, self-healing, decision log, Digital Twin tab: done
+- Module 3 — TA-GNN fault prediction (backend/ai, backend/app/ai_service, Digital Twin tab badges): built; see aiprogress.md for measured results
+- Module 4 — federated learning (Flower, FedProx + adaptive weighting): not started
+- Module 5 — blockchain: not started
+
+## Out of scope (still)
 - Solar/EV hardware, MQTT, ESP32 firmware
-- TA-GNN, federated learning, blockchain
-- Real reconfiguration/actuation logic — self-healing decision layer
-- Topology changes (switching) — topology is static for now
+- Federated learning, blockchain
+- Human-approval gate / real actuation on the self-healing layer
+(Topology switching now exists via the Module 2 self-healing layer; the original "static topology" note above is historical.)

@@ -165,6 +165,14 @@ def _reason(chosen: dict, scored: list[tuple[tuple[float, float], dict]]) -> str
 
 
 def _trigger_summary(node: dict) -> str:
+    # Module 3: when only the TA-GNN raised the flag, say so — the rule-based
+    # wording below would misattribute it to the statistical threshold.
+    ta_gnn = (node.get("detectors") or {}).get("ta_gnn") or {}
+    if ta_gnn.get("flagged") and "rule_based" not in (node.get("flagged_by") or []):
+        return (
+            f"{ta_gnn['model']} predicted a fault start within {ta_gnn['horizon_min']} min "
+            f"(probability {ta_gnn['probability']:.2f}; forecast on replayed SCADA data)"
+        )
     reading = node.get("latest_reading") or {}
     fault_label = reading.get("fault_label")
     if fault_label:

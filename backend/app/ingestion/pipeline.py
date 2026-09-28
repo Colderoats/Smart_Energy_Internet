@@ -6,6 +6,7 @@ TimescaleDB never see live and historical data handled differently."""
 import logging
 
 from app import db
+from app.ai_service.integration import apply_detectors
 from app.api.ws_manager import manager
 from app.models.reading import NormalizedReading
 from app.twin import fault_detection, self_healing
@@ -24,6 +25,12 @@ async def ingest_reading(reading: NormalizedReading) -> None:
     # normalized reading — see app/twin/digital_twin.py. Self-healing
     # (Stage 2) reacts to this update, not to Module 1's graph.
     twin_state = digital_twin.update_node(reading.node_id, reading_dict, health_status)
+
+    # Module 3: the TA-GNN scores replayed SCADA nodes alongside the rule-based
+    # detector above and may raise the twin's health_status to
+    # "fault_predicted" (see app/ai_service/integration.py). Module 1's own
+    # graph (`twin`, Live Data tab) deliberately keeps the rule-based status only.
+    twin_state = await apply_detectors(reading, reading_dict, health_status) or twin_state
 
     try:
         await db.insert_reading(reading)

@@ -16,13 +16,15 @@ const HIGHLIGHT_MS = 2500
 const POSITIONS = {
   wind_01: { x: 0, y: 0 },
   hydro_01: { x: 0, y: 100 },
+  // Module 3 added detector rows to the SCADA cards (taller), so these are
+  // spaced further apart than Module 2's original 120px.
   wind_scada_kelmarsh_1: { x: 0, y: 220 },
-  wind_scada_kelmarsh_2: { x: 0, y: 340 },
-  wind_scada_kelmarsh_3: { x: 0, y: 460 },
-  wind_scada_kelmarsh_4: { x: 0, y: 580 },
-  bus_a: { x: 340, y: 130 },
-  bus_b: { x: 340, y: 430 },
-  grid: { x: 620, y: 280 },
+  wind_scada_kelmarsh_2: { x: 0, y: 450 },
+  wind_scada_kelmarsh_3: { x: 0, y: 680 },
+  wind_scada_kelmarsh_4: { x: 0, y: 910 },
+  bus_a: { x: 340, y: 200 },
+  bus_b: { x: 340, y: 640 },
+  grid: { x: 620, y: 420 },
 }
 
 function DigitalTwinTopology({ nodes, onSelectNode, selectedNodeId }) {

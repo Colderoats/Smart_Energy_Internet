@@ -1,0 +1,97 @@
+{
+  "synthetic": true,
+  "note": "Real test-set features/labels on SYNTHETIC topologies (twin reroute/isolate primitives). Not headline metrics.",
+  "n_variants": 60,
+  "n_distinct_edge_sets": 60,
+  "edges_per_graph": {
+    "min": 4,
+    "median": 6,
+    "max": 8
+  },
+  "models": {
+    "tag": {
+      "default_topology": {
+        "roc_auc": 0.3630651899294201,
+        "pr_auc": 0.00020781562994296075,
+        "f1_at_val_threshold": 0.0
+      },
+      "varied_topologies": {
+        "roc_auc": {
+          "mean": 0.4477379789182768,
+          "min": 0.17920104824999858,
+          "max": 0.7537192354251268
+        },
+        "pr_auc": {
+          "mean": 0.001319778444912257,
+          "min": 0.00016034257426190783,
+          "max": 0.003961172348508305
+        },
+        "f1_at_val_threshold": {
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "mean_abs_logit_shift_vs_default": {
+          "mean": 1.8291871473193169,
+          "max": 3.371516704559326
+        }
+      }
+    },
+    "gcn": {
+      "default_topology": {
+        "roc_auc": 0.3090518872453504,
+        "pr_auc": 0.00018867279937668954,
+        "f1_at_val_threshold": 0.0
+      },
+      "varied_topologies": {
+        "roc_auc": {
+          "mean": 0.41207069851328476,
+          "min": 0.19798897153647319,
+          "max": 0.6737432954735857
+        },
+        "pr_auc": {
+          "mean": 0.00024245892522336464,
+          "min": 0.00016495927559864162,
+          "max": 0.0004073703387073012
+        },
+        "f1_at_val_threshold": {
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "mean_abs_logit_shift_vs_default": {
+          "mean": 0.9739709904417395,
+          "max": 1.991658329963684
+        }
+      }
+    },
+    "mlp": {
+      "default_topology": {
+        "roc_auc": 0.4118556924229674,
+        "pr_auc": 0.00022342469543433724,
+        "f1_at_val_threshold": 0.0
+      },
+      "varied_topologies": {
+        "roc_auc": {
+          "mean": 0.41185569242296743,
+          "min": 0.4118556924229674,
+          "max": 0.4118556924229674
+        },
+        "pr_auc": {
+          "mean": 0.00022342469543433716,
+          "min": 0.00022342469543433724,
+          "max": 0.00022342469543433724
+        },
+        "f1_at_val_threshold": {
+          "mean": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "mean_abs_logit_shift_vs_default": {
+          "mean": 0.0,
+          "max": 0.0
+        }
+      }
+    }
+  }
+}

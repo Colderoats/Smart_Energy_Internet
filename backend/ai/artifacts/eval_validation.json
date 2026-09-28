@@ -1,0 +1,271 @@
+{
+  "note": "VALIDATION split. Learned models: optimistic (used for early stopping + threshold). Rule baseline: fair.",
+  "rule": {
+    "fault_predicted": {
+      "n_valid_node_samples": 101278,
+      "n_positive": 115,
+      "detection": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 69,
+        "fn": 115,
+        "roc_auc": 0.6866556727863642,
+        "pr_auc": 0.0036801922859797586,
+        "false_alarm_samples_per_node_day": 0.09810620272912182,
+        "ci95": {
+          "precision": [
+            0.0,
+            0.0
+          ],
+          "recall": [
+            0.0,
+            0.0
+          ],
+          "f1": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "localization": {
+        "n_snapshots": 85,
+        "mean_positive_nodes": 1.3529411764705883,
+        "top1": 0.43529411764705883,
+        "chance_top1": 0.3774509803921568,
+        "top2": 0.6352941176470588,
+        "chance_top2": 0.6196078431372549
+      },
+      "lead_time": {
+        "events_with_valid_positive_samples": 23,
+        "events_detected": 0,
+        "event_recall": 0.0,
+        "median_lead_min": NaN,
+        "mean_lead_min": NaN
+      }
+    },
+    "warning": {
+      "n_valid_node_samples": 101278,
+      "n_positive": 115,
+      "detection": {
+        "precision": 0.010880316518298714,
+        "recall": 0.09565217391304348,
+        "f1": 0.019538188277087035,
+        "tp": 11,
+        "fp": 1000,
+        "fn": 104,
+        "roc_auc": 0.6866556727863642,
+        "pr_auc": 0.0036801922859797586,
+        "false_alarm_samples_per_node_day": 1.4218290250597365,
+        "ci95": {
+          "precision": [
+            0.0,
+            0.03554763633242616
+          ],
+          "recall": [
+            0.0,
+            0.2391304347826087
+          ],
+          "f1": [
+            0.0,
+            0.06056659989026551
+          ]
+        }
+      },
+      "localization": {
+        "n_snapshots": 85,
+        "mean_positive_nodes": 1.3529411764705883,
+        "top1": 0.43529411764705883,
+        "chance_top1": 0.3774509803921568,
+        "top2": 0.6352941176470588,
+        "chance_top2": 0.6196078431372549
+      },
+      "lead_time": {
+        "events_with_valid_positive_samples": 23,
+        "events_detected": 2,
+        "event_recall": 0.08695652173913043,
+        "median_lead_min": 54.75833333333333,
+        "mean_lead_min": 54.75833333333333
+      }
+    },
+    "fault_predicted_w": {
+      "n_valid_node_samples": 101278,
+      "n_positive": 115,
+      "detection": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 164,
+        "fn": 115,
+        "roc_auc": 0.7252781885798597,
+        "pr_auc": 0.004031322307985904,
+        "false_alarm_samples_per_node_day": 0.2331799601097968,
+        "ci95": {
+          "precision": [
+            0.0,
+            0.0
+          ],
+          "recall": [
+            0.0,
+            0.0
+          ],
+          "f1": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "localization": {
+        "n_snapshots": 85,
+        "mean_positive_nodes": 1.3529411764705883,
+        "top1": 0.4235294117647059,
+        "chance_top1": 0.3774509803921568,
+        "top2": 0.6235294117647059,
+        "chance_top2": 0.6196078431372549
+      },
+      "lead_time": {
+        "events_with_valid_positive_samples": 23,
+        "events_detected": 0,
+        "event_recall": 0.0,
+        "median_lead_min": NaN,
+        "mean_lead_min": NaN
+      }
+    }
+  },
+  "models": {
+    "tag": {
+      "n_valid_node_samples": 101278,
+      "n_positive": 115,
+      "detection": {
+        "precision": 0.1683673469387755,
+        "recall": 0.28695652173913044,
+        "f1": 0.21221864951768488,
+        "tp": 33,
+        "fp": 163,
+        "fn": 82,
+        "roc_auc": 0.8354831569713794,
+        "pr_auc": 0.11427469093743074,
+        "false_alarm_samples_per_node_day": 0.23175813108473706,
+        "ci95": {
+          "precision": [
+            0.0,
+            0.32957610789980724
+          ],
+          "recall": [
+            0.0,
+            0.4914171024677234
+          ],
+          "f1": [
+            0.0,
+            0.35701622029422847
+          ]
+        }
+      },
+      "localization": {
+        "n_snapshots": 85,
+        "mean_positive_nodes": 1.3529411764705883,
+        "top1": 0.4,
+        "chance_top1": 0.3774509803921568,
+        "top2": 0.6352941176470588,
+        "chance_top2": 0.6196078431372549
+      },
+      "lead_time": {
+        "events_with_valid_positive_samples": 23,
+        "events_detected": 12,
+        "event_recall": 0.5217391304347826,
+        "median_lead_min": 19.258333333333333,
+        "mean_lead_min": 23.020833333333332
+      }
+    },
+    "gcn": {
+      "n_valid_node_samples": 101278,
+      "n_positive": 115,
+      "detection": {
+        "precision": 0.15060240963855423,
+        "recall": 0.21739130434782608,
+        "f1": 0.17793594306049823,
+        "tp": 25,
+        "fp": 141,
+        "fn": 90,
+        "roc_auc": 0.7349121026806071,
+        "pr_auc": 0.1086039184536499,
+        "false_alarm_samples_per_node_day": 0.20047789253342285,
+        "ci95": {
+          "precision": [
+            0.05970149253731343,
+            0.42424242424242425
+          ],
+          "recall": [
+            0.04756493506493507,
+            0.3829787234042553
+          ],
+          "f1": [
+            0.06105713624797593,
+            0.32984428131915583
+          ]
+        }
+      },
+      "localization": {
+        "n_snapshots": 85,
+        "mean_positive_nodes": 1.3529411764705883,
+        "top1": 0.2823529411764706,
+        "chance_top1": 0.3774509803921568,
+        "top2": 0.611764705882353,
+        "chance_top2": 0.6196078431372549
+      },
+      "lead_time": {
+        "events_with_valid_positive_samples": 23,
+        "events_detected": 11,
+        "event_recall": 0.4782608695652174,
+        "median_lead_min": 17.35,
+        "mean_lead_min": 20.62727272727273
+      }
+    },
+    "mlp": {
+      "n_valid_node_samples": 101278,
+      "n_positive": 115,
+      "detection": {
+        "precision": 0.3090909090909091,
+        "recall": 0.14782608695652175,
+        "f1": 0.19999999999999998,
+        "tp": 17,
+        "fp": 38,
+        "fn": 98,
+        "roc_auc": 0.7749768453752425,
+        "pr_auc": 0.12131197380233467,
+        "false_alarm_samples_per_node_day": 0.054029502952269985,
+        "ci95": {
+          "precision": [
+            0.0,
+            0.75
+          ],
+          "recall": [
+            0.0,
+            0.2346173469387755
+          ],
+          "f1": [
+            0.0,
+            0.3187890625
+          ]
+        }
+      },
+      "localization": {
+        "n_snapshots": 85,
+        "mean_positive_nodes": 1.3529411764705883,
+        "top1": 0.43529411764705883,
+        "chance_top1": 0.3774509803921568,
+        "top2": 0.6588235294117647,
+        "chance_top2": 0.6196078431372549
+      },
+      "lead_time": {
+        "events_with_valid_positive_samples": 23,
+        "events_detected": 7,
+        "event_recall": 0.30434782608695654,
+        "median_lead_min": 17.883333333333333,
+        "mean_lead_min": 19.807142857142857
+      }
+    }
+  }
+}

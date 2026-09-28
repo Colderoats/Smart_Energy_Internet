@@ -22,6 +22,7 @@ function DigitalTwinTab() {
         <span className="text-slate-400">
           Simulated self-healing — auto-applied to the twin's state only, no real actuation.
           Buses show current load vs. capacity; a red edge-free node is isolated.
+          TA-GNN predictions are forecasts on replayed Kelmarsh SCADA data, not sensed values.
         </span>
         <span
           className={`flex items-center gap-1.5 rounded-full px-2 py-1 ${

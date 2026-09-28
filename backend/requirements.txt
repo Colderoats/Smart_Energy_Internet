@@ -5,4 +5,10 @@ pydantic-settings==2.7.1
 python-dotenv==1.0.1
 httpx==0.28.1
 networkx==3.4.2
+# Module 3 (TA-GNN). CPU-only torch wheel; PyG core only (no torch-scatter/
+# torch-sparse extensions needed for TAGConv/GCNConv). numpy/aiohttp/etc. come in
+# as PyG/torch dependencies.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.0
+torch_geometric==2.8.0.post1
 

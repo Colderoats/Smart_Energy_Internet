@@ -21,9 +21,12 @@ If you think a different tool would genuinely be better, ask me first —
 don't just switch or introduce a new dependency.
 
 ## Current focus
-Only Module 1 (hardware/ingestion) and Module 2 (digital twin) right now.
-Do not scaffold Module 3 (GNN), Module 4 (federated learning), or Module 5 
-(blockchain) code yet unless I explicitly ask.
+Modules 1 (ingestion) and 2 (digital twin) are done. Module 3 (TA-GNN fault
+prediction) is built — code in backend/ai + backend/app/ai_service, results
+and experiment log in aiprogress.md. Module 4 (federated learning) is next:
+the model code exposes get_weights()/set_weights() and train/evaluate entry
+points for Flower to wrap. Do not scaffold Module 4 or Module 5 (blockchain)
+code unless I explicitly ask.
 
 ## Data sourcing (important — don't get this wrong)
 - Solar + EV: real sensor data via ESP32 (INA219/ACS712) → MQTT → TimescaleDB
@@ -45,6 +48,14 @@ Do not scaffold Module 3 (GNN), Module 4 (federated learning), or Module 5
 - Flag any deviation from the locked stack before making it
 - When a design decision isn't obvious, ask rather than assume
 - [add your code style / naming preferences here as you notice them]
+- Module 3 conventions: training/evaluation code and model artifacts live only
+  in backend/ai/; live serving lives in backend/app/ai_service/. Every model,
+  dataset and metric states its data provenance (real replayed SCADA vs
+  estimated vs synthetic). Synthetic data (e.g. topology variants) is labelled
+  synthetic and kept out of headline metrics. Report measured numbers only,
+  never tuned toward the targets. Extra Kelmarsh years live in
+  backend/data/scada/extra_years/ (training/eval only; Module 1's replay does
+  not read them).
 
 ## See also
 - ARCHITECTURE.md — module details, data schemas, twin state model and why each stack choice was made (avoid re-litigating)

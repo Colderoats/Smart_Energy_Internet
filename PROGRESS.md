@@ -492,3 +492,91 @@ tab) gained a colored LIVE/REPLAYED badge and a per-node "Updated
 HH:MM:SS" timestamp, both always visible on the node card, not a
 tooltip. `DecisionLogPanel.jsx` (Digital Twin tab) turned out to already
 render as a readable list, not raw JSON — no change was needed there.
+
+# Module 3 — TA-GNN fault prediction
+
+Model/experiment detail, measured results and the experiment log live in
+`aiprogress.md`; this entry is the platform-side record (what was built, what
+existing code was touched, deviations, bugs).
+
+## Stage 1 — Offline pipeline, models, live inference, Digital Twin badges (done)
+
+**Built:**
+- `backend/ai/` (new; training, evaluation, artifacts — model files live only
+  here; README-level docstring in `ai/__init__.py`): `taxonomy.py`,
+  `features.py`, `dataset.py`, `models.py`, `training.py`, `metrics.py`,
+  `evaluation.py`, `run_experiments.py`, `topology_eval.py`,
+  `print_taxonomy.py`. One harness compares Baseline 0 (the Module 2 rule-based
+  detector replayed offline with its label override OFF), Baseline 1 (plain
+  GCN) and the TA-GNN (PyG `TAGConv`), plus a no-graph MLP ablation, on one
+  chronological split with fixed seeds. `models.get_weights()/set_weights()` and
+  `training.fit()/predict_logits()` are the seams Module 4's Flower wrapper
+  will use (no Flower code written).
+- `backend/app/ai_service/` (new): `predictor.py` (loads the saved artifact,
+  windows replayed readings, scores on the twin's CURRENT edges),
+  `integration.py` (rule-based verdict + TA-GNN verdict -> merged
+  `health_status` + `flagged_by`).
+- `backend/app/api/ai_routes.py` (new): `GET /ai/predictions`.
+- Frontend, Digital Twin tab only: per-node detector rows (rule-based vs
+  TA-GNN, probability, "Flagged: TA-GNN / rule-based" badges) in `TwinNode.jsx`
+  plus a provenance sentence in `DigitalTwinTab.jsx`.
+
+**Edits to existing Module 1/2 code (all additive, smallest possible):**
+- `app/models/reading.py`: new optional `scada_channels: dict[str,float] | None`
+  on `NormalizedReading` (approved: "widen the schema"). Distinct from the
+  live-only `wind_speed`.
+- `app/ingestion/scada_replay.py`: `SCADA_CHANNELS` map, `_resolve_scada_channels()`,
+  and populating `scada_channels` per row. Existing fields/labels/ordering unchanged.
+  Visible side effect: `latest_reading` in `GET /nodes` (Module 1) and `/twin/nodes`
+  now carries an extra `scada_channels` key for SCADA nodes; the Live Data tab ignores it.
+- `app/db.py`: `ALTER TABLE readings ADD COLUMN IF NOT EXISTS scada_channels JSONB`
+  and one extra column in `insert_reading`. `fetch_history` untouched.
+- `app/twin/digital_twin.py`: two default node attributes (`detectors`,
+  `flagged_by`) and one method `set_detectors()`.
+- `app/ingestion/pipeline.py`: one import and one call (`apply_detectors`) right
+  after `digital_twin.update_node`, before the broadcast. Module 1's `twin`
+  (Live Data tab) still receives the rule-based status only.
+- `app/twin/self_healing.py`: `_trigger_summary` names TA-GNN when only TA-GNN
+  raised the flag (otherwise it would misattribute to the statistical threshold).
+  Per user decision, TA-GNN flags DO drive the existing edge-triggered self-healing.
+- `app/main.py`: load the predictor in the lifespan (off the event loop) and include the AI router.
+- `backend/requirements.txt`: `torch==2.14.0` (CPU wheel index), `torch_geometric==2.8.0.post1`.
+  PyG core only, no torch-scatter/torch-sparse; no compilation. numpy/aiohttp etc. are their dependencies.
+
+**Deviations / decisions worth knowing about:**
+1. **Extra Kelmarsh years downloaded (2017, 2018), with approval.** With 2016 alone
+   only 8 genuine fault events fell in the chronological test span. Files are in
+   `backend/data/scada/extra_years/` (git-ignored by the existing rule; NOT read by
+   Module 1's replay, whose glob is non-recursive). 2017-2018 are used for training/evaluation only.
+2. **Training data comes from the CSVs, not TimescaleDB.** The `readings` table only holds
+   whatever short demo replays ingested (days of Jan-Feb 2016, no temperature).
+3. **Fault taxonomy (approved):** planned/routine/external stops are masked, not positives
+   (basis: the status log's own IEC category + a short explicit message list).
+4. **Docs vs data:** aiprogress.md §5.4 said labeled rows are spread across the whole year.
+   That holds for any-Stop rows, but *genuine* fault starts are heavily winter-clustered
+   (2016: 86 of 105 in Jan-Apr; 2017: 61 of 67 in Jan-Feb). Also the rich SCADA channels
+   only exist from 2016-05-03 (all of 2017-2018 have them).
+5. Stale doc references left as-is (not in scope): INSTRUCTIONS.md and several code comments
+   cite `docs/architecture.md` / `docs/progress.md`; the files are at the repo root.
+
+**Bugs found while building (all fixed):**
+- NaN training loss from rows with no reading (NaN presence flags survived normalisation; a
+  masked NaN is still NaN) — `Normalizer.apply`.
+- Train/serve skew: scoring a turbine when its own reading arrived, while neighbours were a step
+  behind, changed the model's input (a real flag at logit 2.87 was served below threshold).
+  Fixed by scoring all turbines as one snapshot at a common reference step and refreshing all
+  verdicts together; parity to 9.5e-7 (`ai/check_serving_parity.py`). Verdict `as_of` can trail a
+  node's newest reading by a few dataset steps.
+- Layout regression: the taller detector rows made the fixed-position Digital Twin nodes overlap;
+  spacing increased in `DigitalTwinTopology.jsx`.
+
+**Results:** the measured outcome is in `aiprogress.md` §4b. In short: on the held-out test split
+no detector (rule-based or learned) raises a single true alarm, and the split has only 5 usable
+independent fault events, so the comparison is inconclusive; on validation (optimistic for learned
+models) the learned models beat the rule detector but TA-GNN ≈ GCN ≈ MLP.
+
+**Not verified / open:** see aiprogress.md §8 (notably: no organic live TA-GNN flag was observed
+in the running app) and §7 Q10–13 for decisions needed.
+
+Also a stopped stale dev backend (`reload=True`, started before this session) was replaced by a
+clean `python run.py`; the frontend dev server was left as it was.

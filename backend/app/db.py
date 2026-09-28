@@ -61,6 +61,9 @@ CREATE TABLE IF NOT EXISTS readings (
     fault_label TEXT
 );
 
+-- Module 3: extra real SCADA channels (see NormalizedReading.scada_channels).
+ALTER TABLE readings ADD COLUMN IF NOT EXISTS scada_channels JSONB;
+
 SELECT create_hypertable('readings', by_range('time'), if_not_exists => TRUE);
 
 CREATE INDEX IF NOT EXISTS readings_node_time_idx ON readings (node_id, time DESC);
@@ -98,8 +101,8 @@ async def insert_reading(reading: NormalizedReading) -> None:
             """
             INSERT INTO readings
                 (time, node_id, source_type, type, power_output,
-                 wind_speed, vibration, temperature, fault_label)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 wind_speed, vibration, temperature, fault_label, scada_channels)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 reading.timestamp,
@@ -111,6 +114,7 @@ async def insert_reading(reading: NormalizedReading) -> None:
                 reading.vibration,
                 reading.temperature,
                 reading.fault_label,
+                Jsonb(reading.scada_channels) if reading.scada_channels is not None else None,
             ),
         )
 

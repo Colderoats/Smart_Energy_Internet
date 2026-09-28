@@ -81,6 +81,10 @@ class DigitalTwin:
                 active_connection=node["primary_via"],
                 load_share=1.0,
                 isolated=False,
+                # Module 3: per-detector verdicts ({"rule_based": {...}, "ta_gnn": {...}})
+                # and which detectors raised the current flag. None/[] until set.
+                detectors=None,
+                flagged_by=[],
             )
             self._graph.add_edge(node["node_id"], node["primary_via"])
 
@@ -99,6 +103,17 @@ class DigitalTwin:
             attrs["latest_reading"] = reading
             attrs["health_status"] = health_status
             attrs["last_updated"] = datetime.now(timezone.utc).isoformat()
+            return self.get_node(node_id)
+
+    def set_detectors(self, node_id: str, detectors: dict, flagged_by: list[str], health_status: HealthStatus) -> dict:
+        """Module 3: record each detector's verdict for the node and set the
+        merged health_status (rule-based and TA-GNN, highest severity wins).
+        Same single-place-updates-health rule as update_node above."""
+        with self._lock:
+            attrs = self._graph.nodes[node_id]
+            attrs["detectors"] = detectors
+            attrs["flagged_by"] = flagged_by
+            attrs["health_status"] = health_status
             return self.get_node(node_id)
 
     # -- reconfiguration primitives (called by the Stage 2 decision layer) --

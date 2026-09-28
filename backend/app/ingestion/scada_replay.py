@@ -61,6 +61,34 @@ POWER_PRIORITY = ["power (kw)"]
 
 FAULT_STATUS_LEVELS = {"stop"}  # skip "warning"/"informational" — see module docstring
 
+# Module 3: extra real SCADA channels carried on NormalizedReading.scada_channels
+# so the TA-GNN sees identical features offline (training) and live (replay).
+# key -> lowercase column-name prefix; a column matches when its lowercased
+# name is "<prefix> (<unit>)", which excludes the ", Max/Min/Standard
+# deviation" and "Sensor 1/2" siblings. Channels that are NaN in a row are
+# omitted from that row's dict (missing, never fabricated).
+SCADA_CHANNELS = {
+    "wind_speed_ms": "wind speed",
+    "rotor_speed_rpm": "rotor speed",
+    "generator_rpm": "generator rpm",
+    "pitch_angle_deg": "blade angle (pitch position) a",
+    "gen_bearing_front_temp_c": "generator bearing front temperature",
+    "gear_oil_temp_c": "gear oil temperature",
+    "nacelle_temp_c": "nacelle temperature",
+    "nacelle_ambient_temp_c": "nacelle ambient temperature",
+}
+
+
+def _resolve_scada_channels(headers: list[str]) -> dict[str, str]:
+    resolved = {}
+    for key, prefix in SCADA_CHANNELS.items():
+        for h in headers:
+            hl = h.lower()
+            if hl.startswith(prefix + " (") and ", " not in hl[len(prefix) :]:
+                resolved[key] = h
+                break
+    return resolved
+
 
 def _find_column(headers: list[str], priority_substrings: list[str]) -> str | None:
     lower = {h: h.lower() for h in headers}
@@ -170,6 +198,7 @@ def _iter_turbine_readings(data_dir: Path, turbine_n: int, node_id: str):
         if not timestamp_col or not power_col:
             logger.warning("Could not resolve timestamp/power columns in %s, skipping", data_file)
             continue
+        channel_cols = _resolve_scada_channels(headers)
         logger.info(
             "SCADA replay resolved columns for %s — timestamp=%s power=%s temperature=%s",
             data_file.name,
@@ -190,6 +219,12 @@ def _iter_turbine_readings(data_dir: Path, turbine_n: int, node_id: str):
 
             temperature = _parse_float(row.get(temperature_col)) if temperature_col else None
 
+            channels = {}
+            for key, col in channel_cols.items():
+                value = _parse_float(row.get(col))
+                if value is not None:
+                    channels[key] = value
+
             yield NormalizedReading(
                 node_id=node_id,
                 source_type="historical",
@@ -199,6 +234,7 @@ def _iter_turbine_readings(data_dir: Path, turbine_n: int, node_id: str):
                 temperature=temperature,
                 vibration=None,  # this dataset has no true accelerometer channel — see progress.md
                 fault_label=_fault_label_for(ts, fault_windows),
+                scada_channels=channels or None,
             )
 
 

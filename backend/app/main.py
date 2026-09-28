@@ -7,6 +7,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import db
+from app.ai_service.predictor import predictor
+from app.api.ai_routes import router as ai_router
 from app.api.routes import router as api_router
 from app.api.twin_routes import router as twin_router
 from app.ingestion.poller import run_live_poller
@@ -31,6 +33,10 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("Could not connect to TimescaleDB at startup: %s", exc)
 
+    # Module 3: load the saved TA-GNN (imports torch — keep off the event loop).
+    # Missing torch/artifact disables scoring; the rule-based detector runs regardless.
+    await asyncio.to_thread(predictor.load)
+
     background_tasks.append(asyncio.create_task(run_live_poller()))
     background_tasks.append(asyncio.create_task(run_scada_replay()))
 
@@ -52,6 +58,7 @@ app.add_middleware(
 
 app.include_router(api_router)
 app.include_router(twin_router)
+app.include_router(ai_router)
 
 
 @app.get("/health")
