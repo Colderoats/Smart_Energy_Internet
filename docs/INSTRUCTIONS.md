@@ -24,7 +24,7 @@ don't just switch or introduce a new dependency.
 Modules 1 (ingestion) and 2 (digital twin) are done. Module 3 (TA-GNN fault
 prediction) is built — code in backend/ai + backend/app/ai_service, results
 and experiment log in aiprogress.md. Module 3 now trains/evaluates on 2016–2022 with split `exp013`
-(test 2021–2022); Module 4 still needs re-running on that split. Module 4 (adaptive federated learning,
+(test 2021–2022); Module 4 is partly re-run on it (aiprogress.md EXP-016). Module 4 (adaptive federated learning,
 Flower: FedAvg / FedProx / FedProx + adaptive weighting) is built and evaluated —
 code, artifacts and run instructions in backend/ai/federated (own venv there:
 Flower's pins conflict with backend/venv), measured results in aiprogress.md.

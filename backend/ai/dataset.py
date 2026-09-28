@@ -377,12 +377,27 @@ def class_balance(arr: KelmarshArrays, labels: Labels, splits: Splits) -> dict:
     return out
 
 
-def snapshot_tensor(arr: KelmarshArrays, idx: np.ndarray, norm: F.Normalizer, static: np.ndarray) -> np.ndarray:
-    """Node-feature tensor [len(idx), N_NODES, NODE_FEATURES] for the given steps."""
-    x = np.zeros((len(idx), F.N_NODES, F.NODE_FEATURES), dtype=np.float32)
+def snapshot_tensor(
+    arr: KelmarshArrays, idx: np.ndarray, norm: F.Normalizer, static: np.ndarray, regime: F.RegimeResiduals | None = None
+) -> np.ndarray:
+    """Node-feature tensor [len(idx), N_NODES, NODE_FEATURES (+ REGIME_FEATURES)] for the given steps."""
+    width = F.NODE_FEATURES + (F.REGIME_FEATURES if regime is not None else 0)
+    x = np.zeros((len(idx), F.N_NODES, width), dtype=np.float32)
     x[:, :, : F.STATIC_FEATURES] = static[None]
-    x[:, F.SCORED_IDX, F.STATIC_FEATURES :] = norm.apply(arr.raw_win[idx].astype(np.float64))
+    raw = arr.raw_win[idx].astype(np.float64)
+    x[:, F.SCORED_IDX, F.STATIC_FEATURES : F.NODE_FEATURES] = norm.apply(raw)
+    if regime is not None:
+        x[:, F.SCORED_IDX, F.NODE_FEATURES :] = regime.transform(raw)
     return x
+
+
+def fit_regime(arr: KelmarshArrays, labels: Labels, splits: Splits) -> F.RegimeResiduals:
+    """Wind-regime curves (EXP-015): fit on TRAIN-split, valid rows only."""
+    idx = splits.train
+    rows = arr.raw_win[idx][labels.valid[idx]]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return F.RegimeResiduals.fit(rows.astype(np.float64))
 
 
 def fit_normalizer(arr: KelmarshArrays, labels: Labels, splits: Splits) -> F.Normalizer:

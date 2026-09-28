@@ -145,6 +145,80 @@ class Normalizer:
         return cls(mean=np.asarray(d["mean"]), std=np.asarray(d["std"]))
 
 
+# -- wind-regime-relative features (EXP-015) ---------------------------
+
+# Channels expressed relative to what is typical AT THE CURRENT WIND SPEED, so
+# the model can see "abnormal for this wind" instead of only "high wind".
+REGIME_CHANNELS = ["power_output", "temperature", "rotor_speed_rpm", "pitch_angle_deg", "gear_oil_temp_c"]
+REGIME_FEATURES = 2 * len(REGIME_CHANNELS)  # residual of window-last and of window-mean
+_WIND = CHANNELS.index("wind_speed_ms")
+_REGIME_IDX = [CHANNELS.index(c) for c in REGIME_CHANNELS]
+
+
+@dataclass
+class RegimeResiduals:
+    """Per-channel median as a function of wind speed (0.5 m/s bins), fit on
+    TRAIN valid rows only, then residual = value - median(wind bin), z-scored
+    with train statistics. A pure function of the raw [4C] window vector, so
+    serving computes it exactly like training. Missing -> 0, clipped to +-8."""
+
+    edges: np.ndarray  # [B+1] wind-speed bin edges
+    medians: np.ndarray  # [R, B] per-channel median per bin (NaN-free)
+    mean: np.ndarray  # [2R]
+    std: np.ndarray  # [2R]
+
+    @staticmethod
+    def _residuals(raw: np.ndarray, edges: np.ndarray, medians: np.ndarray) -> np.ndarray:
+        out = []
+        for block in (0, 1):  # last, mean
+            w = raw[..., block * N_CHANNELS + _WIND]
+            b = np.clip(np.digitize(np.nan_to_num(w, nan=0.0), edges) - 1, 0, medians.shape[1] - 1)
+            for r, c in enumerate(_REGIME_IDX):
+                res = raw[..., block * N_CHANNELS + c] - medians[r][b]
+                out.append(np.where(np.isnan(w), np.nan, res))
+        return np.stack(out, axis=-1)
+
+    @classmethod
+    def fit(cls, raw: np.ndarray) -> "RegimeResiduals":
+        edges = np.arange(0.0, 25.5, 0.5)
+        w = raw[:, _WIND]
+        b = np.digitize(w, edges) - 1
+        medians = np.zeros((len(_REGIME_IDX), len(edges) - 1))
+        for r, c in enumerate(_REGIME_IDX):
+            v = raw[:, c]
+            glob = np.nanmedian(v) if np.isfinite(v).any() else 0.0
+            for j in range(len(edges) - 1):
+                sel = (b == j) & np.isfinite(v) & np.isfinite(w)
+                medians[r, j] = np.median(v[sel]) if sel.sum() >= 20 else np.nan
+            # sparse bins: carry the nearest populated bin (then the global median)
+            good = np.nonzero(np.isfinite(medians[r]))[0]
+            if len(good):
+                nearest = good[np.abs(np.arange(len(edges) - 1)[:, None] - good[None]).argmin(axis=1)]
+                medians[r] = medians[r][nearest]
+            else:
+                medians[r] = glob
+        res = cls._residuals(raw, edges, medians)
+        with np.errstate(all="ignore"):
+            mean, std = np.nanmean(res, axis=0), np.nanstd(res, axis=0)
+        mean = np.where(np.isnan(mean), 0.0, mean)
+        std = np.where(np.isnan(std) | (std < 1e-6), 1.0, std)
+        return cls(edges=edges, medians=medians, mean=mean, std=std)
+
+    def transform(self, raw: np.ndarray) -> np.ndarray:
+        """[..., 4C] raw window features -> [..., REGIME_FEATURES] normalised."""
+        z = (self._residuals(raw, self.edges, self.medians) - self.mean) / self.std
+        return np.clip(np.where(np.isnan(z), 0.0, z), -8.0, 8.0).astype(np.float32)
+
+    def to_dict(self) -> dict:
+        return {"channels": REGIME_CHANNELS, "edges": self.edges.tolist(), "medians": self.medians.tolist(),
+                "mean": self.mean.tolist(), "std": self.std.tolist()}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "RegimeResiduals":
+        assert d["channels"] == REGIME_CHANNELS, "regime channel layout changed since this artifact was trained"
+        return cls(np.asarray(d["edges"]), np.asarray(d["medians"]), np.asarray(d["mean"]), np.asarray(d["std"]))
+
+
 # -- graph ------------------------------------------------------------
 
 

@@ -43,9 +43,9 @@ PROVENANCE = (
 )
 
 
-def _snapshot_data(arr, labels, idx, norm, static, edge_index) -> T.SnapshotData:
+def _snapshot_data(arr, labels, idx, norm, static, edge_index, regime=None) -> T.SnapshotData:
     return T.SnapshotData(
-        x=D.snapshot_tensor(arr, idx, norm, static),
+        x=D.snapshot_tensor(arr, idx, norm, static, regime),
         y=labels.y[idx],
         valid=labels.valid[idx],
         edge_index=edge_index,
@@ -67,6 +67,7 @@ def main() -> None:
     ap.add_argument("--hidden", type=int, default=64)
     ap.add_argument("--K", type=int, default=3)
     ap.add_argument("--tag", default="main", help="results file suffix")
+    ap.add_argument("--regime", action="store_true", help="EXP-015: add wind-regime-relative residual features")
     ap.add_argument("--split", default=None, choices=sorted(D.SPLITS), help="named split in ai/dataset.SPLITS (default: ACTIVE_SPLIT)")
     args = ap.parse_args()
 
@@ -87,10 +88,12 @@ def main() -> None:
               f"pos={v['positives']:5d} ({100 * v['positive_rate']:.2f}%)  fault events={v['genuine_fault_events']}  other stops={v['non_fault_stop_events']}")
 
     norm = D.fit_normalizer(arr, labels, splits)
+    regime = D.fit_regime(arr, labels, splits) if args.regime else None
+    in_dim = F.NODE_FEATURES + (F.REGIME_FEATURES if regime is not None else 0)
     static, edge_index = F.default_topology()
-    train = _snapshot_data(arr, labels, splits.train, norm, static, edge_index)
-    val = _snapshot_data(arr, labels, splits.val, norm, static, edge_index)
-    test = _snapshot_data(arr, labels, splits.test, norm, static, edge_index)
+    train = _snapshot_data(arr, labels, splits.train, norm, static, edge_index, regime)
+    val = _snapshot_data(arr, labels, splits.val, norm, static, edge_index, regime)
+    test = _snapshot_data(arr, labels, splits.test, norm, static, edge_index, regime)
     pw = T.pos_weight_from(train.y, train.valid)
     print(f"  loss class weight: pos_weight = sqrt(neg/pos) = {pw:.1f} (raw neg/pos = {pw**2:.0f})")
 
@@ -103,6 +106,7 @@ def main() -> None:
         "class_balance": balance,
         "class_weight": {"pos_weight": pw, "rule": "sqrt(neg/pos) on train valid samples"},
         "split": split_name,
+        "regime_features": regime is not None,
         "seeds": args.seeds,
         "models": {},
     }
@@ -123,7 +127,7 @@ def main() -> None:
         for seed in args.seeds:
             print(f"\n== {DISPLAY_NAME[kind]}  seed {seed}")
             T.set_seed(seed)
-            model = NodeClassifier(kind, hidden=args.hidden, K=args.K)
+            model = NodeClassifier(kind, in_dim=in_dim, hidden=args.hidden, K=args.K)
             t0 = time.time()
             hist = T.fit(model, train, val, seed=seed, epochs=args.epochs, log=lambda s: print(s))
             val_logits = T.predict_logits(model, val.x, val.edge_index)
@@ -180,8 +184,9 @@ def main() -> None:
             "threshold_logit": best["thr"],
             "platt": {"a": best["platt"][0], "b": best["platt"][1]},
             "normalizer": norm.to_dict(),
+            **({"regime": regime.to_dict()} if regime is not None else {}),
             "features": {"channels": F.CHANNELS, "window_steps": F.WINDOW_STEPS, "step_minutes": F.STEP_MINUTES,
-                         "horizon_steps": F.HORIZON_STEPS, "node_order": F.NODE_ORDER, "node_features": F.NODE_FEATURES},
+                         "horizon_steps": F.HORIZON_STEPS, "node_order": F.NODE_ORDER, "node_features": in_dim},
             "provenance": PROVENANCE,
             "trained_at": datetime.now(timezone.utc).isoformat(),
             "split_name": split_name,

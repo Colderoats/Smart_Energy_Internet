@@ -10,136 +10,136 @@
       "node_id": "wind_scada_kelmarsh_1",
       "own_idx": 2,
       "train": {
-        "valid_samples": 96850,
-        "positives": 112,
-        "positive_rate": 0.0011564274651522973,
-        "genuine_fault_events": 48,
-        "events_with_valid_positive_sample": 23
+        "valid_samples": 198554,
+        "positives": 159,
+        "positive_rate": 0.000800789709600411,
+        "genuine_fault_events": 68,
+        "events_with_valid_positive_sample": 32
       },
       "val": {
-        "valid_samples": 25123,
-        "positives": 22,
-        "positive_rate": 0.0008756915973410819,
-        "genuine_fault_events": 5,
-        "events_with_valid_positive_sample": 4
+        "valid_samples": 51082,
+        "positives": 39,
+        "positive_rate": 0.000763478328961278,
+        "genuine_fault_events": 20,
+        "events_with_valid_positive_sample": 7
       },
       "test": {
-        "valid_samples": 24683,
-        "positives": 0,
-        "positive_rate": 0.0,
-        "genuine_fault_events": 4,
-        "events_with_valid_positive_sample": 0
+        "valid_samples": 100893,
+        "positives": 379,
+        "positive_rate": 0.003756454858117015,
+        "genuine_fault_events": 107,
+        "events_with_valid_positive_sample": 73
       }
     },
     "2": {
       "node_id": "wind_scada_kelmarsh_2",
       "own_idx": 3,
       "train": {
-        "valid_samples": 98303,
-        "positives": 130,
-        "positive_rate": 0.0013224418379907022,
-        "genuine_fault_events": 58,
-        "events_with_valid_positive_sample": 22
+        "valid_samples": 200333,
+        "positives": 216,
+        "positive_rate": 0.0010782047890262713,
+        "genuine_fault_events": 89,
+        "events_with_valid_positive_sample": 40
       },
       "val": {
-        "valid_samples": 25308,
-        "positives": 34,
-        "positive_rate": 0.0013434487118697644,
-        "genuine_fault_events": 10,
-        "events_with_valid_positive_sample": 8
+        "valid_samples": 51163,
+        "positives": 48,
+        "positive_rate": 0.0009381779801809902,
+        "genuine_fault_events": 24,
+        "events_with_valid_positive_sample": 9
       },
       "test": {
-        "valid_samples": 24664,
-        "positives": 15,
-        "positive_rate": 0.0006081738566331496,
-        "genuine_fault_events": 7,
-        "events_with_valid_positive_sample": 3
+        "valid_samples": 101253,
+        "positives": 109,
+        "positive_rate": 0.0010765113132450395,
+        "genuine_fault_events": 46,
+        "events_with_valid_positive_sample": 20
       }
     },
     "3": {
       "node_id": "wind_scada_kelmarsh_3",
       "own_idx": 4,
       "train": {
-        "valid_samples": 97257,
-        "positives": 81,
-        "positive_rate": 0.0008328449366112465,
-        "genuine_fault_events": 34,
-        "events_with_valid_positive_sample": 16
+        "valid_samples": 199153,
+        "positives": 154,
+        "positive_rate": 0.000773274818857863,
+        "genuine_fault_events": 62,
+        "events_with_valid_positive_sample": 29
       },
       "val": {
-        "valid_samples": 25503,
-        "positives": 31,
-        "positive_rate": 0.0012155432694192841,
-        "genuine_fault_events": 11,
+        "valid_samples": 50039,
+        "positives": 33,
+        "positive_rate": 0.0006594856012310398,
+        "genuine_fault_events": 13,
         "events_with_valid_positive_sample": 6
       },
       "test": {
-        "valid_samples": 24352,
-        "positives": 12,
-        "positive_rate": 0.0004927726675427069,
-        "genuine_fault_events": 11,
-        "events_with_valid_positive_sample": 2
+        "valid_samples": 102094,
+        "positives": 49,
+        "positive_rate": 0.00047994985013810804,
+        "genuine_fault_events": 18,
+        "events_with_valid_positive_sample": 9
       }
     },
     "4": {
       "node_id": "wind_scada_kelmarsh_4",
       "own_idx": 5,
       "train": {
-        "valid_samples": 97353,
-        "positives": 37,
-        "positive_rate": 0.00038006019331710374,
-        "genuine_fault_events": 32,
-        "events_with_valid_positive_sample": 7
+        "valid_samples": 199473,
+        "positives": 100,
+        "positive_rate": 0.0005013209807843668,
+        "genuine_fault_events": 55,
+        "events_with_valid_positive_sample": 20
       },
       "val": {
-        "valid_samples": 25344,
-        "positives": 28,
-        "positive_rate": 0.0011047979797979798,
-        "genuine_fault_events": 5,
-        "events_with_valid_positive_sample": 5
+        "valid_samples": 50778,
+        "positives": 54,
+        "positive_rate": 0.0010634526763559022,
+        "genuine_fault_events": 29,
+        "events_with_valid_positive_sample": 12
       },
       "test": {
-        "valid_samples": 24693,
-        "positives": 0,
-        "positive_rate": 0.0,
-        "genuine_fault_events": 3,
-        "events_with_valid_positive_sample": 0
+        "valid_samples": 97850,
+        "positives": 47,
+        "positive_rate": 0.0004803270311701584,
+        "genuine_fault_events": 18,
+        "events_with_valid_positive_sample": 8
       }
     }
   },
   "pooled_class_balance": {
     "train": {
-      "steps": 105252,
+      "steps": 210372,
       "from": "2016-01-01",
-      "to": "2017-12-31",
-      "valid_node_samples": 389763,
-      "masked_node_samples": 31245,
-      "positives": 360,
-      "positive_rate": 0.00092,
-      "genuine_fault_events": 172,
-      "non_fault_stop_events": 894
+      "to": "2019-12-31",
+      "valid_node_samples": 797513,
+      "masked_node_samples": 43975,
+      "positives": 629,
+      "positive_rate": 0.00079,
+      "genuine_fault_events": 274,
+      "non_fault_stop_events": 1744
     },
     "val": {
-      "steps": 26052,
-      "from": "2018-01-01",
-      "to": "2018-06-30",
-      "valid_node_samples": 101278,
-      "masked_node_samples": 2930,
-      "positives": 115,
-      "positive_rate": 0.00114,
-      "genuine_fault_events": 31,
-      "non_fault_stop_events": 243
+      "steps": 52692,
+      "from": "2020-01-01",
+      "to": "2020-12-31",
+      "valid_node_samples": 203062,
+      "masked_node_samples": 7706,
+      "positives": 174,
+      "positive_rate": 0.00086,
+      "genuine_fault_events": 86,
+      "non_fault_stop_events": 408
     },
     "test": {
-      "steps": 26496,
-      "from": "2018-07-01",
-      "to": "2019-01-01",
-      "valid_node_samples": 98392,
-      "masked_node_samples": 7592,
-      "positives": 27,
-      "positive_rate": 0.00027,
-      "genuine_fault_events": 25,
-      "non_fault_stop_events": 195
+      "steps": 105120,
+      "from": "2021-01-01",
+      "to": "2023-01-01",
+      "valid_node_samples": 402090,
+      "masked_node_samples": 18390,
+      "positives": 584,
+      "positive_rate": 0.00145,
+      "genuine_fault_events": 189,
+      "non_fault_stop_events": 888
     }
   }
 }

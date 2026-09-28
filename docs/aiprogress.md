@@ -10,7 +10,7 @@ here. If it is about *the platform*, log it there. A change that touches both
 (e.g. adding a training-data export endpoint) gets a one-line pointer in the
 other file.
 
-**Status (2026-09-29): Module 3 re-evaluated on a new, larger held-out split (EXP-013/014, 2016–2022 data, test = 2021–2022 with 110 testable fault events): every learned model now beats the rule baseline on test F1 (TA-GNN 0.076 ± 0.019 vs rule 0.004), the new TA-GNN is deployed, but TA-GNN ≈ GCN ≈ MLP and absolute skill is low (precision ~13%, recall ~6%). Module 4 has NOT been re-run on the new split; its numbers below are still on the old split.**
+**Status (2026-09-29): Module 3 re-evaluated on a new, larger held-out split (EXP-013/014, 2016–2022 data, test = 2021–2022 with 110 testable fault events): every learned model now beats the rule baseline on test F1 (TA-GNN 0.076 ± 0.019 vs rule 0.004), the new TA-GNN is deployed, but TA-GNN ≈ GCN ≈ MLP and absolute skill is low (precision ~13%, recall ~6%). Module 4 has been partly re-run on the new split (EXP-016: 5 of the planned 9 runs; every run beats the rule baseline, FedProx μ=1 best). The wind-regime feature experiment (EXP-015) gave no measurable gain and was not deployed. A serving-path check on held-out 2021–2022 data (EXP-017) shows the deployed model flagging real faults 10–53 min ahead.**
 
 **Earlier status (2026-09-28): Module 3 built and evaluated; Module 4 built and evaluated on the clean scenario (5 seeds); the SIMULATED fault-tolerance comparison is largely NOT run (see EXP-010).** On the held-out test split every federated strategy scores F1 = 0, exactly like Module 3, so the 81% → 94% claim is neither supported nor refuted (§4c).
 Module 3's pipeline, three comparable models, live inference and the Digital
@@ -27,7 +27,7 @@ Read §4b before quoting any number from this file.
 | | |
 |---|---|
 | Module 3 (TA-GNN) | **Built; retrained on split `exp013`.** `backend/ai/` (train/evaluate), `backend/app/ai_service/` (live), `GET /ai/predictions`, Digital Twin tab badges. Deployed artifact = TA-GNN seed 1 trained on 2016–2019 (EXP-014); the previous one is kept in `ai/artifacts/tag_exp002/`. Results: §4b. |
-| Module 4 (Federated learning) | **Built.** `backend/ai/federated/` (own venv; Flower 1.38, one client process per turbine). Clean-scenario grid finished (35 runs, 5 seeds). Simulated-degradation comparison: mostly not run (EXP-010). Results: §4c. Serving: `AI_MODEL_SOURCE=federated`. **Still on the old `exp002` split; must be re-run on `exp013` (not done: 10–30 min per run).** |
+| Module 4 (Federated learning) | **Built.** `backend/ai/federated/` (own venv; Flower 1.38, one client process per turbine). Clean-scenario grid finished (35 runs, 5 seeds). Simulated-degradation comparison: mostly not run (EXP-010). Results: §4c. Serving: `AI_MODEL_SOURCE=federated` (still the `exp002`-trained model). **Partly re-run on `exp013`** (EXP-016: FedAvg seeds 0–1, FedProx μ=1 seeds 0–1, FedProx μ=1 + adaptive seed 0 only). The μ sweep, the μ=0 ablation, the remaining seeds and the SIMULATED scenarios are not re-run. |
 | Baseline detector | Exists (`backend/app/twin/fault_detection.py`). Replayed offline with its ground-truth label override OFF it **barely fires usefully**: best variant (≥3σ) F1 0.004 on the new test split, 10 true / 4,147 false alarms (§4b). |
 | Training data used | Real Kelmarsh SCADA, turbines 1–4, **2016–2022** (2017–2022 downloaded for training/eval only, `backend/data/scada/extra_years/`). 549 genuine fault events in total. Split `exp013`: train 2016–2019, val 2020, test 2021–2022. |
 | Blocking issues | None for measurability: the new test split has 110 fault events with valid samples (was 5). Open: the graph does not beat the no-graph MLP on detection; low precision matters for self-healing (§7 Q11). |
@@ -269,8 +269,37 @@ illustrative graph.
 - **Artifacts:** `ai/artifacts/results_exp013_{tag,gcn,mlp}.json` (all metrics, per-seed CIs); `ai/artifacts/{tag,gcn,mlp}_exp013/`; dataset cache `ai/artifacts/cache/kelmarsh_416bfe296c295919.npz` (2016–2022, ~4 min to build). `ai/artifacts/results_main.json` (EXP-002) is untouched.
 - **Follow-up:** Module 4 must be re-run on `exp013`. The wind-regime improvement (EXP-015) was not run.
 
-### EXP-015 — Wind-regime-relative features — NOT RUN
-- Planned as the optional step after EXP-014: features relative to wind speed / expected power, to reduce the "high wind → fault" bias diagnosed in EXP-002. **Not run** because of the ~1 h time budget. It would also change `ai/features.py`, which serving shares, so the deployed artifact format would change. Whether the bias still exists on `exp013` was not measured.
+### EXP-015 — Wind-regime-relative features (PRE-REGISTRATION, written before training)
+- **Date:** 2026-09-29. First deferred from the EXP-014 session for time, now run.
+- **Diagnosis on `exp013` (data only, no model):** median wind speed of positive vs negative valid samples: train 8.9 vs 6.0 m/s, **val 16.4** vs 6.3, **test 4.8** vs 5.7 m/s. The regime shift diagnosed in EXP-002 persists: validation faults are storm faults, test faults happen at below-typical wind.
+- **Change (one variant, no search):** `ai/features.RegimeResiduals`. For power, generator-bearing temperature, rotor speed, pitch and gear-oil temperature: residual = value − the train-set median for the current wind-speed bin (0.5 m/s bins, 0–25 m/s; bins with < 20 rows carry the nearest populated bin), computed for the window-last and window-mean values, then z-scored with train statistics (missing → 0, clip ±8). That adds 10 features per turbine node (in_dim 46 → 56). Fitted on TRAIN valid rows only. Sanity check: the power curve medians at 3/6/9/12/15 m/s are 38/478/1,518/2,037/2,045 kW. All other settings are exactly EXP-014's; seeds 0–4; GCN, TA-GNN and MLP; `run_experiments --split exp013 --regime --tag exp015`.
+- **Selection / deployment rule (fixed before training):** the EXP-015 TA-GNN replaces the EXP-014 TA-GNN only if its 5-seed mean **validation** PR-AUC is higher than EXP-014's (0.1386) — the test split is not used to choose between the two — **and** it passes the EXP-013 rule on test (mean F1 and the best-on-val seed's F1 both above the best rule variant, 0.004). Test results are reported either way. Known caveat, accepted before seeing results: validation positives are storm faults, so validation-based selection may favour the old features.
+- **Deviation:** the GCN and MLP runs with these features were **stopped before finishing** (CPU contention with EXP-016 on this 12-core laptop: after 20 min they had done one epoch). Only TA-GNN was completed (seeds 0–4), which is the only kind the deployment rule needs.
+- **Result (TA-GNN, seeds 0–4, test = `exp013`):** validation PR-AUC per seed 0.159 / 0.120 / 0.115 / 0.137 / 0.125, **mean 0.1312 < 0.1386 (EXP-014)**. Test: precision 0.187 ± 0.074, recall 0.056 ± 0.021, **F1 0.080 ± 0.024** (EXP-014: 0.076 ± 0.019), ROC-AUC 0.691 ± 0.033 (EXP-014: 0.731), PR-AUC 0.029 ± 0.004, localization top-1 0.472 ± 0.031, event recall 0.084 ± 0.016, median lead 40 min. Per-seed F1 95% CIs: lower bounds 0.000–0.003, upper bounds 0.092–0.204. Best-on-val seed 0: F1 0.042, 0.009 false-alarm samples per node-day.
+- **Verdict:** **not deployed** (fails the pre-registered validation criterion). On test, F1 is within seed noise of EXP-014 and ROC-AUC is lower, so the wind-relative residuals gave **no measurable improvement**. Precision rose (0.19 vs 0.13) and recall stayed the same, which is a small possible benefit for false-alarm-driven self-healing but is not significant. No serving code changed.
+- **Artifacts:** `ai/artifacts/results_exp015_tag.json`, `ai/artifacts/tag_exp015/` (meta has a `regime` block; serving cannot load it without a small predictor change, not made). Code: `ai/features.RegimeResiduals`, `ai/dataset.fit_regime`, `run_experiments --regime`.
+
+### EXP-016 — Module 4 re-run on `exp013` (PRE-REGISTRATION, reduced grid)
+- **Date:** 2026-09-29, written before any federated run on `exp013` finished.
+- **Scope, fixed for time:** FedAvg, FedProx μ=1 and FedProx μ=1 + adaptive weighting, clean scenario, **seeds 0–2 only** (9 runs, 5 in parallel), 30 rounds, all other settings as EXP-008. μ=1 is reused from the EXP-008 validation-only sweep; the μ sweep, the μ=0 adaptive ablation, seeds 3–4 and the SIMULATED scenarios (EXP-010) are not re-run.
+- **Partitions rebuilt** (`venv\Scripts\python -m ai.federated.partition`): every client now has test positives (T1 379, T2 109, T3 49, T4 47); train positives T1 159 / T2 216 / T3 154 / T4 100. The old `exp002` federated artifacts were moved to `ai/federated/artifacts/exp002/` (unchanged). The served `model_federated/` stays in place and is not replaced by this experiment.
+- **Deviation:** only **5 of the 9 runs** completed. Under CPU contention each run took about 57–60 min (vs 6–10 min on `exp002`), so I stopped the dispatcher after the first wave to stay near the time budget. The in-flight runs finished normally and were evaluated with `ai.federated.evaluate.evaluate_run`. Not run: FedProx + adaptive seed 1, and all seed-2 runs. `ai.federated.report` was not re-run (it mixes in Module 3's `exp002` numbers), so `RESULTS.md` / `results_federated.json` for `exp013` do not exist yet; per-run results are in `ai/federated/artifacts/runs/<run>/result.json`.
+- **Result:** see §4c (new table). Every federated run beats the rule baseline on test (F1 0.041–0.101 vs 0.004). FedProx μ=1 is best on validation (client-mean val PR-AUC 0.21–0.26 vs FedAvg 0.14–0.17), and FedProx μ=1 and FedProx μ=1 + adaptive have similar test scores (F1 0.096 vs 0.101 on seed 0). With n = 1–2 seeds per strategy, **no strategy difference is statistically supported**.
+
+### EXP-017 — Held-out targeted predictions through the SERVING path
+- **Date:** 2026-09-29. Deployed artifact (`ai/artifacts/tag/`, EXP-014 TA-GNN seed 1), real Kelmarsh SCADA 2021–2022 (held-out test, never used for training or selection), REPLAYED.
+- **Method:** offline flags of the deployed artifact over the `exp013` test split; then, for the first 5 genuine-fault events it flags ahead of time, stream the surrounding real readings through `app.ai_service.FaultPredictor` in live round-robin order (scoring after every reading, as in `check_serving_parity`) and compare. Script kept outside the repo (scratchpad); no project code changed.
+- **Result:** offline, the deployed model flags **7 of 110** testable held-out fault events ahead of time (18 true-alarm and 133 false-alarm samples). For all 5 streamed events the served flags match the offline flags exactly, and the serving path raised the flag **before** the fault started:
+
+  | Turbine | Fault start (UTC) | Message | First served flag | Lead | Max served p |
+  |---|---|---|---|---|---|
+  | T4 | 2021-03-11 02:19 | Tower oscillation X level 2 | 02:10 | 9.8 min | 0.128 |
+  | T3 | 2021-03-11 02:55 | Tower oscillation X level 1 | 02:20 | 35.8 min | 0.522 |
+  | T2 | 2022-02-16 16:52 | Tower oscillation X level 2 | 16:40 | 12.7 min | 0.149 |
+  | T2 | 2022-02-18 12:33 | Tower oscillation X level 2 | 11:40 | 53.2 min | 0.176 |
+  | T3 | 2022-02-18 12:33 | Tower oscillation X level 1 | 12:00 | 33.9 min | 0.155 |
+
+- **Limits:** all 5 caught events are tower-oscillation (storm-type) faults, consistent with the regime bias; the 103 missed events include the low-wind faults. This was run in-process, not in the running backend. The running backend (started 2026-09-29 00:04, after the artifact was deployed at 2026-09-28 23:57) has loaded the new artifact, but its routes need an admin login and its live replay is 2016 (in-sample), so no live flag was checked there.
 
 ---
 
@@ -345,7 +374,25 @@ Class balance, weighting and everything else needed to reproduce is in EXP-002.
 
 ## 4c. Module 4 measured results (identical held-out test split; real replayed SCADA; clean scenario)
 
-> **Not re-run on the new split.** Everything in §4c is on the old `exp002` split (test H2 2018, 5 testable events). Module 4 must be re-run on `exp013`. `ai/dataset.ACTIVE_SPLIT` is now `exp013`, so `ai/federated/partition.py` will pick it up. This was skipped for time (10–30 min per run).
+### Current: split `exp013` (EXP-016), clean scenario, REDUCED grid
+
+Full-view test (2021–2022; 584 positives, 110 testable events; chance top-1 0.288), val-selected round. One row per run; this is far too few seeds for mean ± std. The client-mean validation PR-AUC is a different quantity from Module 3's pooled validation PR-AUC.
+
+| Run | Selected round | Client-mean val PR-AUC (optimistic) | Precision | Recall | F1 | ROC-AUC | PR-AUC | Accuracy | Loc. top-1 | Event recall |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Rule baseline (best variant, ≥3σ) | — | — | 0.002 | 0.017 | 0.004 | 0.514 | 0.002 | — | 0.321 | 0.036 |
+| Centralized TA-GNN (EXP-014, 5 seeds) | — | — | 0.132 | 0.056 | 0.076 ± 0.019 | 0.731 | 0.030 | — | 0.493 | 0.085 |
+| FedAvg, seed 0 | 5 | 0.172 | 0.119 | 0.051 | 0.072 | 0.760 | 0.021 | 0.9981 | 0.650 | 0.073 |
+| FedAvg, seed 1 | 7 | 0.139 | 0.080 | 0.027 | 0.041 | 0.758 | 0.017 | 0.9981 | 0.661 | 0.064 |
+| FedProx μ=1, seed 0 | 27 | 0.256 | 0.134 | 0.075 | 0.096 | 0.794 | 0.026 | 0.9979 | 0.649 | 0.118 |
+| FedProx μ=1, seed 1 | 10 | 0.206 | 0.115 | 0.034 | 0.053 | 0.786 | 0.019 | 0.9982 | 0.668 | 0.055 |
+| FedProx μ=1 + adaptive, seed 0 | 17 | 0.255 | 0.136 | 0.080 | 0.101 | 0.791 | 0.030 | 0.9979 | 0.652 | 0.118 |
+
+**Reading.** On the new split federated training works: every run beats the rule baseline, test ROC-AUC (0.76–0.79) is above centralized TA-GNN's (0.73), and full-view localization top-1 (0.65–0.67) is well above chance (0.288) and above centralized TA-GNN (0.49). FedProx μ=1 (± adaptive) is ahead of FedAvg on validation and on seed-0 test F1, but with 1–2 seeds per strategy **no strategy difference is supported**. **The 81% → 94% target remains unmeasurable as stated:** accuracy is ~99.8% for every run, *below* the all-negative 99.85%, so accuracy cannot express it. Day-block CIs were not produced by the federated evaluator for these runs. Per-run files: `ai/federated/artifacts/runs/<run>/result.json`.
+
+### Superseded: split `exp002`, kept for history
+
+> Everything below in §4c is on the old `exp002` split (test H2 2018, 5 testable events). Its artifacts moved to `ai/federated/artifacts/exp002/`.
 
 Full tables (both views, per client, mean ± std over seeds 0-4): `ai/federated/artifacts/RESULTS.md`. A federated "client" is a partition of the Kelmarsh replay, not a separate site. Test = H2 2018, 27 positives from 5 independent events, so **the test set cannot separate any two methods**.
 
@@ -513,7 +560,8 @@ what gets built, so please define them:
 11. **Still open, now measured on held-out data:** the newly deployed TA-GNN has test precision 0.119 and recall 0.031 (about 0.05 false-alarm samples per node-day), so most flags that drive self-healing will be false alarms. Self-healing behaviour was not changed. *Original:* **Precision on validation is ~17% for the deployed TA-GNN** and its flags drive the existing self-healing (per your decision), so live false-alarm reroutes will occur. Keep, or switch to display-only?
 12. **Does the graph help at all?** On `exp013`: not for detection (MLP F1 0.089 ≥ TA-GNN 0.076 ≈ GCN 0.070), but yes for localization (graph models top-1 ~0.48 vs MLP 0.31 vs chance 0.29). On `exp002`: TA-GNN ≈ GCN ≈ MLP here. If topology adaptation is meant to matter, the data would need faults whose labels depend on routing; the Kelmarsh data has one topology. Do you want a labelled-synthetic topology-augmentation experiment?
 13. **Taxonomy judgement calls** in §5.6 (emergency-stop buttons, grid-side events, "Drive train monitor level 2") — confirm or adjust.
-14. **Wind-regime-relative features (EXP-015)** were not run. They would change the feature layout and therefore the served artifact format. Should this be run as a separate experiment on `exp013`?
+14. **Wind-regime-relative features (EXP-015):** run; no measurable gain; not deployed. The regime bias persists (EXP-017: every caught event is a storm-type tower-oscillation fault). A different approach, such as training-time reweighting of low-wind faults or a per-regime threshold, would be a new experiment and needs your go-ahead.
+15. **Module 4 on `exp013`:** 5 of 9 planned runs done (EXP-016). Finish the grid (seeds 2–4, the μ sweep, the μ=0 ablation, SIMULATED scenarios) and re-export `model_federated/`? Each run takes ~10 min on an idle machine and ~60 min under contention.
 
 1. **81% / 94% — what do these measure?** Accuracy, F1, AUC, or something
    else? On which task (fault detection? demand forecasting? both)? Accuracy on
@@ -572,6 +620,7 @@ what gets built, so please define them:
 
 **Not verified:**
 - **A live, organic TA-GNN flag in the running backend + browser.** I watched ~8 min (REST polling) and a 90 s WebSocket window; none occurred (the live replay starts in early Jan 2016 where most nodes are in labelled stopped states). The backend mechanics were proven in-process on real data and the UI rendering with a mocked message, but the two were not seen together in the running app.
+- **Held-out targeted predictions through the serving path** (EXP-017, 2026-09-29): the served model flags real held-out faults 10–53 min ahead, identical to offline.
 - **Held-out generalisation** (updated 2026-09-29): on split `exp013` (110 testable events) the models show modest held-out skill (§4b). A live, organic flag from the new artifact in the running app was not checked; only offline/online parity was.
 - Restoration/service-time and resilience improvements (not defined or measured).
 - The 81%/94% federated targets: measured (§4c) but inconclusive on the held-out test set.

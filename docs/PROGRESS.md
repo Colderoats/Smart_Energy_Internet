@@ -592,8 +592,11 @@ Pointer entry; details in aiprogress.md EXP-013 to EXP-015 and §4b.
 - **Deployed model replaced:** `ai/artifacts/tag/` is now the `exp013` TA-GNN (it beat the rule
   baseline on the new test split, as the pre-registered rule required). Previous artifact backed up to
   `ai/artifacts/tag_exp002/`. Serving parity re-checked (max logit difference 4.8e-7).
-- **Not done:** Module 4 was not re-run on the new split; the wind-regime feature experiment (EXP-015)
-  was not run.
+- **Follow-up (same day):** wind-regime features (EXP-015) were run: no gain, so not deployed. Module 4 was
+  partly re-run on the new split (EXP-016, 5 of 9 runs; old federated artifacts moved to
+  `ai/federated/artifacts/exp002/`; `model_federated/` unchanged). A held-out serving-path check
+  (EXP-017) shows the deployed model flagging real 2021–2022 faults 10–53 min ahead. New code:
+  `ai/features.RegimeResiduals`, `ai/dataset.fit_regime`, `run_experiments --regime` (training/eval only).
 
 # Module 4 — Adaptive federated learning
 

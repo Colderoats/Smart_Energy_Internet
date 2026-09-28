@@ -16,16 +16,16 @@
     "simulated": false,
     "label": "none"
   },
-  "best_round_by_client_val": 5,
-  "best_mean_client_val_pr_auc": 0.12081500694047805,
-  "rounds_to_convergence": 2,
+  "best_round_by_client_val": 27,
+  "best_mean_client_val_pr_auc": 0.2556128855526255,
+  "rounds_to_convergence": 15,
   "convergence_definition": "first round whose mean client validation PR-AUC >= 95% of the run's best",
   "communication": {
     "rounds_x_params": 850590,
-    "convergence_rounds_x_params": 56706,
+    "convergence_rounds_x_params": 425295,
     "total_floats_transferred_both_directions": 6804720,
     "total_megabytes_float32": 27.21888
   },
-  "wall_seconds": 348.0,
+  "wall_seconds": 3591.3,
   "provenance": "Real Kelmarsh SCADA, REPLAYED; clients are partitions of it. No simulated degradation."
 }
