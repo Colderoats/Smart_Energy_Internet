@@ -1,0 +1,720 @@
+{
+ "run_id": "j_table5",
+ "provenance": "simulated_testbed",
+ "created_utc": "2026-10-12T16:33:20+00:00",
+ "versions": {
+  "python": "3.14.6",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.4.6",
+  "torch": "2.14.0+cpu",
+  "torch_geometric": "2.8.0.post1",
+  "pandapower": "3.5.6",
+  "sklearn": "1.9.1",
+  "web3": "8.0.0"
+ },
+ "config": {
+  "options": "J Table IV",
+  "epochs": {
+   "search": 25,
+   "final": 250
+  },
+  "batch": "N snapshots",
+  "split": "80/20"
+ },
+ "config_hash": "16b99c1bf808",
+ "metrics": [
+  {
+   "name": "train_loss",
+   "target_id": "J.T5.3_LRS.train_loss",
+   "value": 0.017582484525314232,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 3_LRS",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.017582484525314232,
+   "std": 0.0022661093998832694,
+   "n": 3,
+   "values": [
+    0.014379613043429594,
+    0.019279253477974927,
+    0.01908858705453818
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T5.3_LRS.val_loss",
+   "value": 2.5929392319475157,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 3_LRS",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 2.5929392319475157,
+   "std": 1.2731247759363988,
+   "n": 3,
+   "values": [
+    4.3724741985141815,
+    1.4660820615633081,
+    1.9402614357650574
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T5.3_LRS.val_f1",
+   "value": 0.5104020117081763,
+   "unit": "",
+   "formula": "macro-F1",
+   "equation": "13",
+   "conditions": "Option 3_LRS",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.5104020117081763,
+   "std": 0.03681663685034681,
+   "n": 3,
+   "values": [
+    0.5360592325560991,
+    0.5368095757565835,
+    0.45833722681184613
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T5.3_NLRS.train_loss",
+   "value": 0.02763862301828365,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 3_NLRS",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.02763862301828365,
+   "std": 0.01725623224424791,
+   "n": 3,
+   "values": [
+    0.011997428275420764,
+    0.01923636314559775,
+    0.05168207763383244
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T5.3_NLRS.val_loss",
+   "value": 2.343647728849096,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 3_NLRS",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 2.343647728849096,
+   "std": 1.4632965584981157,
+   "n": 3,
+   "values": [
+    4.410563671109871,
+    1.2221608256007097,
+    1.3982186898367084
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T5.3_NLRS.val_f1",
+   "value": 0.541939213125201,
+   "unit": "",
+   "formula": "macro-F1",
+   "equation": "13",
+   "conditions": "Option 3_NLRS",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.541939213125201,
+   "std": 0.029988174405647734,
+   "n": 3,
+   "values": [
+    0.5227650694133452,
+    0.5187665525957271,
+    0.5842860173665307
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T5.2_NLRS.train_loss",
+   "value": 0.03720504639107881,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 2_NLRS",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.03720504639107881,
+   "std": 0.00741830320480012,
+   "n": 3,
+   "values": [
+    0.027523058245419545,
+    0.03854730314624557,
+    0.0455447777815713
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T5.2_NLRS.val_loss",
+   "value": 1.29399808295097,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 2_NLRS",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.29399808295097,
+   "std": 1.097345244481535,
+   "n": 3,
+   "values": [
+    2.8166349534359245,
+    0.7923575228907995,
+    0.27300177252618596
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T5.2_NLRS.val_f1",
+   "value": 0.6150770067269563,
+   "unit": "",
+   "formula": "macro-F1",
+   "equation": "13",
+   "conditions": "Option 2_NLRS",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.6150770067269563,
+   "std": 0.08979760451219071,
+   "n": 3,
+   "values": [
+    0.5176594822669377,
+    0.7343391821292068,
+    0.5932323557847244
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T5.3_LRS.train_loss",
+   "value": 0.015233874598156718,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 3_LRS",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.015233874598156718,
+   "std": 0.001303094592595419,
+   "n": 3,
+   "values": [
+    0.01406503338865006,
+    0.014584422865066142,
+    0.017052167540753956
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T5.3_LRS.val_loss",
+   "value": 3.8915159042925,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 3_LRS",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 3.8915159042925,
+   "std": 2.1887149714750165,
+   "n": 3,
+   "values": [
+    6.857306926652435,
+    1.6413052373224033,
+    3.1759355489026615
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T5.3_LRS.val_f1",
+   "value": 0.3671036369343262,
+   "unit": "",
+   "formula": "macro-F1",
+   "equation": "13",
+   "conditions": "Option 3_LRS",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.3671036369343262,
+   "std": 0.06351801401633449,
+   "n": 3,
+   "values": [
+    0.32004413018404293,
+    0.3243698311295994,
+    0.4568969494893363
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T5.3_NLRS.train_loss",
+   "value": 0.011846474517309481,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 3_NLRS",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.011846474517309481,
+   "std": 0.003037457648138034,
+   "n": 3,
+   "values": [
+    0.011746781052512215,
+    0.008177212572060215,
+    0.01561542992735601
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T5.3_NLRS.val_loss",
+   "value": 2.8947483351817755,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 3_NLRS",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 2.8947483351817755,
+   "std": 1.4211986587062424,
+   "n": 3,
+   "values": [
+    4.888404950673079,
+    1.6772201953259624,
+    2.118619859546285
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T5.3_NLRS.val_f1",
+   "value": 0.39493588422769754,
+   "unit": "",
+   "formula": "macro-F1",
+   "equation": "13",
+   "conditions": "Option 3_NLRS",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.39493588422769754,
+   "std": 0.10580238249421904,
+   "n": 3,
+   "values": [
+    0.32004413018404293,
+    0.3202005012531328,
+    0.5445630212459168
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T5.2_NLRS.train_loss",
+   "value": 0.05459306405561191,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 2_NLRS",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.05459306405561191,
+   "std": 0.021216326233779354,
+   "n": 3,
+   "values": [
+    0.05538017959538587,
+    0.08017515036113751,
+    0.02822386221031238
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T5.2_NLRS.val_loss",
+   "value": 5.126125362994549,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 2_NLRS",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 5.126125362994549,
+   "std": 3.091044280900333,
+   "n": 3,
+   "values": [
+    5.1993107217734815,
+    1.3043226435709383,
+    8.874742723639226
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T5.2_NLRS.val_f1",
+   "value": 0.34100895391273434,
+   "unit": "",
+   "formula": "macro-F1",
+   "equation": "13",
+   "conditions": "Option 2_NLRS",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.34100895391273434,
+   "std": 0.03084200057801788,
+   "n": 3,
+   "values": [
+    0.32004413018404293,
+    0.3183673469387755,
+    0.38461538461538464
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T5.3_LRS.train_loss",
+   "value": 0.02198796309854716,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 3_LRS",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.02198796309854716,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.02198796309854716
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T5.3_LRS.val_loss",
+   "value": 0.7410051482966756,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 3_LRS",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.7410051482966756,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.7410051482966756
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T5.3_LRS.val_f1",
+   "value": 0.48659203494507297,
+   "unit": "",
+   "formula": "macro-F1",
+   "equation": "13",
+   "conditions": "Option 3_LRS",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.48659203494507297,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.48659203494507297
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T5.3_NLRS.train_loss",
+   "value": 0.004425881352160845,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 3_NLRS",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.004425881352160845,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.004425881352160845
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T5.3_NLRS.val_loss",
+   "value": 1.067850312031051,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 3_NLRS",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.067850312031051,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    1.067850312031051
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T5.3_NLRS.val_f1",
+   "value": 0.46355612583454087,
+   "unit": "",
+   "formula": "macro-F1",
+   "equation": "13",
+   "conditions": "Option 3_NLRS",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.46355612583454087,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.46355612583454087
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T5.2_NLRS.train_loss",
+   "value": 0.046223984212785396,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 2_NLRS",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.046223984212785396,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.046223984212785396
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T5.2_NLRS.val_loss",
+   "value": 0.5242284282242138,
+   "unit": "",
+   "formula": "Eq.14",
+   "equation": "14",
+   "conditions": "Option 2_NLRS",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.5242284282242138,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.5242284282242138
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T5.2_NLRS.val_f1",
+   "value": 0.48812123960314563,
+   "unit": "",
+   "formula": "macro-F1",
+   "equation": "13",
+   "conditions": "Option 2_NLRS",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.48812123960314563,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.48812123960314563
+   ],
+   "config_hash": "16b99c1bf808"
+  }
+ ]
+}

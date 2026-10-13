@@ -245,6 +245,10 @@ def test_every_non_public_route_requires_auth(client, admin):
         ("POST", "/chain/verify/1"), ("POST", "/chain/simulate-trade"), ("POST", "/chain/replay-fl-rounds"),
         ("POST", "/chain/dev/tamper/1"),
         ("GET", "/auth/me"), ("POST", "/auth/invites"), ("GET", "/auth/invites"),
+        # simulated testbed (paper reproduction), read-only
+        ("GET", "/testbed/status"), ("GET", "/testbed/results"), ("GET", "/testbed/runs/1"), ("GET", "/testbed/comparison"), ("GET", "/testbed/kelmarsh"),
+        ("GET", "/testbed/topologies"), ("GET", "/testbed/topologies/1/redistribution"), ("GET", "/testbed/topologies/1/faults"),
+        ("GET", "/testbed/topologies/1/faults/1"), ("GET", "/testbed/graphs"),
     ])
     for method, path in routes:
         r = client.request(method, path)

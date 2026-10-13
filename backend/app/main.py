@@ -19,6 +19,7 @@ from app.auth import store as auth_store
 from app.auth.deps import origin_check_middleware, require_admin
 from app.auth.tokens import check_config as check_auth_config
 from app.api.twin_routes import router as twin_router
+from app.api.testbed_routes import router as testbed_router
 from app.ingestion.poller import run_live_poller
 from app.ingestion.scada_replay import run_scada_replay
 
@@ -94,6 +95,7 @@ app.include_router(api_router, dependencies=protected)
 app.include_router(twin_router, dependencies=protected)
 app.include_router(ai_router, dependencies=protected)
 app.include_router(chain_router, dependencies=protected)
+app.include_router(testbed_router, dependencies=protected)  # simulated-testbed paper reproduction (read-only)
 app.include_router(ws_router)
 
 

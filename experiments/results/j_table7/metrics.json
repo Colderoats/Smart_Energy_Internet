@@ -1,0 +1,487 @@
+{
+ "run_id": "j_table7",
+ "provenance": "simulated_testbed",
+ "created_utc": "2026-10-12T17:41:09+00:00",
+ "versions": {
+  "python": "3.14.6",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.4.6",
+  "torch": "2.14.0+cpu",
+  "torch_geometric": "2.8.0.post1",
+  "pandapower": "3.5.6",
+  "sklearn": "1.9.1",
+  "web3": "8.0.0"
+ },
+ "config": {
+  "scenario": "20 faults (4 types x 5) per held-out iteration x 3",
+  "schemes": [
+   "default",
+   "twin"
+  ]
+ },
+ "config_hash": "264c4bfd20e2",
+ "metrics": [
+  {
+   "name": "detection_f1",
+   "target_id": "J.T7.A.default.detection_f1",
+   "value": 0.5882742130946171,
+   "unit": "",
+   "formula": "F1 of the alarm signal vs injection-log label (sample level)",
+   "equation": "",
+   "conditions": "default scheme; threshold protection",
+   "topology": "A",
+   "split": "held-out scenarios",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.5882742130946171,
+   "std": 0.017336527726796624,
+   "n": 3,
+   "values": [
+    0.6078196210122332,
+    0.5913200723327305,
+    0.5656829459388873
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "t_rec",
+   "target_id": "J.T7.A.default.t_rec",
+   "value": 601.6071428571428,
+   "unit": "s",
+   "formula": "t_restored - t_fault, mean over faults that interrupted supply",
+   "equation": "22",
+   "conditions": "default scheme",
+   "topology": "A",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 601.6071428571428,
+   "std": 47.79780436422594,
+   "n": 3,
+   "values": [
+    593.5714285714286,
+    663.75,
+    547.5
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "e_uns",
+   "target_id": "J.T7.A.default.e_uns",
+   "value": 371.3728268867069,
+   "unit": "kWh",
+   "formula": "integral of unserved power, total over the scenario's 20 faults",
+   "equation": "7",
+   "conditions": "default scheme",
+   "topology": "A",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 371.3728268867069,
+   "std": 73.07981613418761,
+   "n": 3,
+   "values": [
+    348.8364352915022,
+    469.9913093450334,
+    295.290736023585
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "detection_f1",
+   "target_id": "J.T7.A.twin.detection_f1",
+   "value": 0.5900281749902733,
+   "unit": "",
+   "formula": "F1 of the alarm signal vs injection-log label (sample level)",
+   "equation": "",
+   "conditions": "twin scheme; TA-GNN fault head + 2-sample persistence",
+   "topology": "A",
+   "split": "held-out scenarios",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.5900281749902733,
+   "std": 0.059386780152382454,
+   "n": 3,
+   "values": [
+    0.5076835515082526,
+    0.6168929110105581,
+    0.6455080624520092
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "t_rec",
+   "target_id": "J.T7.A.twin.t_rec",
+   "value": 130.42261904761904,
+   "unit": "s",
+   "formula": "t_restored - t_fault, mean over faults that interrupted supply",
+   "equation": "22",
+   "conditions": "twin scheme",
+   "topology": "A",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 130.42261904761904,
+   "std": 30.998465006616698,
+   "n": 3,
+   "values": [
+    171.14285714285714,
+    124.125,
+    96.0
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "e_uns",
+   "target_id": "J.T7.A.twin.e_uns",
+   "value": 192.5409470584616,
+   "unit": "kWh",
+   "formula": "integral of unserved power, total over the scenario's 20 faults",
+   "equation": "7",
+   "conditions": "twin scheme",
+   "topology": "A",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 192.5409470584616,
+   "std": 31.598933208286848,
+   "n": 3,
+   "values": [
+    151.56188196905003,
+    228.46667207900117,
+    197.59428712733362
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "detection_f1",
+   "target_id": "J.T7.B.default.detection_f1",
+   "value": 0.3778852544200795,
+   "unit": "",
+   "formula": "F1 of the alarm signal vs injection-log label (sample level)",
+   "equation": "",
+   "conditions": "default scheme; threshold protection",
+   "topology": "B",
+   "split": "held-out scenarios",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.3778852544200795,
+   "std": 0.05316935228319078,
+   "n": 3,
+   "values": [
+    0.45306485045898726,
+    0.33907427341227125,
+    0.34151663938897986
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "t_rec",
+   "target_id": "J.T7.B.default.t_rec",
+   "value": NaN,
+   "unit": "s",
+   "formula": "t_restored - t_fault, mean over faults that interrupted supply",
+   "equation": "22",
+   "conditions": "default scheme",
+   "topology": "B",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": NaN,
+   "std": NaN,
+   "n": 3,
+   "values": [
+    NaN,
+    NaN,
+    NaN
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "e_uns",
+   "target_id": "J.T7.B.default.e_uns",
+   "value": 2.070124555517126,
+   "unit": "kWh",
+   "formula": "integral of unserved power, total over the scenario's 20 faults",
+   "equation": "7",
+   "conditions": "default scheme",
+   "topology": "B",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 2.070124555517126,
+   "std": 2.9275982222138954,
+   "n": 3,
+   "values": [
+    6.210373666551378,
+    0.0,
+    0.0
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "detection_f1",
+   "target_id": "J.T7.B.twin.detection_f1",
+   "value": 0.5019718070746689,
+   "unit": "",
+   "formula": "F1 of the alarm signal vs injection-log label (sample level)",
+   "equation": "",
+   "conditions": "twin scheme; TA-GNN fault head + 2-sample persistence",
+   "topology": "B",
+   "split": "held-out scenarios",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.5019718070746689,
+   "std": 0.06613266939223503,
+   "n": 3,
+   "values": [
+    0.5950363196125907,
+    0.46347337436446356,
+    0.44740572724695216
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "t_rec",
+   "target_id": "J.T7.B.twin.t_rec",
+   "value": 672.2222222222222,
+   "unit": "s",
+   "formula": "t_restored - t_fault, mean over faults that interrupted supply",
+   "equation": "22",
+   "conditions": "twin scheme",
+   "topology": "B",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 672.2222222222222,
+   "std": 79.21587164822247,
+   "n": 3,
+   "values": [
+    566.6666666666666,
+    757.5,
+    692.5
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "e_uns",
+   "target_id": "J.T7.B.twin.e_uns",
+   "value": 136.98486218275846,
+   "unit": "kWh",
+   "formula": "integral of unserved power, total over the scenario's 20 faults",
+   "equation": "7",
+   "conditions": "twin scheme",
+   "topology": "B",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 136.98486218275846,
+   "std": 113.68627131062267,
+   "n": 3,
+   "values": [
+    98.19883989546034,
+    21.253538792928058,
+    291.502207859887
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "detection_f1",
+   "target_id": "J.T7.C.default.detection_f1",
+   "value": 0.5395492708793637,
+   "unit": "",
+   "formula": "F1 of the alarm signal vs injection-log label (sample level)",
+   "equation": "",
+   "conditions": "default scheme; threshold protection",
+   "topology": "C",
+   "split": "held-out scenarios",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.5395492708793637,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.5395492708793637
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "t_rec",
+   "target_id": "J.T7.C.default.t_rec",
+   "value": 55.6,
+   "unit": "s",
+   "formula": "t_restored - t_fault, mean over faults that interrupted supply",
+   "equation": "22",
+   "conditions": "default scheme",
+   "topology": "C",
+   "split": "",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 55.6,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    55.6
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "e_uns",
+   "target_id": "J.T7.C.default.e_uns",
+   "value": 90.7634086280399,
+   "unit": "kWh",
+   "formula": "integral of unserved power, total over the scenario's 20 faults",
+   "equation": "7",
+   "conditions": "default scheme",
+   "topology": "C",
+   "split": "",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 90.7634086280399,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    90.7634086280399
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "detection_f1",
+   "target_id": "J.T7.C.twin.detection_f1",
+   "value": 0.5118733509234829,
+   "unit": "",
+   "formula": "F1 of the alarm signal vs injection-log label (sample level)",
+   "equation": "",
+   "conditions": "twin scheme; TA-GNN fault head + 2-sample persistence",
+   "topology": "C",
+   "split": "held-out scenarios",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.5118733509234829,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.5118733509234829
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "t_rec",
+   "target_id": "J.T7.C.twin.t_rec",
+   "value": 135.33333333333334,
+   "unit": "s",
+   "formula": "t_restored - t_fault, mean over faults that interrupted supply",
+   "equation": "22",
+   "conditions": "twin scheme",
+   "topology": "C",
+   "split": "",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 135.33333333333334,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    135.33333333333334
+   ],
+   "config_hash": "264c4bfd20e2"
+  },
+  {
+   "name": "e_uns",
+   "target_id": "J.T7.C.twin.e_uns",
+   "value": 148.91332591056823,
+   "unit": "kWh",
+   "formula": "integral of unserved power, total over the scenario's 20 faults",
+   "equation": "7",
+   "conditions": "twin scheme",
+   "topology": "C",
+   "split": "",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 148.91332591056823,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    148.91332591056823
+   ],
+   "config_hash": "264c4bfd20e2"
+  }
+ ]
+}

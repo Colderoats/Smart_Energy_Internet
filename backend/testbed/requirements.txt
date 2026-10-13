@@ -1,0 +1,10 @@
+# Separate venv for the paper-reproduction testbed (keeps backend/venv untouched:
+# pandapower would upgrade its networkx/numpy pins). Records versions actually used.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.0
+torch_geometric==2.8.0.post1
+pandapower==3.5.6
+scikit-learn
+pandas
+web3==8.0.0
+pytest==8.4.2

@@ -5,6 +5,9 @@ import SourcesTab from './tabs/SourcesTab'
 import RedistributionTab from './tabs/RedistributionTab'
 import AIInsightsTab from './tabs/AIInsightsTab'
 import AnalyticsTab from './tabs/AnalyticsTab'
+import ResultsTab from './tabs/ResultsTab'
+import TopologiesTab from './tabs/TopologiesTab'
+import GraphsTab from './tabs/GraphsTab'
 import SettingsTab from './tabs/SettingsTab'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -48,6 +51,9 @@ function Dashboard({ tab, search }) {
       {tab === 'chain' && <RedistributionTab />}
       {tab === 'ai' && <AIInsightsTab />}
       {tab === 'analytics' && <AnalyticsTab />}
+      {tab === 'results' && <ResultsTab />}
+      {tab === 'topologies' && <TopologiesTab />}
+      {tab === 'graphs' && <GraphsTab />}
       {tab === 'settings' && <SettingsTab search={search} onLogout={signOut} />}
     </AppShell>
   )

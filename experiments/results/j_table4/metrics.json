@@ -1,0 +1,951 @@
+{
+ "run_id": "j_table4",
+ "provenance": "simulated_testbed",
+ "created_utc": "2026-10-12T16:32:46+00:00",
+ "versions": {
+  "python": "3.14.6",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.4.6",
+  "torch": "2.14.0+cpu",
+  "torch_geometric": "2.8.0.post1",
+  "pandapower": "3.5.6",
+  "sklearn": "1.9.1",
+  "web3": "8.0.0"
+ },
+ "config": {
+  "options": "J Table IV",
+  "epochs": {
+   "search": 25,
+   "final": 250
+  },
+  "batch": "N snapshots",
+  "split": "80/20"
+ },
+ "config_hash": "16b99c1bf808",
+ "metrics": [
+  {
+   "name": "train_loss",
+   "target_id": "J.T4.o1.train_loss",
+   "value": 0.08883514435244545,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 1, 25 epochs, TA-GNN",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.08883514435244545,
+   "std": 0.019659187632045716,
+   "n": 3,
+   "values": [
+    0.08088060945870426,
+    0.06974144479539185,
+    0.11588337880324025
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T4.o1.val_loss",
+   "value": 1.4568892062503707,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 1, 25 epochs, TA-GNN",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.4568892062503707,
+   "std": 1.0850046338898582,
+   "n": 3,
+   "values": [
+    2.954124058445881,
+    0.999078298944773,
+    0.4174652613604579
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T4.o1.val_f1",
+   "value": 0.5937597906166695,
+   "unit": "",
+   "formula": "macro-F1 of fault head",
+   "equation": "13",
+   "conditions": "Option 1, 25 epochs, TA-GNN",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.5937597906166695,
+   "std": 0.09563642744809482,
+   "n": 3,
+   "values": [
+    0.5177414544263519,
+    0.5348906907427222,
+    0.7286472266809345
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T4.o2.train_loss",
+   "value": 0.11371055885676158,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 2, 25 epochs, TA-GNN",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.11371055885676158,
+   "std": 0.013669746029364153,
+   "n": 3,
+   "values": [
+    0.11334157463398008,
+    0.09715614948856059,
+    0.13063395244774412
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T4.o2.val_loss",
+   "value": 0.8718127284819164,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 2, 25 epochs, TA-GNN",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.8718127284819164,
+   "std": 0.5056783502721693,
+   "n": 3,
+   "values": [
+    1.5869468818159982,
+    0.5160478594426187,
+    0.5124434441871321
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T4.o2.val_f1",
+   "value": 0.6278277106201726,
+   "unit": "",
+   "formula": "macro-F1 of fault head",
+   "equation": "13",
+   "conditions": "Option 2, 25 epochs, TA-GNN",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.6278277106201726,
+   "std": 0.08623416746995834,
+   "n": 3,
+   "values": [
+    0.5232699013215367,
+    0.734468788192009,
+    0.6257444423469722
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T4.o3.train_loss",
+   "value": 0.08212535601600554,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 3, 25 epochs, TA-GNN",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.08212535601600554,
+   "std": 0.007812307036929229,
+   "n": 3,
+   "values": [
+    0.09001332989318123,
+    0.07148188305656308,
+    0.08488085509827231
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T4.o3.val_loss",
+   "value": 1.3198353525863409,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 3, 25 epochs, TA-GNN",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.3198353525863409,
+   "std": 0.987448528370912,
+   "n": 3,
+   "values": [
+    2.7132816009257956,
+    0.5436606141199634,
+    0.7025638427132637
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T4.o3.val_f1",
+   "value": 0.6123848782656682,
+   "unit": "",
+   "formula": "macro-F1 of fault head",
+   "equation": "13",
+   "conditions": "Option 3, 25 epochs, TA-GNN",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.6123848782656682,
+   "std": 0.08752995203462859,
+   "n": 3,
+   "values": [
+    0.5176034079978014,
+    0.7287291733162055,
+    0.5908220534829977
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T4.o4.train_loss",
+   "value": 0.24809977374036477,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 4, 25 epochs, TA-GNN",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.24809977374036477,
+   "std": 0.0362886374979547,
+   "n": 3,
+   "values": [
+    0.2797453207866505,
+    0.19728818298524145,
+    0.2672658174492024
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T4.o4.val_loss",
+   "value": 0.396012095940719,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 4, 25 epochs, TA-GNN",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.396012095940719,
+   "std": 0.08658129606442452,
+   "n": 3,
+   "values": [
+    0.46848408232822464,
+    0.4452473823330365,
+    0.2743048231608959
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T4.o4.val_f1",
+   "value": 0.5830559610629438,
+   "unit": "",
+   "formula": "macro-F1 of fault head",
+   "equation": "13",
+   "conditions": "Option 4, 25 epochs, TA-GNN",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.5830559610629438,
+   "std": 0.07186100259814908,
+   "n": 3,
+   "values": [
+    0.6681451625440858,
+    0.4923878069925012,
+    0.5886349136522443
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T4.o1.train_loss",
+   "value": 0.11577688507985683,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 1, 25 epochs, TA-GNN",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.11577688507985683,
+   "std": 0.02904812746520188,
+   "n": 3,
+   "values": [
+    0.15680606277250408,
+    0.09703585120894417,
+    0.09348874125812216
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T4.o1.val_loss",
+   "value": 1.6600661233734388,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 1, 25 epochs, TA-GNN",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.6600661233734388,
+   "std": 0.8011127588653336,
+   "n": 3,
+   "values": [
+    2.0063876634360187,
+    0.5527113040184809,
+    2.421099402665816
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T4.o1.val_f1",
+   "value": 0.38190879690498236,
+   "unit": "",
+   "formula": "macro-F1 of fault head",
+   "equation": "13",
+   "conditions": "Option 1, 25 epochs, TA-GNN",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.38190879690498236,
+   "std": 0.08335624590539656,
+   "n": 3,
+   "values": [
+    0.32004413018404293,
+    0.32593907128068617,
+    0.49974318925021793
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T4.o2.train_loss",
+   "value": 0.21020606860590588,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 2, 25 epochs, TA-GNN",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.21020606860590588,
+   "std": 0.0421692162977269,
+   "n": 3,
+   "values": [
+    0.2449252832616922,
+    0.2348380831210755,
+    0.15085483943494993
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T4.o2.val_loss",
+   "value": 1.090488362692679,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 2, 25 epochs, TA-GNN",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.090488362692679,
+   "std": 0.4902152513421519,
+   "n": 3,
+   "values": [
+    1.419364786731657,
+    0.39751754784137355,
+    1.454582753505006
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T4.o2.val_f1",
+   "value": 0.3435328620267046,
+   "unit": "",
+   "formula": "macro-F1 of fault head",
+   "equation": "13",
+   "conditions": "Option 2, 25 epochs, TA-GNN",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.3435328620267046,
+   "std": 0.02914924618030775,
+   "n": 3,
+   "values": [
+    0.32004413018404293,
+    0.32593907128068617,
+    0.38461538461538464
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T4.o3.train_loss",
+   "value": 0.1144538851915967,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 3, 25 epochs, TA-GNN",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.1144538851915967,
+   "std": 0.043519259551063894,
+   "n": 3,
+   "values": [
+    0.16168611352364973,
+    0.12500978271497623,
+    0.05666575933616413
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T4.o3.val_loss",
+   "value": 1.7442703854858899,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 3, 25 epochs, TA-GNN",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.7442703854858899,
+   "std": 1.0986098985417851,
+   "n": 3,
+   "values": [
+    3.2325680114466837,
+    0.6139309509458987,
+    1.3863121940650873
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T4.o3.val_f1",
+   "value": 0.36986487609400304,
+   "unit": "",
+   "formula": "macro-F1 of fault head",
+   "equation": "13",
+   "conditions": "Option 3, 25 epochs, TA-GNN",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.36986487609400304,
+   "std": 0.06633249285238302,
+   "n": 3,
+   "values": [
+    0.32004413018404293,
+    0.32593907128068617,
+    0.46361142681727985
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T4.o4.train_loss",
+   "value": 0.35304330122378785,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 4, 25 epochs, TA-GNN",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.35304330122378785,
+   "std": 0.018925851902039405,
+   "n": 3,
+   "values": [
+    0.33802344466267037,
+    0.3797387640809354,
+    0.3413676949277577
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T4.o4.val_loss",
+   "value": 0.48691945330022096,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 4, 25 epochs, TA-GNN",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.48691945330022096,
+   "std": 0.19102953246065943,
+   "n": 3,
+   "values": [
+    0.5205649769502796,
+    0.23795576991687994,
+    0.7022376130335033
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T4.o4.val_f1",
+   "value": 0.34292445240647157,
+   "unit": "",
+   "formula": "macro-F1 of fault head",
+   "equation": "13",
+   "conditions": "Option 4, 25 epochs, TA-GNN",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.34292445240647157,
+   "std": 0.028291851715279894,
+   "n": 3,
+   "values": [
+    0.32004413018404293,
+    0.32593907128068617,
+    0.38279015575468567
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T4.o1.train_loss",
+   "value": 0.21407370666273706,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 1, 25 epochs, TA-GNN",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.21407370666273706,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.21407370666273706
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T4.o1.val_loss",
+   "value": 0.3160287003653745,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 1, 25 epochs, TA-GNN",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.3160287003653745,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.3160287003653745
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T4.o1.val_f1",
+   "value": 0.4911953086618401,
+   "unit": "",
+   "formula": "macro-F1 of fault head",
+   "equation": "13",
+   "conditions": "Option 1, 25 epochs, TA-GNN",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.4911953086618401,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.4911953086618401
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T4.o2.train_loss",
+   "value": 0.2154081501102967,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 2, 25 epochs, TA-GNN",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.2154081501102967,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.2154081501102967
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T4.o2.val_loss",
+   "value": 0.2504153536369645,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 2, 25 epochs, TA-GNN",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.2504153536369645,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.2504153536369645
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T4.o2.val_f1",
+   "value": 0.4921246343521173,
+   "unit": "",
+   "formula": "macro-F1 of fault head",
+   "equation": "13",
+   "conditions": "Option 2, 25 epochs, TA-GNN",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.4921246343521173,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.4921246343521173
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T4.o3.train_loss",
+   "value": 0.22826419343400994,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 3, 25 epochs, TA-GNN",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.22826419343400994,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.22826419343400994
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T4.o3.val_loss",
+   "value": 0.31318623086877373,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 3, 25 epochs, TA-GNN",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.31318623086877373,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.31318623086877373
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T4.o3.val_f1",
+   "value": 0.4830580267410407,
+   "unit": "",
+   "formula": "macro-F1 of fault head",
+   "equation": "13",
+   "conditions": "Option 3, 25 epochs, TA-GNN",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.4830580267410407,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.4830580267410407
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "train_loss",
+   "target_id": "J.T4.o4.train_loss",
+   "value": 0.2844963445211925,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 4, 25 epochs, TA-GNN",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.2844963445211925,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.2844963445211925
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T4.o4.val_loss",
+   "value": 0.2625781657258846,
+   "unit": "",
+   "formula": "Eq.14 loss (normalised units)",
+   "equation": "14",
+   "conditions": "Option 4, 25 epochs, TA-GNN",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.2625781657258846,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.2625781657258846
+   ],
+   "config_hash": "16b99c1bf808"
+  },
+  {
+   "name": "val_f1",
+   "target_id": "J.T4.o4.val_f1",
+   "value": 0.4888650022040728,
+   "unit": "",
+   "formula": "macro-F1 of fault head",
+   "equation": "13",
+   "conditions": "Option 4, 25 epochs, TA-GNN",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.4888650022040728,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.4888650022040728
+   ],
+   "config_hash": "16b99c1bf808"
+  }
+ ]
+}

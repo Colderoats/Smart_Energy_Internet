@@ -1,0 +1,1757 @@
+{
+ "run_id": "j_table10",
+ "provenance": "simulated_testbed",
+ "created_utc": "2026-10-13T15:23:49+00:00",
+ "versions": {
+  "python": "3.14.6",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.4.6",
+  "torch": "2.14.0+cpu",
+  "torch_geometric": "2.8.0.post1",
+  "pandapower": "3.5.6",
+  "sklearn": "1.9.1",
+  "web3": "8.0.0"
+ },
+ "config": {
+  "grid": {
+   "mu": [
+    0.001,
+    0.01,
+    0.1
+   ],
+   "eta": [
+    0,
+    1,
+    5,
+    10
+   ],
+   "E": [
+    1,
+    3,
+    5
+   ]
+  },
+  "selection": {
+   "A": {
+    "fedavg": {
+     "cfg": [
+      "fedavg",
+      0.0,
+      0.0,
+      1
+     ],
+     "rounds_to_target": 1,
+     "best_val_loss": 0.4956140896236455,
+     "grid_size": 3,
+     "tuned_on": "A"
+    },
+    "fedprox": {
+     "cfg": [
+      "fedprox",
+      0.1,
+      0.0,
+      5
+     ],
+     "rounds_to_target": 1,
+     "best_val_loss": 0.3241795693282728,
+     "grid_size": 9,
+     "tuned_on": "A"
+    },
+    "adaptive_fedprox": {
+     "cfg": [
+      "journal_adaptive",
+      0.1,
+      10,
+      3
+     ],
+     "rounds_to_target": 1,
+     "best_val_loss": 0.3030061098160567,
+     "grid_size": 27,
+     "tuned_on": "A"
+    }
+   },
+   "B": {
+    "fedavg": {
+     "cfg": [
+      "fedavg",
+      0.0,
+      0.0,
+      1
+     ],
+     "rounds_to_target": 1,
+     "best_val_loss": 0.4541692868978889,
+     "grid_size": 1,
+     "tuned_on": "A"
+    },
+    "fedprox": {
+     "cfg": [
+      "fedprox",
+      0.1,
+      0.0,
+      5
+     ],
+     "rounds_to_target": 1,
+     "best_val_loss": 0.46596987462706035,
+     "grid_size": 1,
+     "tuned_on": "A"
+    },
+    "adaptive_fedprox": {
+     "cfg": [
+      "journal_adaptive",
+      0.1,
+      10,
+      3
+     ],
+     "rounds_to_target": 1,
+     "best_val_loss": 0.43641394528525845,
+     "grid_size": 1,
+     "tuned_on": "A"
+    }
+   },
+   "C": {
+    "fedavg": {
+     "cfg": [
+      "fedavg",
+      0.0,
+      0.0,
+      1
+     ],
+     "rounds_to_target": 1,
+     "best_val_loss": 0.2834137122112292,
+     "grid_size": 1,
+     "tuned_on": "A"
+    },
+    "fedprox": {
+     "cfg": [
+      "fedprox",
+      0.1,
+      0.0,
+      5
+     ],
+     "rounds_to_target": 1,
+     "best_val_loss": 0.2559003711471127,
+     "grid_size": 1,
+     "tuned_on": "A"
+    },
+    "adaptive_fedprox": {
+     "cfg": [
+      "journal_adaptive",
+      0.1,
+      10,
+      3
+     ],
+     "rounds_to_target": 1,
+     "best_val_loss": 0.25643845264696413,
+     "grid_size": 1,
+     "tuned_on": "A"
+    }
+   }
+  },
+  "rounds_max": 100,
+  "local_fraction": 0.05,
+  "target": "centralised val loss + 0.0012"
+ },
+ "config_hash": "0a1879bd8823",
+ "metrics": [
+  {
+   "name": "val_loss",
+   "target_id": "J.T10.central.val_loss",
+   "value": 2.5929392319475157,
+   "unit": "",
+   "formula": "validation loss of the centralised option-3 LRS model",
+   "equation": "14",
+   "conditions": "centralised",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 2.5929392319475157,
+   "std": 1.2731247759363988,
+   "n": 3,
+   "values": [
+    4.3724741985141815,
+    1.4660820615633081,
+    1.9402614357650574
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "fault_f1",
+   "target_id": "J.T10.central.fault_f1",
+   "value": 0.5104020117081763,
+   "unit": "",
+   "formula": "macro-F1 of the TA-GNN fault head (kept separate from the Table VII twin detection F1)",
+   "equation": "13",
+   "conditions": "centralised",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.5104020117081763,
+   "std": 0.03681663685034681,
+   "n": 3,
+   "values": [
+    0.5360592325560991,
+    0.5368095757565835,
+    0.45833722681184613
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_target",
+   "target_id": "J.T10.fedavg.rounds",
+   "value": 1.0,
+   "unit": "rounds",
+   "formula": "first round whose global validation loss <= (centralised loss + 0.0012)",
+   "equation": "",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "3 of 3 iterations reached the target",
+   "mean": 1.0,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_abs_0130",
+   "target_id": null,
+   "value": null,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 0.0130 (the paper's absolute target)",
+   "equation": "",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume",
+   "target_id": "J.T10.fedavg.comm_mb",
+   "value": 5.880095999999999,
+   "unit": "MB",
+   "formula": "2 R K |w| beta with R = rounds to target, K = clients, |w| = parameters, beta = 4 bytes",
+   "equation": "18",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "K": 6,
+    "params": 122502,
+    "beta": 4
+   },
+   "note": "",
+   "mean": 5.880095999999999,
+   "std": 8.881784197001252e-16,
+   "n": 3,
+   "values": [
+    5.880096,
+    5.880096,
+    5.880096
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume_full_budget",
+   "target_id": null,
+   "value": 588.0096,
+   "unit": "MB",
+   "formula": "2 R K |w| beta over the full round budget",
+   "equation": "18",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 588.0096,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    588.0096,
+    588.0096,
+    588.0096
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T10.fedavg.val_loss",
+   "value": 1.0798091220175043,
+   "unit": "",
+   "formula": "global validation loss after the last round",
+   "equation": "14",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 1.0798091220175043,
+   "std": 0.8502791289702223,
+   "n": 3,
+   "values": [
+    2.282281069153989,
+    0.4813674293734409,
+    0.475778867525083
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "fault_f1",
+   "target_id": "J.T10.fedavg.fault_f1",
+   "value": 0.6166758957547607,
+   "unit": "",
+   "formula": "macro-F1 of the TA-GNN fault head after the last round",
+   "equation": "13",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.6166758957547607,
+   "std": 0.08092850157818755,
+   "n": 3,
+   "values": [
+    0.5352925363626605,
+    0.7270575687215685,
+    0.5876775821800531
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_target",
+   "target_id": "J.T10.fedprox.rounds",
+   "value": 1.0,
+   "unit": "rounds",
+   "formula": "first round whose global validation loss <= (centralised loss + 0.0012)",
+   "equation": "",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "3 of 3 iterations reached the target",
+   "mean": 1.0,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_abs_0130",
+   "target_id": null,
+   "value": null,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 0.0130 (the paper's absolute target)",
+   "equation": "",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume",
+   "target_id": "J.T10.fedprox.comm_mb",
+   "value": 5.880095999999999,
+   "unit": "MB",
+   "formula": "2 R K |w| beta with R = rounds to target, K = clients, |w| = parameters, beta = 4 bytes",
+   "equation": "18",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "K": 6,
+    "params": 122502,
+    "beta": 4
+   },
+   "note": "",
+   "mean": 5.880095999999999,
+   "std": 8.881784197001252e-16,
+   "n": 3,
+   "values": [
+    5.880096,
+    5.880096,
+    5.880096
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume_full_budget",
+   "target_id": null,
+   "value": 588.0096,
+   "unit": "MB",
+   "formula": "2 R K |w| beta over the full round budget",
+   "equation": "18",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 588.0096,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    588.0096,
+    588.0096,
+    588.0096
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T10.fedprox.val_loss",
+   "value": 0.8688322016854345,
+   "unit": "",
+   "formula": "global validation loss after the last round",
+   "equation": "14",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.8688322016854345,
+   "std": 0.25164357868150317,
+   "n": 3,
+   "values": [
+    1.224695605950223,
+    0.6936689226163758,
+    0.6881320764897046
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "fault_f1",
+   "target_id": "J.T10.fedprox.fault_f1",
+   "value": 0.5710071882723629,
+   "unit": "",
+   "formula": "macro-F1 of the TA-GNN fault head after the last round",
+   "equation": "13",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.5710071882723629,
+   "std": 0.03017167859936807,
+   "n": 3,
+   "values": [
+    0.5935647544131344,
+    0.5283618235965665,
+    0.5910949868073878
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_target",
+   "target_id": "J.T10.adaptive_fedprox.rounds",
+   "value": 1.0,
+   "unit": "rounds",
+   "formula": "first round whose global validation loss <= (centralised loss + 0.0012)",
+   "equation": "",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "3 of 3 iterations reached the target",
+   "mean": 1.0,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_abs_0130",
+   "target_id": null,
+   "value": null,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 0.0130 (the paper's absolute target)",
+   "equation": "",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume",
+   "target_id": "J.T10.adaptive_fedprox.comm_mb",
+   "value": 5.880095999999999,
+   "unit": "MB",
+   "formula": "2 R K |w| beta with R = rounds to target, K = clients, |w| = parameters, beta = 4 bytes",
+   "equation": "18",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "K": 6,
+    "params": 122502,
+    "beta": 4
+   },
+   "note": "",
+   "mean": 5.880095999999999,
+   "std": 8.881784197001252e-16,
+   "n": 3,
+   "values": [
+    5.880096,
+    5.880096,
+    5.880096
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume_full_budget",
+   "target_id": null,
+   "value": 588.0096,
+   "unit": "MB",
+   "formula": "2 R K |w| beta over the full round budget",
+   "equation": "18",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 588.0096,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    588.0096,
+    588.0096,
+    588.0096
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T10.adaptive_fedprox.val_loss",
+   "value": 0.6892557326290344,
+   "unit": "",
+   "formula": "global validation loss after the last round",
+   "equation": "14",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.6892557326290344,
+   "std": 0.1924595840801909,
+   "n": 3,
+   "values": [
+    0.9608640554878447,
+    0.5381961960207533,
+    0.5687069463785048
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "fault_f1",
+   "target_id": "J.T10.adaptive_fedprox.fault_f1",
+   "value": 0.5665376747372801,
+   "unit": "",
+   "formula": "macro-F1 of the TA-GNN fault head after the last round",
+   "equation": "13",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=6 clients; max 100 rounds",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.5665376747372801,
+   "std": 0.024962260021235326,
+   "n": 3,
+   "values": [
+    0.5780347469389688,
+    0.5318835226398251,
+    0.5896947546330463
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_common_target",
+   "target_id": null,
+   "value": 39.5,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 1.05 x the best loss any method reached in that iteration (secondary comparison that every method can satisfy)",
+   "equation": "",
+   "conditions": "fedavg",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 39.5,
+   "std": 1.5,
+   "n": 2,
+   "values": [
+    41.0,
+    38.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_common_target",
+   "target_id": null,
+   "value": 21.0,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 1.05 x the best loss any method reached in that iteration (secondary comparison that every method can satisfy)",
+   "equation": "",
+   "conditions": "fedprox",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 21.0,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    21.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_common_target",
+   "target_id": null,
+   "value": 44.0,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 1.05 x the best loss any method reached in that iteration (secondary comparison that every method can satisfy)",
+   "equation": "",
+   "conditions": "adaptive_fedprox",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 44.0,
+   "std": 21.0,
+   "n": 2,
+   "values": [
+    65.0,
+    23.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T10.central.val_loss",
+   "value": 3.8915159042925,
+   "unit": "",
+   "formula": "validation loss of the centralised option-3 LRS model",
+   "equation": "14",
+   "conditions": "centralised",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 3.8915159042925,
+   "std": 2.1887149714750165,
+   "n": 3,
+   "values": [
+    6.857306926652435,
+    1.6413052373224033,
+    3.1759355489026615
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "fault_f1",
+   "target_id": "J.T10.central.fault_f1",
+   "value": 0.3671036369343262,
+   "unit": "",
+   "formula": "macro-F1 of the TA-GNN fault head (kept separate from the Table VII twin detection F1)",
+   "equation": "13",
+   "conditions": "centralised",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.3671036369343262,
+   "std": 0.06351801401633449,
+   "n": 3,
+   "values": [
+    0.32004413018404293,
+    0.3243698311295994,
+    0.4568969494893363
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_target",
+   "target_id": "J.T10.fedavg.rounds",
+   "value": 1.0,
+   "unit": "rounds",
+   "formula": "first round whose global validation loss <= (centralised loss + 0.0012)",
+   "equation": "",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "3 of 3 iterations reached the target",
+   "mean": 1.0,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_abs_0130",
+   "target_id": null,
+   "value": null,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 0.0130 (the paper's absolute target)",
+   "equation": "",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume",
+   "target_id": "J.T10.fedavg.comm_mb",
+   "value": 13.720224,
+   "unit": "MB",
+   "formula": "2 R K |w| beta with R = rounds to target, K = clients, |w| = parameters, beta = 4 bytes",
+   "equation": "18",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "K": 14,
+    "params": 122502,
+    "beta": 4
+   },
+   "note": "",
+   "mean": 13.720224,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    13.720224,
+    13.720224,
+    13.720224
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume_full_budget",
+   "target_id": null,
+   "value": 1372.0224,
+   "unit": "MB",
+   "formula": "2 R K |w| beta over the full round budget",
+   "equation": "18",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 1372.0224,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    1372.0224,
+    1372.0224,
+    1372.0224
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T10.fedavg.val_loss",
+   "value": 1.696972273980026,
+   "unit": "",
+   "formula": "global validation loss after the last round",
+   "equation": "14",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 1.696972273980026,
+   "std": 0.7765905363225579,
+   "n": 3,
+   "values": [
+    1.6934628123072561,
+    0.7476065842503751,
+    2.6498474253824464
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "fault_f1",
+   "target_id": "J.T10.fedavg.fault_f1",
+   "value": 0.34313572819800187,
+   "unit": "",
+   "formula": "macro-F1 of the TA-GNN fault head after the last round",
+   "equation": "13",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.34313572819800187,
+   "std": 0.02858956915483632,
+   "n": 3,
+   "values": [
+    0.32004413018404293,
+    0.32593907128068617,
+    0.38342398312927645
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_target",
+   "target_id": "J.T10.fedprox.rounds",
+   "value": 1.0,
+   "unit": "rounds",
+   "formula": "first round whose global validation loss <= (centralised loss + 0.0012)",
+   "equation": "",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "3 of 3 iterations reached the target",
+   "mean": 1.0,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_abs_0130",
+   "target_id": null,
+   "value": null,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 0.0130 (the paper's absolute target)",
+   "equation": "",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume",
+   "target_id": "J.T10.fedprox.comm_mb",
+   "value": 13.720224,
+   "unit": "MB",
+   "formula": "2 R K |w| beta with R = rounds to target, K = clients, |w| = parameters, beta = 4 bytes",
+   "equation": "18",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "K": 14,
+    "params": 122502,
+    "beta": 4
+   },
+   "note": "",
+   "mean": 13.720224,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    13.720224,
+    13.720224,
+    13.720224
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume_full_budget",
+   "target_id": null,
+   "value": 1372.0224,
+   "unit": "MB",
+   "formula": "2 R K |w| beta over the full round budget",
+   "equation": "18",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 1372.0224,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    1372.0224,
+    1372.0224,
+    1372.0224
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T10.fedprox.val_loss",
+   "value": 1.3462935542618786,
+   "unit": "",
+   "formula": "global validation loss after the last round",
+   "equation": "14",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 1.3462935542618786,
+   "std": 0.7651960298096099,
+   "n": 3,
+   "values": [
+    1.4725922350944192,
+    0.3523789757379779,
+    2.213909451953239
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "fault_f1",
+   "target_id": "J.T10.fedprox.fault_f1",
+   "value": 0.3438386776811753,
+   "unit": "",
+   "formula": "macro-F1 of the TA-GNN fault head after the last round",
+   "equation": "13",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.3438386776811753,
+   "std": 0.028905002257514533,
+   "n": 3,
+   "values": [
+    0.32096157714745527,
+    0.32593907128068617,
+    0.38461538461538464
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_target",
+   "target_id": "J.T10.adaptive_fedprox.rounds",
+   "value": 1.0,
+   "unit": "rounds",
+   "formula": "first round whose global validation loss <= (centralised loss + 0.0012)",
+   "equation": "",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "3 of 3 iterations reached the target",
+   "mean": 1.0,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_abs_0130",
+   "target_id": null,
+   "value": null,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 0.0130 (the paper's absolute target)",
+   "equation": "",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume",
+   "target_id": "J.T10.adaptive_fedprox.comm_mb",
+   "value": 13.720224,
+   "unit": "MB",
+   "formula": "2 R K |w| beta with R = rounds to target, K = clients, |w| = parameters, beta = 4 bytes",
+   "equation": "18",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "K": 14,
+    "params": 122502,
+    "beta": 4
+   },
+   "note": "",
+   "mean": 13.720224,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    13.720224,
+    13.720224,
+    13.720224
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume_full_budget",
+   "target_id": null,
+   "value": 1372.0224,
+   "unit": "MB",
+   "formula": "2 R K |w| beta over the full round budget",
+   "equation": "18",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 1372.0224,
+   "std": 0.0,
+   "n": 3,
+   "values": [
+    1372.0224,
+    1372.0224,
+    1372.0224
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T10.adaptive_fedprox.val_loss",
+   "value": 0.7898446509131679,
+   "unit": "",
+   "formula": "global validation loss after the last round",
+   "equation": "14",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.7898446509131679,
+   "std": 0.3277472261389005,
+   "n": 3,
+   "values": [
+    0.9877632456245246,
+    0.32791353817339297,
+    1.053857168941586
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "fault_f1",
+   "target_id": "J.T10.adaptive_fedprox.fault_f1",
+   "value": 0.3483857402041557,
+   "unit": "",
+   "formula": "macro-F1 of the TA-GNN fault head after the last round",
+   "equation": "13",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=14 clients; max 100 rounds",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.3483857402041557,
+   "std": 0.035993282161829065,
+   "n": 3,
+   "values": [
+    0.32004413018404293,
+    0.32593907128068617,
+    0.3991740191477379
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_common_target",
+   "target_id": null,
+   "value": 5.0,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 1.05 x the best loss any method reached in that iteration (secondary comparison that every method can satisfy)",
+   "equation": "",
+   "conditions": "fedavg",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 5.0,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    5.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_common_target",
+   "target_id": null,
+   "value": 6.0,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 1.05 x the best loss any method reached in that iteration (secondary comparison that every method can satisfy)",
+   "equation": "",
+   "conditions": "fedprox",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 6.0,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    6.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_common_target",
+   "target_id": null,
+   "value": 29.333333333333332,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 1.05 x the best loss any method reached in that iteration (secondary comparison that every method can satisfy)",
+   "equation": "",
+   "conditions": "adaptive_fedprox",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 29.333333333333332,
+   "std": 35.86394041683404,
+   "n": 3,
+   "values": [
+    2.0,
+    6.0,
+    80.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T10.central.val_loss",
+   "value": 0.7410051482966756,
+   "unit": "",
+   "formula": "validation loss of the centralised option-3 LRS model",
+   "equation": "14",
+   "conditions": "centralised",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.7410051482966756,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.7410051482966756
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "fault_f1",
+   "target_id": "J.T10.central.fault_f1",
+   "value": 0.48659203494507297,
+   "unit": "",
+   "formula": "macro-F1 of the TA-GNN fault head (kept separate from the Table VII twin detection F1)",
+   "equation": "13",
+   "conditions": "centralised",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.48659203494507297,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.48659203494507297
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_target",
+   "target_id": "J.T10.fedavg.rounds",
+   "value": 1.0,
+   "unit": "rounds",
+   "formula": "first round whose global validation loss <= (centralised loss + 0.0012)",
+   "equation": "",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "1 of 1 iterations reached the target",
+   "mean": 1.0,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    1.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_abs_0130",
+   "target_id": null,
+   "value": null,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 0.0130 (the paper's absolute target)",
+   "equation": "",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume",
+   "target_id": "J.T10.fedavg.comm_mb",
+   "value": 32.340528,
+   "unit": "MB",
+   "formula": "2 R K |w| beta with R = rounds to target, K = clients, |w| = parameters, beta = 4 bytes",
+   "equation": "18",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "K": 33,
+    "params": 122502,
+    "beta": 4
+   },
+   "note": "",
+   "mean": 32.340528,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    32.340528
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume_full_budget",
+   "target_id": null,
+   "value": 3234.0528,
+   "unit": "MB",
+   "formula": "2 R K |w| beta over the full round budget",
+   "equation": "18",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 3234.0528,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    3234.0528
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T10.fedavg.val_loss",
+   "value": 0.29975131554184137,
+   "unit": "",
+   "formula": "global validation loss after the last round",
+   "equation": "14",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.29975131554184137,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.29975131554184137
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "fault_f1",
+   "target_id": "J.T10.fedavg.fault_f1",
+   "value": 0.48837263488220695,
+   "unit": "",
+   "formula": "macro-F1 of the TA-GNN fault head after the last round",
+   "equation": "13",
+   "conditions": "fedavg; selected on validation: mu=0.0, eta=0.0, E=1; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.48837263488220695,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.48837263488220695
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_target",
+   "target_id": "J.T10.fedprox.rounds",
+   "value": 1.0,
+   "unit": "rounds",
+   "formula": "first round whose global validation loss <= (centralised loss + 0.0012)",
+   "equation": "",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "1 of 1 iterations reached the target",
+   "mean": 1.0,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    1.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_abs_0130",
+   "target_id": null,
+   "value": null,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 0.0130 (the paper's absolute target)",
+   "equation": "",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume",
+   "target_id": "J.T10.fedprox.comm_mb",
+   "value": 32.340528,
+   "unit": "MB",
+   "formula": "2 R K |w| beta with R = rounds to target, K = clients, |w| = parameters, beta = 4 bytes",
+   "equation": "18",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "K": 33,
+    "params": 122502,
+    "beta": 4
+   },
+   "note": "",
+   "mean": 32.340528,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    32.340528
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume_full_budget",
+   "target_id": null,
+   "value": 3234.0528,
+   "unit": "MB",
+   "formula": "2 R K |w| beta over the full round budget",
+   "equation": "18",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 3234.0528,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    3234.0528
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T10.fedprox.val_loss",
+   "value": 0.2559003711471127,
+   "unit": "",
+   "formula": "global validation loss after the last round",
+   "equation": "14",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.2559003711471127,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.2559003711471127
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "fault_f1",
+   "target_id": "J.T10.fedprox.fault_f1",
+   "value": 0.4921246343521173,
+   "unit": "",
+   "formula": "macro-F1 of the TA-GNN fault head after the last round",
+   "equation": "13",
+   "conditions": "fedprox; selected on validation: mu=0.1, eta=0.0, E=5; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.4921246343521173,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.4921246343521173
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_target",
+   "target_id": "J.T10.adaptive_fedprox.rounds",
+   "value": 1.0,
+   "unit": "rounds",
+   "formula": "first round whose global validation loss <= (centralised loss + 0.0012)",
+   "equation": "",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "1 of 1 iterations reached the target",
+   "mean": 1.0,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    1.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_abs_0130",
+   "target_id": null,
+   "value": null,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 0.0130 (the paper's absolute target)",
+   "equation": "",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume",
+   "target_id": "J.T10.adaptive_fedprox.comm_mb",
+   "value": 32.340528,
+   "unit": "MB",
+   "formula": "2 R K |w| beta with R = rounds to target, K = clients, |w| = parameters, beta = 4 bytes",
+   "equation": "18",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "K": 33,
+    "params": 122502,
+    "beta": 4
+   },
+   "note": "",
+   "mean": 32.340528,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    32.340528
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_volume_full_budget",
+   "target_id": null,
+   "value": 3234.0528,
+   "unit": "MB",
+   "formula": "2 R K |w| beta over the full round budget",
+   "equation": "18",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 3234.0528,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    3234.0528
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "val_loss",
+   "target_id": "J.T10.adaptive_fedprox.val_loss",
+   "value": 0.2591649046926587,
+   "unit": "",
+   "formula": "global validation loss after the last round",
+   "equation": "14",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.2591649046926587,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.2591649046926587
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "fault_f1",
+   "target_id": "J.T10.adaptive_fedprox.fault_f1",
+   "value": 0.4921246343521173,
+   "unit": "",
+   "formula": "macro-F1 of the TA-GNN fault head after the last round",
+   "equation": "13",
+   "conditions": "adaptive_fedprox; selected on validation: mu=0.1, eta=10, E=3; K=33 clients; max 100 rounds",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 0.4921246343521173,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    0.4921246343521173
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_common_target",
+   "target_id": null,
+   "value": null,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 1.05 x the best loss any method reached in that iteration (secondary comparison that every method can satisfy)",
+   "equation": "",
+   "conditions": "fedavg",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_common_target",
+   "target_id": null,
+   "value": 44.0,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 1.05 x the best loss any method reached in that iteration (secondary comparison that every method can satisfy)",
+   "equation": "",
+   "conditions": "fedprox",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 44.0,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    44.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "rounds_to_common_target",
+   "target_id": null,
+   "value": 49.0,
+   "unit": "rounds",
+   "formula": "first round with validation loss <= 1.05 x the best loss any method reached in that iteration (secondary comparison that every method can satisfy)",
+   "equation": "",
+   "conditions": "adaptive_fedprox",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 49.0,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    49.0
+   ],
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_reduction_pct",
+   "target_id": null,
+   "value": 0.0,
+   "unit": "%",
+   "formula": "(R_FedProx - R_adaptive) / R_FedProx x 100 (depends only on rounds, conflict 7)",
+   "equation": "",
+   "conditions": "",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "fedprox_rounds": 1.0,
+    "adaptive_rounds": 1.0
+   },
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_reduction_pct",
+   "target_id": null,
+   "value": 0.0,
+   "unit": "%",
+   "formula": "(R_FedProx - R_adaptive) / R_FedProx x 100 (depends only on rounds, conflict 7)",
+   "equation": "",
+   "conditions": "",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "fedprox_rounds": 1.0,
+    "adaptive_rounds": 1.0
+   },
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_reduction_pct",
+   "target_id": null,
+   "value": 0.0,
+   "unit": "%",
+   "formula": "(R_FedProx - R_adaptive) / R_FedProx x 100 (depends only on rounds, conflict 7)",
+   "equation": "",
+   "conditions": "",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "fedprox_rounds": 1.0,
+    "adaptive_rounds": 1.0
+   },
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  },
+  {
+   "name": "comm_reduction_pct_max",
+   "target_id": "J.ABS.comm",
+   "value": 0.0,
+   "unit": "%",
+   "formula": "max over topologies of the FedProx -> adaptive FedProx communication reduction",
+   "equation": "",
+   "conditions": "",
+   "topology": null,
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "A": 0.0,
+    "B": 0.0,
+    "C": 0.0
+   },
+   "note": "",
+   "config_hash": "0a1879bd8823"
+  }
+ ]
+}

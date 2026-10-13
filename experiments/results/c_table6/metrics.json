@@ -1,0 +1,396 @@
+{
+ "run_id": "c_table6",
+ "provenance": "simulated_testbed",
+ "created_utc": "2026-10-12T17:42:14+00:00",
+ "versions": {
+  "python": "3.14.6",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.4.6",
+  "torch": "2.14.0+cpu",
+  "torch_geometric": "2.8.0.post1",
+  "pandapower": "3.5.6",
+  "sklearn": "1.9.1",
+  "web3": "8.0.0"
+ },
+ "config": {
+  "clients": 6,
+  "rounds": 30,
+  "local_epochs": 2,
+  "mu_selected": 0.001
+ },
+ "config_hash": "28bbf8217a04",
+ "metrics": [
+  {
+   "name": "test_rmse",
+   "target_id": "C.T6.fedavg.iid.rmse",
+   "value": 1.2233750422795613,
+   "unit": "kW",
+   "formula": "RMSE of the global model on the test partition",
+   "equation": "",
+   "conditions": "fedavg, iid, 6 clients, 30 rounds, 2 local epochs, mu=0.001",
+   "topology": null,
+   "split": "70/15/15",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.2233750422795613,
+   "std": 0.09602128969041847,
+   "n": 3,
+   "values": [
+    1.1181628704071045,
+    1.2016310691833496,
+    1.35033118724823
+   ],
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "test_rmse",
+   "target_id": "C.T6.fedavg.alpha0.5.rmse",
+   "value": 1.1686719258626301,
+   "unit": "kW",
+   "formula": "RMSE of the global model on the test partition",
+   "equation": "",
+   "conditions": "fedavg, alpha0.5, 6 clients, 30 rounds, 2 local epochs, mu=0.001",
+   "topology": null,
+   "split": "70/15/15",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.1686719258626301,
+   "std": 0.07115116555892033,
+   "n": 3,
+   "values": [
+    1.1514781713485718,
+    1.091408371925354,
+    1.2631292343139648
+   ],
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "test_rmse",
+   "target_id": "C.T6.fedavg.alpha0.1.rmse",
+   "value": 1.1524135271708171,
+   "unit": "kW",
+   "formula": "RMSE of the global model on the test partition",
+   "equation": "",
+   "conditions": "fedavg, alpha0.1, 6 clients, 30 rounds, 2 local epochs, mu=0.001",
+   "topology": null,
+   "split": "70/15/15",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.1524135271708171,
+   "std": 0.11288682767972416,
+   "n": 3,
+   "values": [
+    1.310210943222046,
+    1.0944942235946655,
+    1.0525354146957397
+   ],
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "rounds_to_5pct_of_best",
+   "target_id": "C.T6.fedavg.rounds",
+   "value": 19.333333333333332,
+   "unit": "rounds",
+   "formula": "first round whose validation RMSE <= 1.05 x its best",
+   "equation": "",
+   "conditions": "fedavg, alpha=0.1",
+   "topology": null,
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 19.333333333333332,
+   "std": 6.599663291074443,
+   "n": 3,
+   "values": [
+    24.0,
+    24.0,
+    10.0
+   ],
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "test_rmse",
+   "target_id": "C.T6.fedprox_fixed.iid.rmse",
+   "value": 1.115054965019226,
+   "unit": "kW",
+   "formula": "RMSE of the global model on the test partition",
+   "equation": "",
+   "conditions": "fedprox, iid, 6 clients, 30 rounds, 2 local epochs, mu=0.001",
+   "topology": null,
+   "split": "70/15/15",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.115054965019226,
+   "std": 0.0381175770302929,
+   "n": 3,
+   "values": [
+    1.0978691577911377,
+    1.079399585723877,
+    1.1678961515426636
+   ],
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "test_rmse",
+   "target_id": "C.T6.fedprox_fixed.alpha0.5.rmse",
+   "value": 1.138992190361023,
+   "unit": "kW",
+   "formula": "RMSE of the global model on the test partition",
+   "equation": "",
+   "conditions": "fedprox, alpha0.5, 6 clients, 30 rounds, 2 local epochs, mu=0.001",
+   "topology": null,
+   "split": "70/15/15",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.138992190361023,
+   "std": 0.017376746112811182,
+   "n": 3,
+   "values": [
+    1.1373064517974854,
+    1.1186031103134155,
+    1.161067008972168
+   ],
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "test_rmse",
+   "target_id": "C.T6.fedprox_fixed.alpha0.1.rmse",
+   "value": 1.0932233134905498,
+   "unit": "kW",
+   "formula": "RMSE of the global model on the test partition",
+   "equation": "",
+   "conditions": "fedprox, alpha0.1, 6 clients, 30 rounds, 2 local epochs, mu=0.001",
+   "topology": null,
+   "split": "70/15/15",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.0932233134905498,
+   "std": 0.08963235025150523,
+   "n": 3,
+   "values": [
+    1.2107625007629395,
+    1.0755553245544434,
+    0.9933521151542664
+   ],
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "rounds_to_5pct_of_best",
+   "target_id": "C.T6.fedprox_fixed.rounds",
+   "value": 21.0,
+   "unit": "rounds",
+   "formula": "first round whose validation RMSE <= 1.05 x its best",
+   "equation": "",
+   "conditions": "fedprox, alpha=0.1",
+   "topology": null,
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 21.0,
+   "std": 3.7416573867739413,
+   "n": 3,
+   "values": [
+    26.0,
+    17.0,
+    20.0
+   ],
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "test_rmse",
+   "target_id": "C.T6.fedprox_adaptive.iid.rmse",
+   "value": 1.1174033880233765,
+   "unit": "kW",
+   "formula": "RMSE of the global model on the test partition",
+   "equation": "",
+   "conditions": "fedprox_conf_adaptive, iid, 6 clients, 30 rounds, 2 local epochs, mu=0.001",
+   "topology": null,
+   "split": "70/15/15",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.1174033880233765,
+   "std": 0.011797615343034818,
+   "n": 3,
+   "values": [
+    1.1172584295272827,
+    1.1319243907928467,
+    1.10302734375
+   ],
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "test_rmse",
+   "target_id": "C.T6.fedprox_adaptive.alpha0.5.rmse",
+   "value": 1.0735872983932495,
+   "unit": "kW",
+   "formula": "RMSE of the global model on the test partition",
+   "equation": "",
+   "conditions": "fedprox_conf_adaptive, alpha0.5, 6 clients, 30 rounds, 2 local epochs, mu=0.001",
+   "topology": null,
+   "split": "70/15/15",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.0735872983932495,
+   "std": 0.051546510839082314,
+   "n": 3,
+   "values": [
+    1.0166497230529785,
+    1.1414787769317627,
+    1.0626333951950073
+   ],
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "test_rmse",
+   "target_id": "C.T6.fedprox_adaptive.alpha0.1.rmse",
+   "value": 1.060029923915863,
+   "unit": "kW",
+   "formula": "RMSE of the global model on the test partition",
+   "equation": "",
+   "conditions": "fedprox_conf_adaptive, alpha0.1, 6 clients, 30 rounds, 2 local epochs, mu=0.001",
+   "topology": null,
+   "split": "70/15/15",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 1.060029923915863,
+   "std": 0.10034494944474183,
+   "n": 3,
+   "values": [
+    1.1743464469909668,
+    1.075689673423767,
+    0.9300536513328552
+   ],
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "rounds_to_5pct_of_best",
+   "target_id": "C.T6.fedprox_adaptive.rounds",
+   "value": 18.333333333333332,
+   "unit": "rounds",
+   "formula": "first round whose validation RMSE <= 1.05 x its best",
+   "equation": "",
+   "conditions": "fedprox_conf_adaptive, alpha=0.1",
+   "topology": null,
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "mean": 18.333333333333332,
+   "std": 1.247219128924647,
+   "n": 3,
+   "values": [
+    20.0,
+    17.0,
+    18.0
+   ],
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "val_rmse",
+   "target_id": "C.T6.mu0.001.val_rmse",
+   "value": 1.5370922088623047,
+   "unit": "kW",
+   "formula": "validation RMSE of FedProx (fixed weights), alpha=0.5, seed 0, after 30 rounds",
+   "equation": "",
+   "conditions": "mu=0.001",
+   "topology": null,
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "val_rmse",
+   "target_id": "C.T6.mu0.01.val_rmse",
+   "value": 1.550016164779663,
+   "unit": "kW",
+   "formula": "validation RMSE of FedProx (fixed weights), alpha=0.5, seed 0, after 30 rounds",
+   "equation": "",
+   "conditions": "mu=0.01",
+   "topology": null,
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "val_rmse",
+   "target_id": "C.T6.mu0.1.val_rmse",
+   "value": 1.8425973653793335,
+   "unit": "kW",
+   "formula": "validation RMSE of FedProx (fixed weights), alpha=0.5, seed 0, after 30 rounds",
+   "equation": "",
+   "conditions": "mu=0.1",
+   "topology": null,
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "28bbf8217a04"
+  },
+  {
+   "name": "val_rmse",
+   "target_id": "C.T6.mu1.0.val_rmse",
+   "value": 3.1718974113464355,
+   "unit": "kW",
+   "formula": "validation RMSE of FedProx (fixed weights), alpha=0.5, seed 0, after 30 rounds",
+   "equation": "",
+   "conditions": "mu=1.0",
+   "topology": null,
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "28bbf8217a04"
+  }
+ ]
+}

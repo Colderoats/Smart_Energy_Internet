@@ -1,0 +1,111 @@
+{
+ "run_id": "j_table8",
+ "provenance": "simulated_testbed",
+ "created_utc": "2026-10-12T17:41:37+00:00",
+ "versions": {
+  "python": "3.14.6",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.4.6",
+  "torch": "2.14.0+cpu",
+  "torch_geometric": "2.8.0.post1",
+  "pandapower": "3.5.6",
+  "sklearn": "1.9.1",
+  "web3": "8.0.0"
+ },
+ "config": {
+  "scenario": "C, 20 outages of the line between buses 12-13"
+ },
+ "config_hash": "28c2e5a16085",
+ "metrics": [
+  {
+   "name": "action_sequence_count",
+   "target_id": "J.T8.C.open+close_tie",
+   "value": 13.0,
+   "unit": "events",
+   "formula": "count of chosen a*",
+   "equation": "5",
+   "conditions": "line outage between buses 12-13; 20 events at random instants",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "28c2e5a16085"
+  },
+  {
+   "name": "action_sequence_count",
+   "target_id": "J.T8.C.open+close_tie+island",
+   "value": 0.0,
+   "unit": "events",
+   "formula": "count of chosen a*",
+   "equation": "5",
+   "conditions": "line outage between buses 12-13; 20 events at random instants",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "28c2e5a16085"
+  },
+  {
+   "name": "action_sequence_count",
+   "target_id": "J.T8.C.open+close_tie+curtail",
+   "value": 0.0,
+   "unit": "events",
+   "formula": "count of chosen a*",
+   "equation": "5",
+   "conditions": "line outage between buses 12-13; 20 events at random instants",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "28c2e5a16085"
+  },
+  {
+   "name": "action_sequence_count",
+   "target_id": "J.T8.C.open+island",
+   "value": 7.0,
+   "unit": "events",
+   "formula": "count of chosen a*",
+   "equation": "5",
+   "conditions": "line outage between buses 12-13; 20 events at random instants",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "28c2e5a16085"
+  },
+  {
+   "name": "lowest_J_min",
+   "target_id": "J.T8.C.example_cost",
+   "value": 0.05,
+   "unit": "",
+   "formula": "smallest chosen J over the 20 events (the paper quotes one example event, 0.42)",
+   "equation": "7",
+   "conditions": "",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "other chosen sequences: {}",
+   "config_hash": "28c2e5a16085"
+  },
+  {
+   "name": "lowest_J_median",
+   "target_id": null,
+   "value": 0.05013947965898503,
+   "unit": "",
+   "formula": "median chosen J",
+   "equation": "7",
+   "conditions": "",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "28c2e5a16085"
+  }
+ ]
+}

@@ -1,0 +1,525 @@
+{
+ "run_id": "c_table7",
+ "provenance": "simulated_testbed",
+ "created_utc": "2026-10-12T17:02:20+00:00",
+ "versions": {
+  "python": "3.14.6",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.4.6",
+  "torch": "2.14.0+cpu",
+  "torch_geometric": "2.8.0.post1",
+  "pandapower": "3.5.6",
+  "sklearn": "1.9.1",
+  "web3": "8.0.0"
+ },
+ "config": {
+  "epochs": 15,
+  "lr": 0.003,
+  "batch": 256,
+  "data_seed": 0
+ },
+ "config_hash": "bfc88848c380",
+ "metrics": [
+  {
+   "name": "rmse",
+   "target_id": "C.T7.lstm.rmse",
+   "value": 0.8846453030904134,
+   "unit": "kW",
+   "formula": "sqrt(mean(err^2))",
+   "equation": "",
+   "conditions": "lstm; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.8846453030904134,
+   "std": 0.004164481326960147,
+   "n": 3,
+   "values": [
+    0.8815200924873352,
+    0.8818848133087158,
+    0.8905310034751892
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "mae",
+   "target_id": "C.T7.lstm.mae",
+   "value": 0.3408673008282979,
+   "unit": "kW",
+   "formula": "mean|err|",
+   "equation": "",
+   "conditions": "lstm; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.3408673008282979,
+   "std": 0.00912536104821473,
+   "n": 3,
+   "values": [
+    0.3358311057090759,
+    0.3330953121185303,
+    0.3536754846572876
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "r2",
+   "target_id": "C.T7.lstm.r2",
+   "value": 0.9946000891103117,
+   "unit": "",
+   "formula": "1-SSres/SStot",
+   "equation": "",
+   "conditions": "lstm; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.9946000891103117,
+   "std": 5.0923118407151204e-05,
+   "n": 3,
+   "values": [
+    0.994638293295525,
+    0.9946338554975074,
+    0.9945281185379028
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "rmse",
+   "target_id": "C.T7.gru.rmse",
+   "value": 0.8812781373659769,
+   "unit": "kW",
+   "formula": "sqrt(mean(err^2))",
+   "equation": "",
+   "conditions": "gru; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.8812781373659769,
+   "std": 0.0068858922292346575,
+   "n": 3,
+   "values": [
+    0.8897117376327515,
+    0.881277859210968,
+    0.8728448152542114
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "mae",
+   "target_id": "C.T7.gru.mae",
+   "value": 0.3422371844450633,
+   "unit": "kW",
+   "formula": "mean|err|",
+   "equation": "",
+   "conditions": "gru; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.3422371844450633,
+   "std": 0.013671001944572632,
+   "n": 3,
+   "values": [
+    0.34639278054237366,
+    0.35651153326034546,
+    0.3238072395324707
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "r2",
+   "target_id": "C.T7.gru.r2",
+   "value": 0.9946409093296578,
+   "unit": "",
+   "formula": "1-SSres/SStot",
+   "equation": "",
+   "conditions": "gru; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.9946409093296578,
+   "std": 8.374197760095419e-05,
+   "n": 3,
+   "values": [
+    0.9945381819063246,
+    0.9946412398600568,
+    0.9947433062225918
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "rmse",
+   "target_id": "C.T7.gcn_fixed.rmse",
+   "value": 0.8810909191767374,
+   "unit": "kW",
+   "formula": "sqrt(mean(err^2))",
+   "equation": "",
+   "conditions": "gcn_fixed; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.8810909191767374,
+   "std": 0.0033700409595617984,
+   "n": 3,
+   "values": [
+    0.8800613880157471,
+    0.8856356739997864,
+    0.877575695514679
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "mae",
+   "target_id": "C.T7.gcn_fixed.mae",
+   "value": 0.34233280022939044,
+   "unit": "kW",
+   "formula": "mean|err|",
+   "equation": "",
+   "conditions": "gcn_fixed; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.34233280022939044,
+   "std": 0.012103726956903241,
+   "n": 3,
+   "values": [
+    0.33479052782058716,
+    0.3594112992286682,
+    0.332796573638916
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "r2",
+   "target_id": "C.T7.gcn_fixed.r2",
+   "value": 0.9946434346104006,
+   "unit": "",
+   "formula": "1-SSres/SStot",
+   "equation": "",
+   "conditions": "gcn_fixed; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.9946434346104006,
+   "std": 4.100914886623264e-05,
+   "n": 3,
+   "values": [
+    0.9946560235445056,
+    0.9945881119423852,
+    0.9946861683443113
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "rmse",
+   "target_id": "C.T7.tgnn.rmse",
+   "value": 0.9460368752479553,
+   "unit": "kW",
+   "formula": "sqrt(mean(err^2))",
+   "equation": "",
+   "conditions": "tgnn; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.9460368752479553,
+   "std": 0.028761184278660958,
+   "n": 3,
+   "values": [
+    0.9175089597702026,
+    0.985409140586853,
+    0.9351925253868103
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "mae",
+   "target_id": "C.T7.tgnn.mae",
+   "value": 0.45866645375887555,
+   "unit": "kW",
+   "formula": "mean|err|",
+   "equation": "",
+   "conditions": "tgnn; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.45866645375887555,
+   "std": 0.047614398207095995,
+   "n": 3,
+   "values": [
+    0.4089297652244568,
+    0.5228462815284729,
+    0.4442233145236969
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "r2",
+   "target_id": "C.T7.tgnn.r2",
+   "value": 0.9938190395086132,
+   "unit": "",
+   "formula": "1-SSres/SStot",
+   "equation": "",
+   "conditions": "tgnn; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.9938190395086132,
+   "std": 0.00037840906420033614,
+   "n": 3,
+   "values": [
+    0.9941915630825428,
+    0.9933000469446627,
+    0.9939655084986341
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "rmse",
+   "target_id": "C.T7.ta_gnn_no_adapt.rmse",
+   "value": 0.8920726378758749,
+   "unit": "kW",
+   "formula": "sqrt(mean(err^2))",
+   "equation": "",
+   "conditions": "ta_gnn_no_adapt; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.8920726378758749,
+   "std": 0.013106548933386626,
+   "n": 3,
+   "values": [
+    0.9104287624359131,
+    0.8851221203804016,
+    0.8806670308113098
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "mae",
+   "target_id": "C.T7.ta_gnn_no_adapt.mae",
+   "value": 0.3616263071695964,
+   "unit": "kW",
+   "formula": "mean|err|",
+   "equation": "",
+   "conditions": "ta_gnn_no_adapt; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.3616263071695964,
+   "std": 0.023062859637697934,
+   "n": 3,
+   "values": [
+    0.3934211730957031,
+    0.3520263433456421,
+    0.33943140506744385
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "r2",
+   "target_id": "C.T7.ta_gnn_no_adapt.r2",
+   "value": 0.994507971570319,
+   "unit": "",
+   "formula": "1-SSres/SStot",
+   "equation": "",
+   "conditions": "ta_gnn_no_adapt; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.994507971570319,
+   "std": 0.00016211214761506536,
+   "n": 3,
+   "values": [
+    0.9942808622810033,
+    0.9945943867485777,
+    0.9946486656813761
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "rmse",
+   "target_id": "C.T7.ta_gnn.rmse",
+   "value": 0.8887989123662313,
+   "unit": "kW",
+   "formula": "sqrt(mean(err^2))",
+   "equation": "",
+   "conditions": "ta_gnn; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.8887989123662313,
+   "std": 0.006637723144951298,
+   "n": 3,
+   "values": [
+    0.8975453972816467,
+    0.8873775005340576,
+    0.8814738392829895
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "mae",
+   "target_id": "C.T7.ta_gnn.mae",
+   "value": 0.3462403913338979,
+   "unit": "kW",
+   "formula": "mean|err|",
+   "equation": "",
+   "conditions": "ta_gnn; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.3462403913338979,
+   "std": 0.017716048717087977,
+   "n": 3,
+   "values": [
+    0.3712828457355499,
+    0.33438563346862793,
+    0.33305269479751587
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "r2",
+   "target_id": "C.T7.ta_gnn.r2",
+   "value": 0.9945490794365943,
+   "unit": "",
+   "formula": "1-SSres/SStot",
+   "equation": "",
+   "conditions": "ta_gnn; best-validation epoch of 15",
+   "topology": null,
+   "split": "70/15/15 chronological (test = final 15 %)",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.9945490794365943,
+   "std": 8.150727453394697e-05,
+   "n": 3,
+   "values": [
+    0.9944415791258044,
+    0.9945668029894847,
+    0.9946388561944934
+   ],
+   "config_hash": "bfc88848c380"
+  },
+  {
+   "name": "test_rmse",
+   "target_id": "C.T6.central_rmse",
+   "value": 0.8887989123662313,
+   "unit": "kW",
+   "formula": "centralized TA-GNN test RMSE (same run as Table VII)",
+   "equation": "",
+   "conditions": "",
+   "topology": null,
+   "split": "",
+   "seeds": null,
+   "inputs": {},
+   "note": "",
+   "config_hash": "bfc88848c380"
+  }
+ ]
+}

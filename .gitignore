@@ -24,3 +24,10 @@ __pycache__/
 /blockchain/deployments/localhost.json
 
 /backend/ai/artifacts/cache/
+
+# Simulated-testbed paper reproduction: generated datasets, trained artifacts, scratch outputs (regenerate with experiments/run_all.py)
+/backend/testbed/data/
+/backend/testbed/logs/
+/backend/testbed/venv/
+/backend/ai/artifacts/testbed/
+/experiments/results/_raw/

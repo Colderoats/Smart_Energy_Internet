@@ -1,0 +1,224 @@
+{
+ "run_id": "j_table9",
+ "provenance": "simulated_testbed",
+ "created_utc": "2026-10-12T17:41:41+00:00",
+ "versions": {
+  "python": "3.14.6",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.4.6",
+  "torch": "2.14.0+cpu",
+  "torch_geometric": "2.8.0.post1",
+  "pandapower": "3.5.6",
+  "sklearn": "1.9.1",
+  "web3": "8.0.0"
+ },
+ "config": {
+  "derived_from": [
+   "j_table6",
+   "j_table7"
+  ]
+ },
+ "config_hash": "b312bf86a93f",
+ "metrics": [
+  {
+   "name": "forecast_mae_reduction_pct",
+   "target_id": "J.T9.A.forecast_mae_improvement",
+   "value": 50.19324707841016,
+   "unit": "%",
+   "formula": "(GCN MAE - TA-GNN MAE) / GCN MAE x 100",
+   "equation": "",
+   "conditions": "",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "gcn_mae": 20.465855916341145,
+    "ta_gnn_mae": 10.19337828954061
+   },
+   "note": "",
+   "config_hash": "b312bf86a93f"
+  },
+  {
+   "name": "fault_f1_gain_pct",
+   "target_id": "J.T9.A.fault_f1_improvement",
+   "value": 0.29815379573233586,
+   "unit": "%",
+   "formula": "(twin F1 - default F1) / default F1 x 100",
+   "equation": "",
+   "conditions": "",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "default_f1": 0.5882742130946171,
+    "twin_f1": 0.5900281749902733
+   },
+   "note": "",
+   "config_hash": "b312bf86a93f"
+  },
+  {
+   "name": "recovery_time_reduction_pct",
+   "target_id": "J.T9.A.recovery_improvement",
+   "value": 78.32096566735926,
+   "unit": "%",
+   "formula": "(T_rec default - T_rec twin) / T_rec default x 100",
+   "equation": "",
+   "conditions": "",
+   "topology": "A",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "default_t_rec": 601.6071428571428,
+    "twin_t_rec": 130.42261904761904
+   },
+   "note": "",
+   "config_hash": "b312bf86a93f"
+  },
+  {
+   "name": "forecast_mae_reduction_pct",
+   "target_id": "J.T9.B.forecast_mae_improvement",
+   "value": 83.01002399473678,
+   "unit": "%",
+   "formula": "(GCN MAE - TA-GNN MAE) / GCN MAE x 100",
+   "equation": "",
+   "conditions": "",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "gcn_mae": 32.22483444213867,
+    "ta_gnn_mae": 5.474991639455159
+   },
+   "note": "",
+   "config_hash": "b312bf86a93f"
+  },
+  {
+   "name": "fault_f1_gain_pct",
+   "target_id": "J.T9.B.fault_f1_improvement",
+   "value": 32.837098352783975,
+   "unit": "%",
+   "formula": "(twin F1 - default F1) / default F1 x 100",
+   "equation": "",
+   "conditions": "",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "default_f1": 0.3778852544200795,
+    "twin_f1": 0.5019718070746689
+   },
+   "note": "",
+   "config_hash": "b312bf86a93f"
+  },
+  {
+   "name": "recovery_time_reduction_pct",
+   "target_id": "J.T9.B.recovery_improvement",
+   "value": NaN,
+   "unit": "%",
+   "formula": "(T_rec default - T_rec twin) / T_rec default x 100",
+   "equation": "",
+   "conditions": "",
+   "topology": "B",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "default_t_rec": NaN,
+    "twin_t_rec": 672.2222222222222
+   },
+   "note": "",
+   "config_hash": "b312bf86a93f"
+  },
+  {
+   "name": "forecast_mae_reduction_pct",
+   "target_id": "J.T9.C.forecast_mae_improvement",
+   "value": 65.36307223398727,
+   "unit": "%",
+   "formula": "(GCN MAE - TA-GNN MAE) / GCN MAE x 100",
+   "equation": "",
+   "conditions": "",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "gcn_mae": 22.53467559814453,
+    "ta_gnn_mae": 7.805319309234619
+   },
+   "note": "",
+   "config_hash": "b312bf86a93f"
+  },
+  {
+   "name": "fault_f1_gain_pct",
+   "target_id": "J.T9.C.fault_f1_improvement",
+   "value": -5.129451831298795,
+   "unit": "%",
+   "formula": "(twin F1 - default F1) / default F1 x 100",
+   "equation": "",
+   "conditions": "",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "default_f1": 0.5395492708793637,
+    "twin_f1": 0.5118733509234829
+   },
+   "note": "",
+   "config_hash": "b312bf86a93f"
+  },
+  {
+   "name": "recovery_time_reduction_pct",
+   "target_id": "J.T9.C.recovery_improvement",
+   "value": -143.40527577937652,
+   "unit": "%",
+   "formula": "(T_rec default - T_rec twin) / T_rec default x 100",
+   "equation": "",
+   "conditions": "",
+   "topology": "C",
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "default_t_rec": 55.6,
+    "twin_t_rec": 135.33333333333334
+   },
+   "note": "",
+   "config_hash": "b312bf86a93f"
+  },
+  {
+   "name": "max_forecast_error_reduction_pct",
+   "target_id": "J.ABS.forecast",
+   "value": 83.01002399473678,
+   "unit": "%",
+   "formula": "max over topologies of Table IX forecast reduction",
+   "equation": "",
+   "conditions": "",
+   "topology": null,
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "A": 50.19324707841016,
+    "B": 83.01002399473678,
+    "C": 65.36307223398727
+   },
+   "note": "",
+   "config_hash": "b312bf86a93f"
+  },
+  {
+   "name": "max_recovery_time_reduction_pct",
+   "target_id": "J.ABS.recovery",
+   "value": 78.32096566735926,
+   "unit": "%",
+   "formula": "max over topologies of Table IX recovery reduction",
+   "equation": "",
+   "conditions": "",
+   "topology": null,
+   "split": "",
+   "seeds": null,
+   "inputs": {
+    "A": 78.32096566735926,
+    "B": NaN,
+    "C": -143.40527577937652
+   },
+   "note": "",
+   "config_hash": "b312bf86a93f"
+  }
+ ]
+}

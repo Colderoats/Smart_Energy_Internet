@@ -1,0 +1,647 @@
+{
+ "run_id": "c_table5",
+ "provenance": "simulated_testbed",
+ "created_utc": "2026-10-12T14:20:20+00:00",
+ "versions": {
+  "python": "3.14.6",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.4.6",
+  "torch": "2.14.0+cpu",
+  "torch_geometric": "2.8.0.post1",
+  "pandapower": "3.5.6",
+  "sklearn": "1.9.1",
+  "web3": "8.0.0"
+ },
+ "config": {
+  "folds": 5,
+  "taus": [
+   0.3,
+   0.5,
+   0.7,
+   0.9
+  ]
+ },
+ "config_hash": "6fd0c4a8c3eb",
+ "metrics": [
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.3.summer",
+   "value": 0.2716751730098308,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.3, summer",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.2716751730098308,
+   "std": 0.022406419868204935,
+   "n": 5,
+   "values": [
+    0.2527059095907854,
+    0.27955082742316784,
+    0.24577504196978178,
+    0.3093200740055504,
+    0.27102401205986865
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.3.monsoon",
+   "value": 0.19444291491112603,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.3, monsoon",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.19444291491112603,
+   "std": 0.007582654398989664,
+   "n": 5,
+   "values": [
+    0.18748785700408008,
+    0.20862955803820069,
+    0.1883616830796777,
+    0.19418908531898538,
+    0.19354639111468613
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.3.winter",
+   "value": 0.30489548592666493,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.3, winter",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.30489548592666493,
+   "std": 0.00541917466784832,
+   "n": 5,
+   "values": [
+    0.30636158336529046,
+    0.30607382097738617,
+    0.2943713031864148,
+    0.3097001445086705,
+    0.30797057759556257
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.3.high_load",
+   "value": 0.005579876034703328,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.3, high_load",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.005579876034703328,
+   "std": 0.0020332498674169555,
+   "n": 5,
+   "values": [
+    0.006465966766321352,
+    0.007796276731392765,
+    0.004698408496840155,
+    0.0068910863797677704,
+    0.0020476417991945944
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.3.low_load",
+   "value": 0.46705363846326514,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.3, low_load",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.46705363846326514,
+   "std": 0.017342796474226357,
+   "n": 5,
+   "values": [
+    0.45431569273186795,
+    0.471640908082526,
+    0.44300634330749017,
+    0.4937341542919232,
+    0.47257109390251845
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.5.summer",
+   "value": 0.39831476981098063,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.5, summer",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.39831476981098063,
+   "std": 0.01800808092259921,
+   "n": 5,
+   "values": [
+    0.37906513700578365,
+    0.4043935052531041,
+    0.37943743937924346,
+    0.4274548558081035,
+    0.4012229116086683
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.5.monsoon",
+   "value": 0.3102961374505237,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.5, monsoon",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.3102961374505237,
+   "std": 0.012674263480293258,
+   "n": 5,
+   "values": [
+    0.29356270810210877,
+    0.3328655627280382,
+    0.3070748153697956,
+    0.3090274211769539,
+    0.3089501798757222
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.5.winter",
+   "value": 0.4647119515752127,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.5, winter",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.4647119515752127,
+   "std": 0.009288122837496233,
+   "n": 5,
+   "values": [
+    0.4606304879804232,
+    0.48288973384030415,
+    0.4596084918665564,
+    0.4572343345022106,
+    0.46319670968656923
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.5.high_load",
+   "value": 0.011009091839891797,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.5, high_load",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.011009091839891797,
+   "std": 0.004018547235401738,
+   "n": 5,
+   "values": [
+    0.012244091896517676,
+    0.016014368031130738,
+    0.009473613983587965,
+    0.013170025023047545,
+    0.004143360265175058
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.5.low_load",
+   "value": 0.5940063044007764,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.5, low_load",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.5940063044007764,
+   "std": 0.006316665493709557,
+   "n": 5,
+   "values": [
+    0.5823336968375136,
+    0.5953953576146442,
+    0.5938560612653381,
+    0.6010762331838565,
+    0.5973701731025299
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.7.summer",
+   "value": 0.4937334610371038,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.7, summer",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.4937334610371038,
+   "std": 0.007864527478149622,
+   "n": 5,
+   "values": [
+    0.48963802155291514,
+    0.48500687757909217,
+    0.48771041263220616,
+    0.5020418580908627,
+    0.5042701353304427
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.7.monsoon",
+   "value": 0.4176800137249339,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.7, monsoon",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.4176800137249339,
+   "std": 0.01619068339593878,
+   "n": 5,
+   "values": [
+    0.39074120498036263,
+    0.44142892176898546,
+    0.416179415298358,
+    0.41805944188157,
+    0.42199108469539376
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.7.winter",
+   "value": 0.540949242697477,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.7, winter",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.540949242697477,
+   "std": 0.011561702291350149,
+   "n": 5,
+   "values": [
+    0.5360040060090135,
+    0.5620159266935748,
+    0.5268806899856253,
+    0.540113708149084,
+    0.5397318826500875
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.7.high_load",
+   "value": 0.025574738917410755,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.7, high_load",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.025574738917410755,
+   "std": 0.00895770737567161,
+   "n": 5,
+   "values": [
+    0.027401340282948623,
+    0.03768269061454481,
+    0.023255813953488372,
+    0.029212156978459726,
+    0.010321692757612248
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.7.low_load",
+   "value": 0.6111737188319731,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.7, low_load",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.6111737188319731,
+   "std": 0.006464990725913796,
+   "n": 5,
+   "values": [
+    0.5983860955927995,
+    0.6133068520357497,
+    0.6133527643683395,
+    0.6157593928604892,
+    0.6150634893024874
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.9.summer",
+   "value": 0.505341638314131,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.9, summer",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.505341638314131,
+   "std": 0.01581250779924718,
+   "n": 5,
+   "values": [
+    0.49735863823126597,
+    0.49888806523350626,
+    0.503001200480192,
+    0.49138525155065477,
+    0.5360750360750361
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.9.monsoon",
+   "value": 0.5099350291322635,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.9, monsoon",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.5099350291322635,
+   "std": 0.01434115954648859,
+   "n": 5,
+   "values": [
+    0.4969668133698109,
+    0.535258189894503,
+    0.4955792337338472,
+    0.5132610329646731,
+    0.5086098756984833
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.9.winter",
+   "value": 0.5048226660027089,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.9, winter",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.5048226660027089,
+   "std": 0.007430499056218619,
+   "n": 5,
+   "values": [
+    0.49919043467430574,
+    0.5191966115589561,
+    0.5013844023996309,
+    0.4997373949579832,
+    0.5046044864226683
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.9.high_load",
+   "value": 0.08388508407227746,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.9, high_load",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.08388508407227746,
+   "std": 0.029125429403675213,
+   "n": 5,
+   "values": [
+    0.08800773694390716,
+    0.127913927077107,
+    0.07688022284122564,
+    0.08967772069126576,
+    0.03694581280788177
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  },
+  {
+   "name": "f1",
+   "target_id": "C.T5.tau0.9.low_load",
+   "value": 0.6209211205189905,
+   "unit": "",
+   "formula": "out-of-fold F1, 5-fold blocked CV over the full year",
+   "equation": "4",
+   "conditions": "tau=0.9, low_load",
+   "topology": null,
+   "split": "5 contiguous year blocks",
+   "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 0.6209211205189905,
+   "std": 0.007270333143954441,
+   "n": 5,
+   "values": [
+    0.6064769381746812,
+    0.62326957624432,
+    0.6240369799691834,
+    0.625647152528873,
+    0.6251749556778949
+   ],
+   "config_hash": "6fd0c4a8c3eb"
+  }
+ ]
+}

@@ -1021,3 +1021,63 @@ timeline (`/twin/decisions`); flow cards, blocks, trades, "Energy redistributed"
 - Not checked: narrow and mobile widths (the layout targets desktop, with a fixed 240px sidebar), and
   the animations with `prefers-reduced-motion` beyond the CSS rule.
 - Edit Profile is disabled: there is no profile-update endpoint.
+
+
+---
+
+## Testbed + paper reproduction (started 2026-10-12) - LIVE STATUS, updated as the work proceeds
+
+Goal: make the implementation do what the conference and journal papers describe and reproduce their experiments from real runs on a **simulated testbed**
+(`provenance: "simulated_testbed"`, never mixed with the real Kelmarsh results). Rules followed: additive only, no git, locked stack, no households, every new route admin-protected,
+settings pre-registered in `backend/testbed/PREREGISTRATION.md` before measured runs, paper numbers only shown as "Paper target" (`experiments/paper_targets.json`, 217 entries).
+
+### Decisions taken (the user delegated them: "do whatever you recommend")
+- pandapower / torch / PyG live in a separate venv `backend/testbed/venv` (Python 3.14.6; torch 2.14.0+cpu, torch_geometric 2.8.0.post1, pandapower 3.5.6, scikit-learn 1.9.1, web3 8.0.0). `backend/venv` is untouched (pandapower would have upgraded its networkx/numpy pins).
+- No onnx / python-docx (papers parsed with the standard library). Topology B = IEEE-14 branch graph rebuilt as an 11 kV microgrid. Papers were read from `C:\Users\deepa\subcode\`.
+- Solidity 0.8.24 (the repo's Hardhat config) for the new contract; the papers say 0.8.20 (journal) and 0.8.24 (conference).
+
+### Done (code written; tests pass)
+- `backend/testbed/`: topologies A (6 nodes / 5 lines), B (14 / 20), C (IEEE 33-bus + 5 ties = 37 lines, paper line numbering kept), power flow incl. islanded sections, journal simulator (24 h @ 5 s = 17,280 samples, 4 fault types x 5), conference 12-node ring testbed (365 d @ 15 min = 420,480 samples), journal twin evaluation (Omega, J = w1 E_uns + w2 V_viol + w3 N_sw, default scheme vs twin, T_rec, E_uns), conference twin (Eqs. 1-6), topology-aware redistribution with pandapower feasibility and web3 settlement.
+- `backend/ai/testbed_models/`: joint TA-GNN (Eqs. 11-14, torch-only core), GCN baseline, conference forecasting models (TA-GNN, TA-GNN without adaptation, LSTM, GRU, GCN, TGNN), journal FL loop.
+- `backend/ai/federated/`: `weighting_paper.py` (journal Eq. 16 and conference Eqs. 11-12), `strategies_testbed.py` / `client_testbed.py` / `server_testbed.py` / `run_testbed.py` (Flower path); `wire.py` allow-list gained `n_k`, `v_k`. Existing strategies, runs and rule untouched.
+- `blockchain/contracts/EnergyMarket.sol` + `test/EnergyMarket.test.js` (12 passing) + `scripts/deploy_market.js`. EnergyLedger untouched.
+- `backend/app/api/testbed_routes.py` (prefix `/testbed`, 10 read-only GET routes, included with `dependencies=protected`); `tests/test_auth.py` pinned list extended; `tests/test_testbed_routes.py` added (needs TimescaleDB, not yet run).
+- Frontend: `ResultsTab`, `TopologiesTab`, `GraphsTab` (+ `src/testbed/`), three nav entries after Analytics, `/testbed` proxy prefix. `npm run build` and `npm run lint` clean.
+- `experiments/`: `build_targets.py`, `run_all.py`, `train_farm.py`, `fl_runner.py`, `job_twin.py`, `job_trading.py`, `contract_bench.py`, `journal_tables.py`, `conf_tables.py`, `trading_tables.py`, `export_all.py`, `export_topologies.py`, `compare_all.py`, `ui_check.py`.
+- Tests: `backend/testbed/tests/test_testbed.py` - 18 passed (topology counts vs journal Table III, 33-bus ties and numbering, A_hat recomputed on switch change, fault counts, J cost and feasibility, islanding rule, redistribution invariants, weights sum to 1, C_comm formula, dense TA layer == PyG TAGConv).
+- Docs: `docs/paper_gap_analysis.md`, `docs/sei_baseline.md`, ARCHITECTURE.md section "Testbed + paper reproduction".
+
+### Baseline before any change (docs/sei_baseline.md)
+`npm run build` PASS, `npm run lint` PASS, EnergyLedger Hardhat tests 10 passing. Backend pytest and the existing views could NOT be run: TimescaleDB was not running and Docker Desktop was off. They are re-checked at the end.
+
+### Measured so far (all simulated testbed)
+- Conference twin (5 simulated datasets): per-source F1 solar ~0.26-0.43, wind ~0.17-0.28, hydro ~0.88-0.92. The validation tau sweep ended at the edge (tau = 0.9) in all 5 datasets because the FAR <= 1 % constraint was never met; the pre-registered fit (balanced logistic regression) was kept.
+- Conference forecasting, first seeds: RMSE ~0.9 kW (R2 ~0.995) for GCN-fixed and TGNN, well below the paper's ~2.65 kW (different nameplate / noise; not tuned).
+- Journal TA-GNN, first training runs: demand head generalises (val MSE ~0.012 vs train ~0.001) but the fault head overfits (topology A, iteration 0: train acc 97.5 %, val acc 74 %). Cause (checked, not a bug): the chronological 80/20 split has class counts train [12207, 184, 359, 609, 454] vs val [2826, 384, 134, 0, 112] (no generation-loss events, larger load surges than seen in training). Reported as measured.
+
+### Deviations from the papers / the plan (all logged in PREREGISTRATION.md "Change log", decided before the affected metrics existed)
+1. Amendment 1: journal training batch = 32 snapshots (= N for topology C) instead of "batch = N" (A: 6, B: 14); FL local epoch = 5 % of the windows, 100 rounds max.
+2. Amendment 2: T_rec uses a "restorable floor" so a scheme that restores nothing is not scored 0 (bug in the first definition, found on a toy run).
+3. Amendment 3: FL grid tuned on topology A only; B and C reuse A's selection; C on fewer iterations.
+4. Amendment 4 (user asked to finish training in ~1 h): all journal epoch counts x 0.4 (search 10, finals 100 / 100 / 60, scheduler breakpoints 20 / 60); topology C trains on iteration 0 only.
+
+### In progress
+- Journal training farm (Tables IV-V: 8 search fits + 4 final fits per topology-iteration) relaunched with the reduced budget.
+- Held-out evaluation-scenario datasets for A and B (3 iterations each) and C iteration 0 (done); the Table VIII scenario (20 outages of line 12-13 on topology C).
+- Conference forecasting (6 models x 3 seeds).
+
+### Still to do
+Twin evaluation (Tables VII-IX), FL grid and finals (Table X), trading + EnergyMarket settlement per topology (needs a Hardhat node; gas/latency measured on an idle machine), conference FL (Table VI) and settlement bench (Table VIII), exports, `comparison.md`, `reasons.json`, Flower parity run, backend pytest + existing-view regression once TimescaleDB is up, headless-browser check of all views, final report.
+
+### Known limitations
+- All numbers are from a simulator; the papers' absolute values depend on unpublished normalisation and noise, so a miss is not by itself a defect.
+- Reduced epochs / FL budget (above) mean Tables IV, V and X are not run at the papers' literal budgets.
+- Gas/latency come from a local Hardhat node, not a public network.
+- `backend/testbed/data/` holds large generated datasets; I did not edit `.gitignore` (outside the allowed edits) - consider ignoring it.
+
+### Testbed + paper reproduction - status 2026-10-13
+- All paper experiments have now been run on the simulated testbed (journal Tables III-XI, conference Tables II, IV-VIII, figures). Results: `experiments/results/<run_id>/metrics.json`, `experiments/results/comparison.md` (measured vs paper, per-table within-tolerance count), `experiments/results/reasons.json`.
+- Regression: backend `pytest tests` 46 passed (TimescaleDB via Docker Desktop), Hardhat 22 passing (10 EnergyLedger unchanged + 12 EnergyMarket), `npm run build` / `npm run lint` clean, testbed tests 18 passed, headless-Chrome check of every view (existing + Results / Topologies / Graphs) with real result files: no console errors.
+- Fixes this round: `/testbed/results` served NaN (invalid JSON) for single-iteration metrics -> now null; `export_all.fault_replay` doubled the path (`it0/it0`) -> fixed; `fl_runner tables` skips a cell whose run has not finished; `Market` reads the node URL from `SEI_RPC` (default unchanged).
+- Honest outcome: the structural and counting targets (Tables II, III) match; the learned / simulated metrics mostly do **not** land inside +-5 % of the papers' values (see comparison.md and the per-row reasons). Nothing was tuned toward a paper number. Journal Table X rounds-to-target is degenerate (1 for every method) because the centralised reference overfits - PREREGISTRATION disclosure 6.
+- Final (2026-10-13 20:55): topology C FedProx run finished; Table X is complete for A, B, C (n = 3 / 3 / 1 iterations). 57 of 282 targets within tolerance.

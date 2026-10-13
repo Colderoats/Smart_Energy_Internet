@@ -629,3 +629,31 @@ what gets built, so please define them:
 - Confidence intervals for the validation-split table, and CIs on test are degenerate (0 true alarms everywhere).
 - Long-run stability of the live service (memory, replay looping) beyond a few minutes; the per-reading cost is small (a 9-node graph forward pass) but I did not load-test it.
 - Frontend production build (`vite build`) and cross-browser behaviour.
+
+
+---
+
+## EXP-018 ... Simulated-testbed paper reproduction (started 2026-10-12) - LIVE LOG
+
+Not related to the Kelmarsh experiments above; everything here is `simulated_testbed`. Full settings: `backend/testbed/PREREGISTRATION.md`. Results appear in `experiments/results/<run_id>/metrics.json` and `experiments/results/comparison.md`.
+
+**What exists:** joint TA-GNN (demand head Eq. 12, 5-class fault head Eq. 13, loss Eq. 14) with dense Eq. 11 layer checked equal to PyG TAGConv; GCN baseline; conference forecasting models; the two paper aggregation rules as new strategies (`fedprox_journal_adaptive`, `fedprox_conf_adaptive`); twin evaluation on pandapower (default scheme vs twin, J cost, T_rec, E_uns); EnergyMarket contract and redistribution.
+
+**Measured so far (preliminary, simulated testbed)**
+- Conference twin (Eqs. 1-4), 5 datasets: tau sweep saturated at 0.9 (FAR <= 1 % unattainable with the pre-registered balanced fit); F1 solar 0.26-0.43, wind 0.17-0.28, hydro 0.88-0.92.
+- Conference forecasting (partial): RMSE 0.88 kW (GCN-fixed), 0.92 kW (TGNN) vs paper 2.65 kW - testbed scale differs, not tuned.
+- Journal TA-GNN, topology A it0, diagnostic: after 8 epochs train acc 97.5 %, val acc 74 %, val CE 2.08; the validation split lacks generation-loss events (class counts above). Demand head val MSE 0.012.
+
+**Design decisions with reasons (PREREGISTRATION change log):** batch 32 (compute), epochs x 0.4 (compute, user request), FL tuned on A only (compute), T_rec restorable floor (bug fix).
+
+**Not yet measured:** Tables IV-V (training running), VI-IX (need trained models + evaluation datasets), X (FL), XI and conference VIII (need idle machine + Hardhat node).
+
+**Not verified:** the full paper comparison, backend regression (TimescaleDB off), browser rendering of the new views.
+
+### EXP-018 update (2026-10-13) - all simulated-testbed runs completed
+Everything is `simulated_testbed`, separate from the Kelmarsh results. Final numbers: `experiments/results/comparison.md` (57 of 282 targets within +-5 %, final export, topology C Table X complete; Tables II and III exact). Main findings, as measured:
+- Journal TA-GNN (reduced epoch budget, amendment 4): the demand head beats the GCN baseline on every topology (MAE 10.2 / 5.5 / 7.8 kW vs 20.5 / 32.2 / 22.5 kW on A / B / C) but absolute errors are far above the paper's (different load scale); the fault head overfits a chronological split with unseen classes (val macro-F1 ~0.4-0.5).
+- Twin vs default scheme: twin lowers T_rec and E_uns on A (T_rec 130 s vs 602 s; E_uns 192 vs 371 kWh) but not on C (n = 1 iteration) - reported as is; topology B default scheme has undefined T_rec in some events (NaN, shown as such).
+- Journal FL (Table X): rounds-to-target = 1 for every method (centralised reference overfits, so the target is trivially met); the secondary common-target comparison does not show adaptive FedProx faster. So the abstract's 32.13 % communication reduction is **not reproduced** here.
+- EnergyMarket gas (Hardhat, solc 0.8.24): register 67.8k, offer 78.6k, bid 78.6k, match 166.7k, settle 47.3k; latency measured for automine and 1 s interval mining (both labelled).
+- Conference: hydro detection and forecasting baselines are close to the paper (hydro AUC 0.999 / F1 0.90; forecasting Table VII: 6 of 18 cells in tolerance), solar and wind detection are not (FAR constraint not attainable with the pre-registered fit).

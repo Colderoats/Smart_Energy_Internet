@@ -1,0 +1,330 @@
+{
+ "run_id": "j_table6",
+ "provenance": "simulated_testbed",
+ "created_utc": "2026-10-12T16:33:24+00:00",
+ "versions": {
+  "python": "3.14.6",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "numpy": "2.4.6",
+  "torch": "2.14.0+cpu",
+  "torch_geometric": "2.8.0.post1",
+  "pandapower": "3.5.6",
+  "sklearn": "1.9.1",
+  "web3": "8.0.0"
+ },
+ "config": {
+  "models": "TA-GNN option 3 LRS vs GCN (equal tuning budget)",
+  "iterations": 3
+ },
+ "config_hash": "60cd277f2d67",
+ "metrics": [
+  {
+   "name": "mae",
+   "target_id": "J.T6.A.ta_gnn.mae",
+   "value": 10.19337828954061,
+   "unit": "kW",
+   "formula": "mean|Yhat-Y| over load buses",
+   "equation": "20",
+   "conditions": "ta_gnn, validation (last 20 %)",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 10.19337828954061,
+   "std": 1.6123246790165313,
+   "n": 3,
+   "values": [
+    10.910327911376953,
+    11.709436416625977,
+    7.9603705406188965
+   ],
+   "config_hash": "60cd277f2d67"
+  },
+  {
+   "name": "rmse",
+   "target_id": "J.T6.A.ta_gnn.rmse",
+   "value": 26.869096120198567,
+   "unit": "kW",
+   "formula": "sqrt(mean (Yhat-Y)^2)",
+   "equation": "21",
+   "conditions": "ta_gnn, validation (last 20 %)",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 26.869096120198567,
+   "std": 6.603034760378409,
+   "n": 3,
+   "values": [
+    35.56093978881836,
+    25.479352951049805,
+    19.56699562072754
+   ],
+   "config_hash": "60cd277f2d67"
+  },
+  {
+   "name": "mae",
+   "target_id": "J.T6.A.gcn.mae",
+   "value": 20.465855916341145,
+   "unit": "kW",
+   "formula": "mean|Yhat-Y| over load buses",
+   "equation": "20",
+   "conditions": "gcn, validation (last 20 %)",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 20.465855916341145,
+   "std": 2.1344753920652257,
+   "n": 3,
+   "values": [
+    23.48271942138672,
+    18.868661880493164,
+    19.046186447143555
+   ],
+   "config_hash": "60cd277f2d67"
+  },
+  {
+   "name": "rmse",
+   "target_id": "J.T6.A.gcn.rmse",
+   "value": 33.385064442952476,
+   "unit": "kW",
+   "formula": "sqrt(mean (Yhat-Y)^2)",
+   "equation": "21",
+   "conditions": "gcn, validation (last 20 %)",
+   "topology": "A",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 33.385064442952476,
+   "std": 6.69299713675732,
+   "n": 3,
+   "values": [
+    42.66543197631836,
+    30.35745620727539,
+    27.132305145263672
+   ],
+   "config_hash": "60cd277f2d67"
+  },
+  {
+   "name": "mae",
+   "target_id": "J.T6.B.ta_gnn.mae",
+   "value": 5.474991639455159,
+   "unit": "kW",
+   "formula": "mean|Yhat-Y| over load buses",
+   "equation": "20",
+   "conditions": "ta_gnn, validation (last 20 %)",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 5.474991639455159,
+   "std": 0.7401442736417192,
+   "n": 3,
+   "values": [
+    4.920666217803955,
+    4.983218193054199,
+    6.521090507507324
+   ],
+   "config_hash": "60cd277f2d67"
+  },
+  {
+   "name": "rmse",
+   "target_id": "J.T6.B.ta_gnn.rmse",
+   "value": 11.418588320414225,
+   "unit": "kW",
+   "formula": "sqrt(mean (Yhat-Y)^2)",
+   "equation": "21",
+   "conditions": "ta_gnn, validation (last 20 %)",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 11.418588320414225,
+   "std": 4.8216586993069095,
+   "n": 3,
+   "values": [
+    6.532771110534668,
+    9.742130279541016,
+    17.980863571166992
+   ],
+   "config_hash": "60cd277f2d67"
+  },
+  {
+   "name": "mae",
+   "target_id": "J.T6.B.gcn.mae",
+   "value": 32.22483444213867,
+   "unit": "kW",
+   "formula": "mean|Yhat-Y| over load buses",
+   "equation": "20",
+   "conditions": "gcn, validation (last 20 %)",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 32.22483444213867,
+   "std": 2.206976010987693,
+   "n": 3,
+   "values": [
+    33.66143035888672,
+    29.10689926147461,
+    33.90617370605469
+   ],
+   "config_hash": "60cd277f2d67"
+  },
+  {
+   "name": "rmse",
+   "target_id": "J.T6.B.gcn.rmse",
+   "value": 40.994729359944664,
+   "unit": "kW",
+   "formula": "sqrt(mean (Yhat-Y)^2)",
+   "equation": "21",
+   "conditions": "gcn, validation (last 20 %)",
+   "topology": "B",
+   "split": "80/20 chronological",
+   "seeds": [
+    0,
+    1,
+    2
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 40.994729359944664,
+   "std": 2.665300483590108,
+   "n": 3,
+   "values": [
+    43.153324127197266,
+    37.239410400390625,
+    42.591453552246094
+   ],
+   "config_hash": "60cd277f2d67"
+  },
+  {
+   "name": "mae",
+   "target_id": "J.T6.C.ta_gnn.mae",
+   "value": 7.805319309234619,
+   "unit": "kW",
+   "formula": "mean|Yhat-Y| over load buses",
+   "equation": "20",
+   "conditions": "ta_gnn, validation (last 20 %)",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 7.805319309234619,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    7.805319309234619
+   ],
+   "config_hash": "60cd277f2d67"
+  },
+  {
+   "name": "rmse",
+   "target_id": "J.T6.C.ta_gnn.rmse",
+   "value": 15.388764381408691,
+   "unit": "kW",
+   "formula": "sqrt(mean (Yhat-Y)^2)",
+   "equation": "21",
+   "conditions": "ta_gnn, validation (last 20 %)",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 15.388764381408691,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    15.388764381408691
+   ],
+   "config_hash": "60cd277f2d67"
+  },
+  {
+   "name": "mae",
+   "target_id": "J.T6.C.gcn.mae",
+   "value": 22.53467559814453,
+   "unit": "kW",
+   "formula": "mean|Yhat-Y| over load buses",
+   "equation": "20",
+   "conditions": "gcn, validation (last 20 %)",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 22.53467559814453,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    22.53467559814453
+   ],
+   "config_hash": "60cd277f2d67"
+  },
+  {
+   "name": "rmse",
+   "target_id": "J.T6.C.gcn.rmse",
+   "value": 31.736846923828125,
+   "unit": "kW",
+   "formula": "sqrt(mean (Yhat-Y)^2)",
+   "equation": "21",
+   "conditions": "gcn, validation (last 20 %)",
+   "topology": "C",
+   "split": "80/20 chronological",
+   "seeds": [
+    0
+   ],
+   "inputs": {},
+   "note": "",
+   "mean": 31.736846923828125,
+   "std": 0.0,
+   "n": 1,
+   "values": [
+    31.736846923828125
+   ],
+   "config_hash": "60cd277f2d67"
+  }
+ ]
+}

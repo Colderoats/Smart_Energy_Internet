@@ -25,6 +25,7 @@ ALLOWED_METRIC_KEYS = frozenset(
         "train_loss", "prox_sq_dist", "n_batches", "train_seconds",
         "val_loss", "val_loss_prior", "val_norm_loss", "val_pr_auc", "val_roc_auc", "val_n", "val_pos",
         "turbine", "sim_scenario",  # sim_scenario is a LABEL for logs only; no aggregation rule reads it
+        "n_k", "v_k",  # journal Sec. 4.5: only the weights, n_k and v_k are transmitted (testbed strategies, weighting_paper.py)
     }
 )
 MAX_SCALARS_PER_MESSAGE = len(ALLOWED_METRIC_KEYS)
