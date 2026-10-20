@@ -20,8 +20,8 @@ import websockets
 
 CHROME = next((p for p in (r"C:\Program Files\Google\Chrome\Application\chrome.exe", r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
                            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe") if Path(p).exists()), None)
-VIEWS = ["home", "map", "sources", "chain", "ai", "analytics", "results", "topologies", "graphs", "settings"]
-EXPECT = {"results": "Paper target", "topologies": "Redistribution playback", "graphs": "Reproduces"}
+VIEWS = ["home", "map", "sources", "chain", "ai", "analytics", "results", "topologies", "settings"]
+EXPECT = {"results": "Paper target", "topologies": "Redistribution playback"}
 
 
 class CDP:

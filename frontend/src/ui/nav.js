@@ -8,6 +8,5 @@ export const NAV = [
   { id: 'analytics', label: 'Analytics', icon: 'analytics', title: 'Analytics' },
   // Paper reproduction views (backend /testbed/*, admin-protected)
   { id: 'topologies', label: 'Topologies', icon: 'nodes', title: 'Topologies (A / B / C)' },
-  { id: 'graphs', label: 'Graphs', icon: 'pulse', title: 'Graphs' },
   { id: 'settings', label: 'Settings', icon: 'settings', title: 'Settings' },
 ]

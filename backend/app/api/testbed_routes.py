@@ -41,8 +41,7 @@ async def status():
             if f.exists():
                 doc = json.loads(f.read_text(), parse_constant=lambda c: None)
                 runs.append(dict(run_id=doc["run_id"], created_utc=doc["created_utc"], config_hash=doc["config_hash"], metrics=len(doc["metrics"])))
-    return dict(provenance=PROVENANCE, runs=runs, has_comparison=(RES / "comparison.md").exists(), has_topologies=(RES / "topologies.json").exists(),
-                has_graphs=(RES / "graphs.json").exists(), note="Simulated - never mixed with the real Kelmarsh results.")
+    return dict(provenance=PROVENANCE, runs=runs, has_comparison=(RES / "comparison.md").exists(), has_topologies=(RES / "topologies.json").exists(), note="Simulated - never mixed with the real Kelmarsh results.")
 
 
 _BLANK = re.compile(r"\b(journal|conference|testbed)\b\s*", re.I)
@@ -169,8 +168,3 @@ async def fault_scenario(name: str, scenario_id: str):
         if s["id"] == scenario_id:
             return dict(provenance=PROVENANCE, **_scrub(s))
     raise HTTPException(404, "unknown scenario")
-
-
-@router.get("/graphs")
-async def graphs():
-    return dict(provenance=PROVENANCE, **_scrub(_json(RES / "graphs.json")))

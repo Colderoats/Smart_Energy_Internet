@@ -19,7 +19,7 @@ Configs (each writes experiments/results/<run_id>/metrics.json):
   c_forecast   conference Table VII
   c_fl         conference Table VI
   c_contract   conference Table VIII (needs a Hardhat node)
-  export       topologies.json, graphs.json, fault replays, KPIs, comparison.md
+  export       topologies.json, fault replays, KPIs, comparison.md
 The grid / job farms run in parallel worker processes (--jobs N, default 10).
 """
 import subprocess
