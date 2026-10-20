@@ -10,8 +10,8 @@ class NormalizedReading(BaseModel):
     docs/architecture.md 'Normalized data schema'."""
 
     node_id: str
-    source_type: Literal["live", "historical"]
-    type: Literal["wind", "hydro"]
+    source_type: Literal["live", "historical", "simulated"]
+    type: Literal["wind", "hydro", "prosumer"]
     timestamp: datetime
     power_output: float
     wind_speed: float | None = None
@@ -25,6 +25,15 @@ class NormalizedReading(BaseModel):
     # channels that are NaN in the source are simply absent. Distinct from
     # `wind_speed`, which stays live-API-only. None for live wind/hydro.
     scada_channels: dict[str, float] | None = None
+    # Prosumer market addition (all optional; None for wind/hydro). For a
+    # prosumer, power_output is its generation_kw. `provenance` says where the
+    # values come from: "live_api_estimated" (real weather -> estimated PV),
+    # "simulated" (synthetic load / demo irradiance) or, in future, "sensed"
+    # (ESP32 INA219/ACS712 -> MQTT -> TimescaleDB replacing the estimate).
+    consumption_kw: float | None = None
+    net_kw: float | None = None
+    irradiance_wm2: float | None = None
+    provenance: str | None = None
 
 
 # Fixed scales used to normalise a reading before the twin, detectors and

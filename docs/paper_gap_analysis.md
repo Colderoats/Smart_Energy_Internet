@@ -56,6 +56,15 @@ Legend: **AD** implemented as described, **DIFF** implemented differently (reaso
 | Matching Eqs. 14-15 as an option | AD | `rule="conference"` in `market/redistribution.py`. |
 | Settlement bench at 5/10/20/50 nodes, 5 rounds × 3 repeats | AD | Hardhat, not Ganache v7 (stack). |
 
+## 3b. Update 2026-10-20: live prosumer P2P trading on the platform
+The live platform (not only the simulated testbed) now has prosumer P2P trading: four simulated prosumers (solar estimated from live
+Open-Meteo weather, synthetic load) on a community bus register on the `EnergyMarket` contract and, every interval, post
+offers/bids, are matched (ask ascending / max descending, price = seller's ask), metered (computed from the interval's readings) and
+settled on a local Hardhat chain with `Pay = p * min(q_s, q_b)`; each settled trade is mirrored into the `EnergyLedger`. This closes
+the "contract exists but is only exercised by the testbed" gap for the registration/offer/bid/match/meter/settle path. It is still
+simulated: no physical meters (the ESP32 -> MQTT sensor path is only a documented seam), demo credits, local chain only, kW
+arithmetic instead of power flow, no prosumer self-healing, and the AI excludes prosumers. See PROGRESS.md "Prosumer market (live)".
+
 ## 4. Not reproducible by construction
 * The papers' absolute loss values (e.g. 0.0128) depend on their data normalisation and noise, which are not published; targets are compared as stated but a mismatch is not evidence of a defect.
 * The papers' Table II software versions (Python 3.10.12, PyTorch 2.1.0, PyG 2.4.0, React 18) are not used; the repository's versions are recorded in every `metrics.json`.

@@ -234,6 +234,7 @@ def simulated_trade(seller: str | None = None, buyer: str | None = None, kwh: fl
         "event_type": "P2P_TRADE",
         "provenance": "simulated",
         "provenance_note": PROVENANCE_NOTES["simulated"],
+        "trade_source": "simulated_button",  # vs "live_market" (app/market/service.py)
         "trade_id": trade_id,
         "seller": seller,
         "buyer": buyer,
@@ -256,6 +257,61 @@ def simulated_trade(seller: str | None = None, buyer: str | None = None, kwh: fl
         "summary": f"Simulated trade: {seller} sold {kwh:g} kWh to {buyer} at {price:.2f} credits/kWh",
         "source_ref": trade_id,
         "dedupe_key": f"trade:{trade_id}",
+        "payload": payload,
+    }
+
+
+def live_market_trade(trade: dict, interval: dict, market_info: dict) -> dict:
+    """P2P_TRADE mirrored from a SETTLED live-market trade (app/market/service.py),
+    so the existing Verify / integrity / tamper-demo flow covers it. The prosumers
+    are simulated buildings (solar estimated from live weather, load synthetic) and
+    the "metered" quantities are computed from those readings: provenance
+    "simulated", with the detail spelled out in the payload (hashed on-chain)."""
+    kwh = trade["settled_wh"] / 1000.0
+    price = trade["price_milli"] / 1000.0
+    pay = trade["pay_milli"] / 1000.0
+    trade_id = f"live-{interval['id']}-{trade['id']}"
+    solar = interval.get("solar_provenance") or "live_api_estimated"
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "event_type": "P2P_TRADE",
+        "provenance": "simulated",
+        "provenance_note": ("LIVE MARKET trade between SIMULATED prosumers: "
+                            + ("solar from a made-up demo irradiance" if solar == "simulated" else "solar ESTIMATED from live Open-Meteo weather")
+                            + ", load synthetic, 'metered' quantities computed from those readings. Amounts are demo credits; no real energy or money moved. "
+                            "The exchange itself is real on the local EnergyMarket contract."),
+        "provenance_detail": {"solar": solar, "load": "simulated", "metering": "computed from simulated/estimated readings (no physical meter)"},
+        "trade_source": "live_market",
+        "trade_id": trade_id,
+        "interval_id": interval["id"],
+        "chain_interval": interval.get("chain_interval"),
+        "seller": trade["seller"],
+        "buyer": trade["buyer"],
+        "kwh": round(kwh, 3),
+        "matched_kwh": round(trade["matched_wh"] / 1000.0, 3),
+        "metered_kwh": {"seller": round((trade["meter_seller_wh"] or 0) / 1000.0, 3), "buyer": round((trade["meter_buyer_wh"] or 0) / 1000.0, 3)},
+        "price_per_kwh": price,
+        "price_unit": "demo credits per kWh (illustrative)",
+        "pay": round(pay, 3),
+        "settlement": {"amount": round(pay, 3), "unit": "demo credits", "status": "settled on EnergyMarket (no real money moved)",
+                       "method": "Pay = price x min(q_seller, q_buyer), EnergyMarket.settle"},
+        "energymarket": {
+            "contract": market_info.get("contract_address"),
+            "deployment_key": market_info.get("deployment_key"),
+            "chain_trade_id": trade.get("chain_trade_id"),
+            "match": {"tx_hash": trade.get("match_tx_hash"), "block": trade.get("match_block"), "gas": trade.get("match_gas")},
+            "meter": {"tx_hash": trade.get("meter_tx_hash"), "block": trade.get("meter_block"), "gas": trade.get("meter_gas")},
+            "settle": {"tx_hash": trade.get("settle_tx_hash"), "block": trade.get("settle_block"), "gas": trade.get("settle_gas")},
+        },
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    return {
+        "event_type": "P2P_TRADE",
+        "actor": trade["seller"],
+        "provenance": "simulated",
+        "summary": f"Live market: {trade['seller']} sold {kwh:g} kWh to {trade['buyer']} at {price:.2f} demo credits/kWh (interval {interval['id']})",
+        "source_ref": trade_id,
+        "dedupe_key": f"live_market:{market_info.get('deployment_key')}:{trade['id']}",
         "payload": payload,
     }
 

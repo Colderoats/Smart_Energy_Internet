@@ -46,7 +46,7 @@ function riskLevel(scored, threshold) {
 
 function recommendations(nodes) {
   const recs = []
-  const sources = nodes.filter((n) => n.type !== 'bus' && n.type !== 'grid')
+  const sources = nodes.filter((n) => n.type !== 'bus' && n.type !== 'grid' && n.type !== 'prosumer') // the AI excludes prosumers
   for (const n of sources) {
     const gnn = n.detectors?.ta_gnn
     if (gnn?.flagged) {

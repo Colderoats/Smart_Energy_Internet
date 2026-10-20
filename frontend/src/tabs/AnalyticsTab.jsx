@@ -69,7 +69,7 @@ export default function AnalyticsTab() {
   const mix = useMemo(() => {
     const byType = {}
     for (const n of Object.values(nodes)) {
-      if (n.type === 'bus' || n.type === 'grid') continue
+      if (n.type === 'bus' || n.type === 'grid' || n.type === 'prosumer') continue
       byType[n.type] = (byType[n.type] ?? 0) + (n.latest_reading?.power_output ?? 0)
     }
     return Object.entries(byType)

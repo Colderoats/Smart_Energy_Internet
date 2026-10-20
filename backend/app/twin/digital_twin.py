@@ -56,10 +56,29 @@ SOURCE_NODES = [
 BUS_CAPACITY_KW = {BUS_A: 5000.0, BUS_B: 6500.0}
 
 
+COMMUNITY_BUS = "community_bus"
+
+# Prosumer market: four SIMULATED buildings on a separate community bus (kW
+# arithmetic, not a power-flow model). Added to the digital twin only; Module 1's
+# `twin` graph, bus_a / bus_b and the 6 sources above are untouched. The AI
+# service and self-healing ignore these nodes (see predictor.score and
+# self_healing.maybe_trigger). Load/PV details: app/market/prosumers.py.
+PROSUMER_NODES = [
+    {"node_id": "prosumer_home_01", "profile": "house", "pv_kwp": 5.0},
+    {"node_id": "prosumer_apartment_01", "profile": "apartment", "pv_kwp": 15.0},
+    {"node_id": "prosumer_shop_01", "profile": "shop", "pv_kwp": 10.0},
+    {"node_id": "prosumer_school_01", "profile": "school", "pv_kwp": 30.0},
+]
+
+
 class DigitalTwin:
-    def __init__(self) -> None:
+    def __init__(self, with_market: bool = False) -> None:
+        """`with_market` adds the community bus + prosumers. Only the live
+        singleton below sets it: fresh `DigitalTwin()` instances (AI training's
+        default_topology, serving-parity check) stay the original 9-node graph."""
         self._graph = nx.DiGraph()
         self._lock = Lock()
+        self._with_market = with_market
 
         for bus_id, capacity in BUS_CAPACITY_KW.items():
             self._graph.add_node(bus_id, type="bus", capacity_kw=capacity)
@@ -87,6 +106,59 @@ class DigitalTwin:
                 flagged_by=[],
             )
             self._graph.add_edge(node["node_id"], node["primary_via"])
+
+        if with_market:
+            from app.config import settings
+
+            self._graph.add_node(COMMUNITY_BUS, type="bus", capacity_kw=settings.community_bus_capacity_kw, community=True)
+            self._graph.add_edge(COMMUNITY_BUS, GRID)
+            for p in PROSUMER_NODES:
+                self._graph.add_node(
+                    p["node_id"],
+                    type="prosumer",
+                    source_type="simulated",
+                    profile=p["profile"],
+                    pv_kwp=p["pv_kwp"],
+                    latest_reading=None,
+                    health_status="normal",
+                    last_updated=None,
+                    active_connection=COMMUNITY_BUS,
+                    isolated=False,
+                    load_share=1.0,
+                    generation_kw=None,
+                    consumption_kw=None,
+                    net_kw=None,
+                    role="balanced",
+                    provenance=None,
+                    # on-chain status, filled by app/market/service.py once registered
+                    onchain=None,
+                )
+                self._graph.add_edge(p["node_id"], COMMUNITY_BUS)
+
+    def update_prosumer(self, node_id: str, reading: dict, role: str) -> dict:
+        """Prosumer counterpart of update_node: no fault detection, no health
+        change. generation/consumption/net come from the (estimated + simulated,
+        or in future sensed) reading and carry its provenance."""
+        with self._lock:
+            attrs = self._graph.nodes[node_id]
+            attrs["latest_reading"] = reading
+            attrs["generation_kw"] = reading.get("power_output")
+            attrs["consumption_kw"] = reading.get("consumption_kw")
+            attrs["net_kw"] = reading.get("net_kw")
+            attrs["role"] = role
+            attrs["provenance"] = reading.get("provenance")
+            attrs["provenance_detail"] = {
+                "generation": reading.get("provenance"),
+                "consumption": "sensed" if reading.get("provenance") == "sensed" else "simulated",
+                "demo_irradiance": reading.get("provenance") == "simulated",
+            }
+            attrs["last_updated"] = datetime.now(timezone.utc).isoformat()
+            return self.get_node(node_id)
+
+    def set_onchain(self, node_id: str, onchain: dict | None) -> dict:
+        with self._lock:
+            self._graph.nodes[node_id]["onchain"] = onchain
+            return self.get_node(node_id)
 
     # -- state update (every ingested reading flows through here) --------
 
@@ -181,6 +253,10 @@ class DigitalTwin:
         no power-flow model yet) for every source node actively connected
         to bus_id right now."""
         total = 0.0
+        if bus_id == COMMUNITY_BUS:
+            # Community bus: throughput = sum of |net_kw| of the prosumers on it
+            # (kW arithmetic, not power flow).
+            return sum(abs(self._graph.nodes[p].get("net_kw") or 0.0) for p in self._graph.predecessors(bus_id))
         for node_id in self._graph.predecessors(bus_id):
             attrs = self._graph.nodes[node_id]
             if attrs.get("active_connection") == bus_id:
@@ -188,4 +264,4 @@ class DigitalTwin:
         return total
 
 
-digital_twin = DigitalTwin()
+digital_twin = DigitalTwin(with_market=True)

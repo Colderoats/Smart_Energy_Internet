@@ -27,6 +27,8 @@ export default defineConfig({
       '/ai': api,
       // Simulated-testbed paper reproduction: Results / Topologies / Graphs views (app/api/testbed_routes.py).
       '/testbed': api,
+      // Live prosumer market (app/api/market_routes.py): Digital Twin strip/cards, Blockchain "Prosumer market" section.
+      '/market': api,
       // Admin authentication (app/api/auth_routes.py).
       '/auth': api,
       '/health': api,

@@ -1,4 +1,5 @@
 import { Handle, Position } from '@xyflow/react'
+import { navigate } from '../auth/router'
 import Icon, { SourceIcon } from '../ui/icons'
 import { HEALTH_LABEL, HEALTH_TONE, SOURCE_COLORS, STATUS_COLORS, nodeLabel } from '../ui/theme'
 import { SourceBadge } from './EnergyNode'
@@ -136,13 +137,116 @@ function GridNode({ data }) {
   return (
     <div className="flex min-w-[120px] items-center gap-2 rounded-2xl border-2 border-slate-400 bg-slate-800 px-3 py-2.5 text-sm font-semibold text-white shadow-sm">
       <Handle type="target" position={Position.Left} className="invisible" />
+      <Handle id="grid-out" type="source" position={Position.Bottom} className="invisible" />
       <Icon name="grid" size={18} />
       {nodeLabel(data.node_id)}
     </div>
   )
 }
 
+const ROLE_PILL = {
+  surplus: { label: 'SURPLUS', cls: 'bg-emerald-100 text-emerald-700' },
+  deficit: { label: 'DEFICIT', cls: 'bg-amber-100 text-amber-700' },
+  balanced: { label: 'BALANCED', cls: 'bg-slate-100 text-slate-600' },
+}
+
+// Provenance badges for a prosumer (simulated building): solar is ESTIMATED from live
+// weather (or a made-up demo irradiance), load is SYNTHETIC. Never shown as sensed.
+export function ProvenanceBadges({ node }) {
+  const d = node.provenance_detail
+  const sensed = node.provenance === 'sensed'
+  return (
+    <div className="flex flex-wrap gap-1">
+      {sensed ? (
+        <span className="rounded border border-emerald-300 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Sensed</span>
+      ) : d?.demo_irradiance ? (
+        <span className="rounded border border-amber-400 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700" title="PROSUMER_IRRADIANCE_OVERRIDE is set: the irradiance is made up (dev demo aid)">
+          Demo irradiance
+        </span>
+      ) : node.provenance ? (
+        <span className="rounded border border-amber-300 px-1.5 py-0.5 text-[10px] font-medium text-amber-700" title="Real Open-Meteo irradiance + temperature; PV output is an estimate">
+          Estimated solar · live weather
+        </span>
+      ) : null}
+      {!sensed && (
+        <span className="rounded border border-slate-300 px-1.5 py-0.5 text-[10px] font-medium text-slate-600" title="Deterministic synthetic load profile">
+          Simulated load
+        </span>
+      )}
+    </div>
+  )
+}
+
+export function OnChainChip({ onchain, nodeId }) {
+  if (!onchain || !['in_block', 'confirmed'].includes(onchain.status)) {
+    return <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">Not on-chain yet</span>
+  }
+  return (
+    <a
+      href={`/dashboard/chain?registration=${nodeId}`}
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        navigate(`/dashboard/chain?registration=${nodeId}`)
+      }}
+      className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700 hover:bg-violet-200"
+      title={`Registered on the EnergyMarket contract at ${onchain.address} (tx ${onchain.tx_hash}). Click to open the registration record.`}
+    >
+      On-chain ✓ #{onchain.block_number}
+    </a>
+  )
+}
+
+const kw = (v) => (v == null ? '—' : `${v.toFixed(2)} kW`)
+
+function ProsumerNode({ data, selected }) {
+  const role = ROLE_PILL[data.role] ?? ROLE_PILL.balanced
+  return (
+    <div
+      className={`w-[236px] cursor-pointer rounded-2xl border-2 border-slate-300 bg-white px-3 py-2.5 text-slate-800 shadow-sm transition-shadow hover:shadow-md ${selected ? 'ring-4 ring-indigo-100' : ''}`}
+      onClick={() => data.onSelect?.(data.node_id)}
+      title={`${data.node_id} · simulated building, ${data.pv_kwp} kWp rooftop PV`}
+    >
+      <Handle type="target" position={Position.Left} className="invisible" />
+      <Handle type="source" position={Position.Right} className="invisible" />
+      <Handle id="trade-out" type="source" position={Position.Right} className="invisible" style={{ top: '35%' }} />
+      <Handle id="trade-in" type="target" position={Position.Right} className="invisible" style={{ top: '65%' }} />
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: `${SOURCE_COLORS.solar}1f`, color: SOURCE_COLORS.solar }}>
+          <SourceIcon type={data.profile} size={19} />
+        </span>
+        <div className="min-w-0 flex-1 leading-tight">
+          <div className="truncate text-sm font-semibold">{nodeLabel(data.node_id)}</div>
+          <div className="text-xs text-slate-500">{data.pv_kwp} kWp rooftop PV</div>
+        </div>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${role.cls}`}>{role.label}</span>
+      </div>
+      <div className="mt-2 grid grid-cols-3 gap-1 text-center">
+        <div>
+          <div className="text-[10px] uppercase text-slate-400">Solar</div>
+          <div className="text-xs font-semibold" style={{ color: SOURCE_COLORS.solar }}>{kw(data.generation_kw)}</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase text-slate-400">Load</div>
+          <div className="text-xs font-semibold text-slate-700">{kw(data.consumption_kw)}</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase text-slate-400">Net</div>
+          <div className="text-xs font-semibold text-slate-900">{data.net_kw == null ? '—' : `${data.net_kw > 0 ? '+' : ''}${data.net_kw.toFixed(2)} kW`}</div>
+        </div>
+      </div>
+      <div className="mt-1.5">
+        <ProvenanceBadges node={data} />
+      </div>
+      <div className="mt-1.5">
+        <OnChainChip onchain={data.onchain} nodeId={data.node_id} />
+      </div>
+    </div>
+  )
+}
+
 function TwinNode({ data, selected }) {
+  if (data.type === 'prosumer') return <ProsumerNode data={data} selected={selected} />
   if (data.type === 'bus') return <BusNode data={data} selected={selected} />
   if (data.type === 'grid') return <GridNode data={data} />
   return <SourceNode data={data} selected={selected} />

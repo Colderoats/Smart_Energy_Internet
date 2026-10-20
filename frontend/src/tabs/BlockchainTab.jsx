@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../auth/api'
 import { useBlockchainSocket } from '../hooks/useBlockchainSocket'
+import ProsumerMarketPanel, { MarketEventFeed } from '../components/ProsumerMarket'
+import { Segmented } from '../ui/components'
 
 // Module 5 — Blockchain tab. Every grid action written to the EnergyLedger
 // contract, and each record's journey explained step by step for a
@@ -189,6 +191,11 @@ function RecordRow({ record, selected, onSelect }) {
             {et.icon} {et.label}
           </span>
           <ProvenanceBadge value={record.provenance} />
+          {record.event_type === 'P2P_TRADE' && (
+            <span className="rounded border border-violet-300 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-violet-700">
+              {record.payload?.trade_source === 'live_market' ? 'Live market' : 'Simulated (button)'}
+            </span>
+          )}
           {record.tampered_at && (
             <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">TAMPERED (dev demo)</span>
           )}
@@ -453,16 +460,27 @@ function RecordDetail({ recordId, lastMessage, devTools, onClose }) {
 // Rendered as the "Ledger explorer" section of the Redistribution screen.
 // `selected` / `onSelect` are optional: when given, the parent controls which
 // record's journey is open (so the block strip and trade table can open it).
-function BlockchainTab({ selected: selectedProp, onSelect } = {}) {
+// `view` ("ledger" | "market") / `market` (useMarketSocket) add the Prosumer market section; the
+// "Market events" filter shows the live market event feed instead of ledger records.
+function BlockchainTab({ selected: selectedProp, onSelect, market, view: viewProp, onViewChange, highlight } = {}) {
   const [filter, setFilter] = useState(null)
   const [selectedLocal, setSelectedLocal] = useState(null)
+  const [viewLocal, setViewLocal] = useState('ledger')
   const selected = selectedProp !== undefined ? selectedProp : selectedLocal
   const setSelected = onSelect ?? setSelectedLocal
+  const view = viewProp ?? viewLocal
+  const setView = onViewChange ?? setViewLocal
   const [busy, setBusy] = useState(null)
   const [notice, setNotice] = useState(null)
   const [checking, setChecking] = useState(false)
+  const marketFeed = filter === 'MARKET'
   const { status, records, total, connected, lastMessage, loadError, refreshStatus, loadMore, hasMore } =
-    useBlockchainSocket(filter)
+    useBlockchainSocket(marketFeed ? null : filter)
+  const openRecord = (id) => {
+    setSelected(id)
+    setView('ledger')
+    setFilter(null)
+  }
 
   const post = async (label, url, onOk) => {
     setBusy(label)
@@ -506,9 +524,32 @@ function BlockchainTab({ selected: selectedProp, onSelect } = {}) {
     <div className="flex min-h-0 flex-1 flex-col">
       <Header status={status} wsConnected={connected} onRecheck={recheck} checking={checking} />
 
+      {market && (
+        <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-2">
+          <Segmented
+            size="sm"
+            value={view}
+            onChange={setView}
+            options={[
+              { id: 'ledger', label: 'Ledger records' },
+              { id: 'market', label: 'Prosumer market' },
+            ]}
+          />
+          <span className="text-xs text-slate-500">
+            {view === 'market' ? 'Registrations, order book and the trade journey of the live prosumer market.' : 'Every record anchored on the EnergyLedger.'}
+          </span>
+        </div>
+      )}
+
+      {view === 'market' && market ? (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <ProsumerMarketPanel market={market} onOpenRecord={openRecord} highlight={highlight} />
+        </div>
+      ) : (
+      <>
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-2 text-xs">
         <span className="text-slate-500">Show:</span>
-        {[null, ...Object.keys(EVENT_TYPES)].map((key) => (
+        {[null, ...Object.keys(EVENT_TYPES), ...(market ? ['MARKET'] : [])].map((key) => (
           <button
             key={key ?? 'all'}
             onClick={() => setFilter(key)}
@@ -516,7 +557,7 @@ function BlockchainTab({ selected: selectedProp, onSelect } = {}) {
               filter === key ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:text-slate-900'
             }`}
           >
-            {key ? `${EVENT_TYPES[key].icon} ${EVENT_TYPES[key].label}` : 'All'}
+            {key === 'MARKET' ? '💱 Market events' : key ? `${EVENT_TYPES[key].icon} ${EVENT_TYPES[key].label}` : 'All'}
           </button>
         ))}
         <span className="ml-auto flex gap-2">
@@ -552,23 +593,28 @@ function BlockchainTab({ selected: selectedProp, onSelect } = {}) {
       <div className="flex min-h-0 flex-1">
         <div className="flex w-[46%] min-w-[360px] flex-col border-r border-slate-200">
           <div className="border-b border-slate-200 px-4 py-2 text-[11px] text-slate-500">
-            Newest first · {total} record{total === 1 ? '' : 's'}
-            {filter ? ` of type ${EVENT_TYPES[filter].label}` : ''}. Energy trades are simulated: no solar/EV hardware exists
-            yet.
+            {marketFeed ? (
+              <>Live prosumer-market events (registration, offer, bid, match, meter, settlement, ledger mirror), newest first. Prosumers are simulated buildings; amounts are demo credits.</>
+            ) : (
+              <>
+                Newest first · {total} record{total === 1 ? '' : 's'}
+                {filter ? ` of type ${EVENT_TYPES[filter].label}` : ''}. Simulated and live-market energy trades are labelled; no solar/EV hardware exists yet.
+              </>
+            )}
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {loadError && <p className="p-4 text-sm text-red-700">Could not load the ledger: {loadError}</p>}
-            {!loadError && records.length === 0 && (
+            {marketFeed && <MarketEventFeed market={market} onOpenRecord={openRecord} />}
+            {!marketFeed && loadError && <p className="p-4 text-sm text-red-700">Could not load the ledger: {loadError}</p>}
+            {!marketFeed && !loadError && records.length === 0 && (
               <p className="p-4 text-sm text-slate-500">
                 No records yet. They appear automatically when the digital twin reacts to a fault, or use the buttons above.
               </p>
             )}
             <ul className="divide-y divide-slate-100">
-              {records.map((r) => (
-                <RecordRow key={r.id} record={r} selected={r.id === selected} onSelect={setSelected} />
-              ))}
+              {!marketFeed &&
+                records.map((r) => <RecordRow key={r.id} record={r} selected={r.id === selected} onSelect={setSelected} />)}
             </ul>
-            {hasMore && (
+            {!marketFeed && hasMore && (
               <button onClick={loadMore} className="w-full py-2 text-xs text-indigo-600 hover:bg-slate-50">
                 Load older records
               </button>
@@ -598,6 +644,8 @@ function BlockchainTab({ selected: selectedProp, onSelect } = {}) {
           )}
         </div>
       </div>
+      </>
+      )}
     </div>
   )
 }

@@ -1,7 +1,9 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import BlockchainTab from './BlockchainTab'
+import { MARKET_NOTE } from '../components/ProsumerMarket'
 import { useBlockchainSocket } from '../hooks/useBlockchainSocket'
 import { useDigitalTwinSocket } from '../hooks/useDigitalTwinSocket'
+import { useMarketSocket } from '../hooks/useMarketSocket'
 import { useReportConnection } from '../ui/AppShell'
 import Icon, { SourceIcon } from '../ui/icons'
 import { Card, CopyButton, Details, EmptyState, Pill } from '../ui/components'
@@ -40,11 +42,15 @@ function ChainBadge({ record }) {
   )
 }
 
+const PROSUMER_PROFILE = { prosumer_home_01: 'house', prosumer_apartment_01: 'apartment', prosumer_shop_01: 'shop', prosumer_school_01: 'school' }
+
+const isLive = (record) => record.payload?.trade_source === 'live_market'
+
 function Endpoint({ id, tone, caption }) {
   const styles = tone === 'surplus' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : tone === 'deficit' ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-700'
   return (
     <div className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border px-3 py-2.5 ${styles}`}>
-      <SourceIcon type={/hydro/.test(id ?? '') ? 'hydro' : /bus/.test(id ?? '') ? 'bus' : id === 'grid' ? 'grid' : 'wind'} size={20} />
+      <SourceIcon type={PROSUMER_PROFILE[id] ?? (/hydro/.test(id ?? '') ? 'hydro' : /bus/.test(id ?? '') ? 'bus' : id === 'grid' ? 'grid' : 'wind')} size={20} />
       <div className="min-w-0 leading-tight">
         <div className="truncate text-sm font-semibold">{nodeLabel(id)}</div>
         <div className="text-xs opacity-80">{caption}</div>
@@ -61,8 +67,9 @@ function FlowCard({ record, onOpen }) {
     title = 'Peer-to-peer trade'
     left = { id: p.seller, tone: 'surplus', caption: 'Seller · surplus' }
     right = { id: p.buyer, tone: 'deficit', caption: 'Buyer · deficit' }
-    qty = `${fmtNum(p.kwh, 2)} kWh`
-    amount = p.settlement?.amount != null ? `₹ ${fmtNum(p.settlement.amount, 2)}` : null
+    qty = `${fmtNum(p.kwh, isLive(record) ? 3 : 2)} kWh`
+    amount = p.settlement?.amount != null ? `${fmtNum(p.price_per_kwh, 2)}/kWh · ${fmtNum(p.settlement.amount, 3)} demo credits` : null
+    if (isLive(record)) title = 'Live market trade'
   } else {
     const isolate = p.action === 'isolate'
     title = p.action === 'reroute' ? 'Self-healing reroute' : isolate ? 'Node isolated' : 'Output curtailed'
@@ -77,7 +84,7 @@ function FlowCard({ record, onOpen }) {
       <div className="mb-3 flex items-center justify-between gap-2">
         <span className="text-sm font-semibold text-slate-800">{title}</span>
         <div className="flex items-center gap-2">
-          {record.provenance === 'simulated' && <Pill tone="warn" dot={false}>Simulated</Pill>}
+          {record.provenance === 'simulated' && <Pill tone="warn" dot={false}>Simulated{isLive(record) ? ' prosumers' : ''}</Pill>}
           <span className="text-xs text-slate-400">{new Date(record.created_at).toLocaleTimeString()}</span>
         </div>
       </div>
@@ -90,7 +97,12 @@ function FlowCard({ record, onOpen }) {
         </div>
         <Endpoint {...right} />
       </div>
-      <div className="mt-3">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {isLive(record) && p.energymarket?.settle?.block != null && (
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-violet-100 px-2 py-1 text-xs font-semibold text-violet-800" data-testid="settled-on-chain">
+            <Icon name="block" size={14} /> Settled on chain · block #{p.energymarket.settle.block}
+          </span>
+        )}
         <ChainBadge record={record} />
       </div>
     </button>
@@ -175,17 +187,18 @@ function BlockStrip({ records, onOpen }) {
 
 function TradesTable({ trades, onOpen, hasMore, loadMore }) {
   if (trades.length === 0) {
-    return <EmptyState icon="rupee">No trades yet. Use "Simulate P2P trade" in the ledger explorer below.</EmptyState>
+    return <EmptyState icon="rupee">No trades yet. Live-market trades appear automatically; or use "Simulate P2P trade" in the ledger explorer below.</EmptyState>
   }
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
         <thead className="text-xs uppercase tracking-wide text-slate-500">
           <tr className="border-b border-slate-200">
+            <th className="py-2.5 pr-4 font-medium">Source</th>
             <th className="py-2.5 pr-4 font-medium">Buyer</th>
             <th className="py-2.5 pr-4 font-medium">Seller</th>
             <th className="py-2.5 pr-4 text-right font-medium">Qty (kWh)</th>
-            <th className="py-2.5 pr-4 text-right font-medium">Amount (₹)</th>
+            <th className="py-2.5 pr-4 text-right font-medium">Amount (demo credits)</th>
             <th className="py-2.5 pr-4 font-medium">Status</th>
             <th className="py-2.5 font-medium">Tx hash</th>
           </tr>
@@ -195,10 +208,13 @@ function TradesTable({ trades, onOpen, hasMore, loadMore }) {
             const p = r.payload ?? {}
             return (
               <tr key={r.id} className="cursor-pointer hover:bg-slate-50" onClick={() => onOpen(r.id)}>
+                <td className="py-3 pr-4">
+                  <Pill tone={isLive(r) ? 'chain' : 'warn'} dot={false}>{isLive(r) ? 'Live market' : 'Simulated (button)'}</Pill>
+                </td>
                 <td className="py-3 pr-4 font-medium text-slate-800">{nodeLabel(p.buyer)}</td>
                 <td className="py-3 pr-4 text-slate-700">{nodeLabel(p.seller)}</td>
-                <td className="py-3 pr-4 text-right tabular-nums">{fmtNum(p.kwh, 2)}</td>
-                <td className="py-3 pr-4 text-right tabular-nums">{fmtNum(p.settlement?.amount, 2)}</td>
+                <td className="py-3 pr-4 text-right tabular-nums">{fmtNum(p.kwh, isLive(r) ? 3 : 2)}</td>
+                <td className="py-3 pr-4 text-right tabular-nums">{fmtNum(p.settlement?.amount, isLive(r) ? 3 : 2)}</td>
                 <td className="py-3 pr-4">
                   <Pill>{TRADE_STATUS(r)}</Pill>
                 </td>
@@ -214,8 +230,9 @@ function TradesTable({ trades, onOpen, hasMore, loadMore }) {
         </tbody>
       </table>
       <p className="mt-3 text-xs text-slate-500">
-        Trades are simulated (no solar/EV hardware yet). Amounts are demo credits shown as ₹ for illustration; no real
-        money moved.
+        Prosumers are simulated buildings: solar estimated from live weather, load synthetic. Amounts are demo credits; no real
+        money moved. "Simulated (button)" trades come from the Simulate P2P trade button; "Live market" trades are settled on
+        the EnergyMarket contract.
       </p>
       {hasMore && (
         <button onClick={loadMore} className="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-700">
@@ -302,16 +319,76 @@ function TopologyTimeline({ decisions, redistributions }) {
   )
 }
 
-export default function RedistributionTab() {
+// Summary of the live prosumer market: registrations, current order book, last settlements.
+function MarketSummary({ market, onOpenMarket }) {
+  const { prosumerList, currentOrders, latestInterval, trades, status } = market
+  const registered = prosumerList.filter((p) => ['in_block', 'confirmed'].includes(p.registration?.status)).length
+  const settled = trades.filter((t) => t.status === 'settled')
+  return (
+    <div className="space-y-4" data-testid="market-summary">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        <span className="inline-flex items-center gap-1.5 font-medium text-violet-700">
+          <Icon name="block" size={15} /> {registered}/{prosumerList.length || 4} prosumers registered on chain
+        </span>
+        <span className="text-slate-600">
+          Interval #{latestInterval?.id ?? '—'}: {currentOrders.filter((o) => o.side === 'offer').length} offers, {currentOrders.filter((o) => o.side === 'bid').length} bids
+        </span>
+        <span className="text-slate-600">
+          {status?.counts?.settled_trades ?? 0} settled trades · {fmtNum((status?.counts?.settled_wh ?? 0) / 1000, 3)} kWh
+        </span>
+        <button onClick={onOpenMarket} className="ml-auto text-sm font-medium text-indigo-600 hover:text-indigo-700">
+          Open the prosumer market (order book, trade journey) →
+        </button>
+      </div>
+      {settled.length === 0 ? (
+        <EmptyState icon="chain">No settled live-market trades yet.</EmptyState>
+      ) : (
+        <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+          {settled.slice(0, 3).map((t) => (
+            <li key={t.id} className="flex flex-wrap items-center gap-x-3 px-4 py-2.5 text-sm">
+              <span className="font-medium text-slate-800">{nodeLabel(t.seller)}</span>
+              <Icon name="arrow" size={15} className="text-slate-400" />
+              <span className="tabular-nums">{fmtNum(t.settled_wh / 1000, 3)} kWh</span>
+              <span className="text-slate-500">· {fmtNum(t.pay_milli / 1000, 3)} demo credits</span>
+              <Icon name="arrow" size={15} className="text-slate-400" />
+              <span className="font-medium text-slate-800">{nodeLabel(t.buyer)}</span>
+              <span className="ml-auto text-xs font-medium text-violet-700">Settled on chain · block #{t.settle_block}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-xs text-slate-500">{MARKET_NOTE}</p>
+    </div>
+  )
+}
+
+export default function RedistributionTab({ search = '' } = {}) {
   const { records, connected } = useBlockchainSocket(null)
   const { records: trades, hasMore, loadMore } = useBlockchainSocket('P2P_TRADE')
   const { decisions } = useDigitalTwinSocket()
+  const market = useMarketSocket()
   useReportConnection(connected)
+  const highlight = new URLSearchParams(search).get('registration')
   const [selected, setSelected] = useState(null)
+  const [view, setView] = useState(highlight ? 'market' : 'ledger')
   const explorerRef = useRef(null)
+
+  // Arriving from a prosumer card's "On-chain ✓" chip (?registration=<node_id>): open the market
+  // section of the explorer and scroll to it.
+  useEffect(() => {
+    if (highlight) {
+      setView('market')
+      setTimeout(() => explorerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300)
+    }
+  }, [highlight])
 
   const open = (id) => {
     setSelected(id)
+    setView('ledger')
+    explorerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+  const openMarket = () => {
+    setView('market')
     explorerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
@@ -334,6 +411,10 @@ export default function RedistributionTab() {
         )}
       </Card>
 
+      <Card title="Prosumer market (live)" subtitle="Four simulated buildings trade surplus solar for demo credits; registration and every exchange step are on the EnergyMarket contract">
+        <MarketSummary market={market} onOpenMarket={openMarket} />
+      </Card>
+
       <Card title="Recent blocks" subtitle="Click a block to see the records it holds">
         <BlockStrip records={records} onOpen={open} />
       </Card>
@@ -349,7 +430,7 @@ export default function RedistributionTab() {
       <div ref={explorerRef} className="scroll-mt-4">
         <Card title="Ledger explorer" subtitle="Every record, its journey onto the chain, and integrity verification" bodyClassName="!p-0 !pt-3">
           <div className="flex h-[720px] flex-col overflow-hidden rounded-b-2xl border-t border-slate-200">
-            <BlockchainTab selected={selected} onSelect={setSelected} />
+            <BlockchainTab selected={selected} onSelect={setSelected} market={market} view={view} onViewChange={setView} highlight={highlight} />
           </div>
         </Card>
       </div>

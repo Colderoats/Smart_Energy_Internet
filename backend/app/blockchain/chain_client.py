@@ -29,6 +29,16 @@ ARTIFACT_PATH = BLOCKCHAIN_DIR / "artifacts" / "contracts" / "EnergyLedger.sol" 
 EVENT_TYPES = ["ENERGY_REDISTRIBUTION", "P2P_TRADE", "FAULT_ALERT", "FL_ROUND"]
 
 
+_ADDRESS_LOCKS: dict[str, threading.Lock] = {}
+
+
+def address_lock(address: str) -> threading.Lock:
+    """One lock per sending account, shared by every client in the process: the
+    ledger (appendRecord) and the prosumer market (gateway/oracle) both send from
+    Hardhat account #0 and must not race for its nonce."""
+    return _ADDRESS_LOCKS.setdefault(address.lower(), threading.Lock())
+
+
 class ChainUnavailable(Exception):
     """Node unreachable, not configured, or contract missing — retry later."""
 
@@ -226,7 +236,7 @@ class ChainClient:
 
     def send_append(self, event_type: str, payload_hash: str, actor: str) -> str:
         """Sign + broadcast appendRecord. Returns the tx hash without waiting."""
-        with self._lock:
+        with self._lock, address_lock(self._account.address):
             self.ensure()
             fn = self._contract.functions.appendRecord(EVENT_TYPES.index(event_type), bytes.fromhex(payload_hash[2:]), actor)
             tx = fn.build_transaction(

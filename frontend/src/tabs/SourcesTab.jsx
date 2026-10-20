@@ -107,7 +107,7 @@ export default function SourcesTab() {
   const [open, setOpen] = useState(null)
 
   const sources = Object.values(nodes)
-    .filter((n) => n.type !== 'bus' && n.type !== 'grid')
+    .filter((n) => n.type !== 'bus' && n.type !== 'grid' && n.type !== 'prosumer')
     .map((n) => ({
       ...n,
       name: n.node_id.startsWith('wind_scada_kelmarsh_')

@@ -36,6 +36,11 @@ const PATHS = {
   brain: 'M9.5 2A2.5 2.5 0 0 0 7 4.5v0A2.5 2.5 0 0 0 4.5 7 2.5 2.5 0 0 0 3 9.5a2.5 2.5 0 0 0 1 4.5 3 3 0 0 0 3 4 2.5 2.5 0 0 0 5 1V4.5A2.5 2.5 0 0 0 9.5 2zM14.5 2A2.5 2.5 0 0 1 17 4.5 2.5 2.5 0 0 1 19.5 7 2.5 2.5 0 0 1 21 9.5a2.5 2.5 0 0 1-1 4.5 3 3 0 0 1-3 4 2.5 2.5 0 0 1-5 1',
   pulse: 'M22 12h-4l-3 9L9 3l-3 9H2',
   x: 'M18 6 6 18M6 6l12 12',
+  home: 'M3 11l9-8 9 8M5 10v10h14V10M10 20v-6h4v6',
+  building: 'M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M6 22H4M18 22h2M10 6h.01M14 6h.01M10 10h.01M14 10h.01M10 14h.01M14 14h.01M10 18h4v4h-4z',
+  store: 'M3 9l1-5h16l1 5M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 12v8h14v-8M10 20v-5h4v5',
+  school: 'M2 9l10-5 10 5-10 5zM6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5M22 9v6',
+  market: 'M4 7h16M4 12h16M4 17h10M17 15l3 2-3 2',
 }
 
 export default function Icon({ name, size = 18, className = '', strokeWidth = 1.8, ...rest }) {
@@ -59,6 +64,7 @@ export default function Icon({ name, size = 18, className = '', strokeWidth = 1.
 }
 
 export function SourceIcon({ type, ...rest }) {
-  const name = { wind: 'wind', hydro: 'hydro', solar: 'solar', grid: 'grid', bus: 'bus' }[type] ?? 'bolt'
+  const name =
+    { wind: 'wind', hydro: 'hydro', solar: 'solar', grid: 'grid', bus: 'bus', house: 'home', apartment: 'building', shop: 'store', school: 'school' }[type] ?? 'bolt'
   return <Icon name={name} {...rest} />
 }

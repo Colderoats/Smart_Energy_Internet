@@ -263,6 +263,8 @@ dependency in `app/main.py`. The WebSocket authenticates itself on connect. Prot
 - `GET /ai/predictions`
 - `GET /chain/status`, `GET /chain/records`, `GET /chain/records/{record_id}`, `POST /chain/verify/{record_id}`,
   `POST /chain/simulate-trade`, `POST /chain/replay-fl-rounds`, `POST /chain/dev/tamper/{record_id}`
+- `GET /market/status`, `GET /market/prosumers`, `GET /market/prosumers/{node_id}/series`,
+  `GET /market/intervals`, `GET /market/intervals/{interval_id}`, `GET /market/trades` (prosumer market, read-only)
 - `GET /auth/me`, `POST /auth/invites`, `GET /auth/invites`
 - `WS /ws/updates`. It checks the Origin and access cookie on connect. It accepts and then immediately
   closes with **4403** (foreign origin) or **4401** (missing, invalid or expired token). An authenticated
@@ -369,3 +371,101 @@ Settings are fixed in `backend/testbed/PREREGISTRATION.md` before the first meas
 
 **Reproduce.** `backend\testbed\venv\Scripts\python experiments\run_all.py list` shows the configs; `docs/paper_gap_analysis.md` lists conflicts between the papers and how each is resolved;
 `experiments/results/comparison.md` lists every paper number against the measured one.
+
+
+## Prosumer market (live) - added 2026-10-20 (additive)
+
+Four SIMULATED buildings (prosumers) on a new `community_bus` trade surplus solar for demo credits every
+`MARKET_INTERVAL_SECONDS`. Their registration and every exchange step are transactions on the `EnergyMarket`
+contract, and each settled trade is mirrored into `EnergyLedger` as a `P2P_TRADE` record. Module 1's `twin` graph,
+`bus_a` / `bus_b`, their 6 sources, Module 3/4 code and both contracts are unchanged.
+
+**Provenance (part of the spec).** Solar = REAL Open-Meteo shortwave irradiance (GHI) + air temperature at
+`PROSUMER_LAT/LON` (default Chennai), PV output ESTIMATED: `kW = kWp * GHI/1000 * 0.80 * (1 - 0.004 * max(0, Tcell - 25))`,
+`Tcell = Tair + 0.03 * GHI` -> reading provenance `live_api_estimated`. Load = deterministic SYNTHETIC hourly profile per
+building type (local time via `PROSUMER_UTC_OFFSET_HOURS`, weekday/weekend, linear per minute, +-5 % noise seeded by node and
+minute) -> `simulated`. `PROSUMER_IRRADIANCE_OVERRIDE` (W/m2, dev only) makes the irradiance itself made up: solar provenance
+becomes `simulated` and the UI shows "Demo irradiance". "Metered" quantities are computed from those readings (no meter).
+Sensor seam (not built): an ESP32 (INA219/ACS712) -> MQTT -> TimescaleDB source would emit the same `NormalizedReading`
+(`type="prosumer"`, `provenance="sensed"`) in place of `ingestion/prosumer_source.build_reading`; nothing downstream changes.
+
+**Nodes** (in `digital_twin`, not in Module 1's graph; only the live singleton `DigitalTwin(with_market=True)` has them, a fresh
+`DigitalTwin()` - AI training's `default_topology`, the parity check - stays the original 9 nodes / 8 edges):
+
+| node_id | profile | PV kWp | load |
+|---|---|---|---|
+| prosumer_home_01 | house | 5 | residential, 0.4-3 kW |
+| prosumer_apartment_01 | apartment block | 15 | residential, evening-heavy, 3-12 kW |
+| prosumer_shop_01 | small shop | 10 | commercial, 9-21 h plateau, 2-8 kW |
+| prosumer_school_01 | school | 30 | weekdays 8-16 h, 2-20 kW |
+| community_bus (type `bus`, `community: true`) | - | - | capacity `COMMUNITY_BUS_CAPACITY_KW` (100), edge to `grid`; load = sum of abs(net_kw) (kW arithmetic, no power flow) |
+
+Prosumer node fields: `type "prosumer"`, `generation_kw`, `consumption_kw`, `net_kw = gen - cons`, `role`
+(`surplus | deficit | balanced`, deadband `PROSUMER_ROLE_DEADBAND_KW` = 0.1), `pv_kwp`, `profile`, `provenance`,
+`provenance_detail`, `onchain` (`address`, registration `tx_hash`, `block_number`, `gas_used`, `status`).
+
+**Data flow**
+```
+Open-Meteo (real GHI, temp) --poll 60 s--+
+                                         v
+ ingestion/prosumer_source  (tick PROSUMER_TICK_SECONDS: PV estimate + synthetic load -> NormalizedReading type="prosumer")
+                                         v
+ pipeline.ingest_reading -> _ingest_prosumer: normalize -> digital_twin.update_prosumer -> persist (readings) -> WS broadcast
+        (NO fault detection, NO TA-GNN, NO self-healing; Module 1 graph untouched)
+                                         v   market.observe(net_kw)
+ market.MarketService clock  (every MARKET_INTERVAL_SECONDS, off-chain only, never waits on the chain)
+   start: forecast = mean of the latest net_kw; surplus prosumers OFFER (qty = forecast kW x interval h, ask),
+          deficit prosumers BID (qty = forecast deficit, max); engine.match_orders -> orders + matches in TimescaleDB;
+          job "post"
+   end:   METERED Wh = energy actually delivered, from the interval's readings (engine.allocate_metering); job "settle"
+                                         v   asyncio queue
+ chain worker (ONE task, sequential txs, retries with backoff, resumes per step; chain down => jobs wait, ingestion unaffected)
+   post:   register (idempotent) -> postOffer / postBid (sender = the prosumer's own account) -> matchTrade (gateway)
+   settle: submitMeter (gateway/oracle) -> settle -> mirror into EnergyLedger as P2P_TRADE -> advanceInterval
+                                         v
+ WS /ws/updates: market_* messages;  ledger worker: chain_record messages
+```
+Matching rule: offers sorted ascending by ask, bids descending by max; while `ask <= max`: `qty = min(remaining offer,
+remaining bid)`, **price = the seller's ask** (the contract's rule). Unmatched deficit = "served by grid", unmatched surplus =
+"exported to grid" (shown in the UI, not on-chain). Pay = `price * min(q_s, q_b)` with the METERED quantities, exactly as
+`EnergyMarket.settle`. Units: Wh and milli-credits per kWh (demo credits; a rupee sign is only ever shown next to "demo credits").
+Prices: `MARKET_PRICES` (JSON) / defaults in `app/config.py` (ask 5.0-6.0, max 7.0-8.0 per kWh, illustrative, not tariffs).
+
+**Contract mapping** (EnergyMarket.sol, unchanged). `register(bytes32 nodeId)` is called by the prosumer itself, so each prosumer
+has its own Hardhat dev account (#1..#4, public dev keys, local only; the market refuses to run on any other network);
+account #0 (the backend's configured local key) is owner AND gateway/oracle for `matchTrade`, `submitMeter`, `advanceInterval`
+(and sends `settle`). Every function the plan needs exists; nothing is faked. `expireOffer/expireBid` are not used (unmatched
+quantity is simply not traded). Account #0 is shared with the ledger client, so both take `address_lock(address)`
+(`app/blockchain/chain_client.py`) to avoid nonce races.
+Deployment: `blockchain/deployments/localhost-market.json`, written by the backend's auto-deploy when the file is absent, the node
+was restarted (no code / deployed in a block of another chain) or the contract's gateway is not account #0.
+`scripts/deploy_market.js` is unchanged (writes `market.<network>.json`; its default gateway is the 2nd signer, set `MARKET_GATEWAY`).
+
+**Schema additions.** `readings`: `ALTER TABLE ... ADD COLUMN IF NOT EXISTS consumption_kw, net_kw, irradiance_wm2 (DOUBLE),
+provenance (TEXT)` (idempotent, `db.py`; NULL for wind/hydro). `NormalizedReading`: optional `consumption_kw`, `net_kw`,
+`irradiance_wm2`, `provenance`; `type` gains `"prosumer"`, `source_type` gains `"simulated"`. New tables (`app/market/store.py`,
+created at startup): `market_prosumers` (node_id, deployment_key, address, status, tx_hash, block_number, gas_used, events),
+`market_intervals` (chain_interval, deployment_key, started/ends_at, status `open|closing|settled|skipped|failed`, forecast,
+actuals, summary, solar_provenance, irradiance, advance tx/block/gas), `market_orders` (side offer|bid, node_id, qty_wh,
+price_milli, remaining_wh, status `planned|pending|in_block|confirmed|failed`, chain_order_id, tx_hash, block_number, gas_used,
+events), `market_trades` (seller, buyer, matched_wh, price_milli, status `matched_planned|matched|metered|settled|failed`,
+chain_trade_id, match/meter/settle `tx_hash` + `block` + `gas`, meter_seller_wh/meter_buyer_wh, settled_wh, pay_milli,
+ledger_record_id, events = the decoded contract events). TimescaleDB down: the interval is skipped and logged (like the ledger);
+chain down: jobs wait (backlog capped at 3 intervals, then intervals are recorded as `skipped`); after a backend restart `closing`
+intervals are re-settled and `open` ones abandoned.
+
+**Ledger mirror.** Each settled trade becomes `P2P_TRADE` (`events.live_market_trade`): payload has `trade_source: "live_market"`,
+seller, buyer, `kwh`, `price_per_kwh`, `pay`, `interval_id`, provenance + `provenance_detail`, and the EnergyMarket match/meter/settle
+tx hashes, blocks and gas; dedupe key `live_market:<deployment_key>:<trade id>`. Verify, the integrity check and the tamper demo
+work on it unchanged. `POST /chain/simulate-trade` records now carry `trade_source: "simulated_button"`.
+
+**Routes** (all GET, protected, pinned in tests/test_auth.py): `/market/status`, `/market/prosumers`,
+`/market/prosumers/{node_id}/series` (24 h, 5-minute averages), `/market/intervals?limit=`, `/market/intervals/{id}` (orders,
+matches, settlements, tx hashes), `/market/trades?limit=`. `GET /twin/nodes` now also returns the 5 new nodes and their edges.
+**WebSocket** (`/ws/updates`): `market_prosumer_update`, `market_registration`, `market_order`, `market_match`,
+`market_settlement`, `market_interval`; each carries tx hash / block / status as it moves pending -> in_block -> confirmed.
+**Isolation.** `predictor.score` filters nodes/edges to the original 9-node `NODE_ORDER` before building `edge_index`
+(parity check max logit difference 4.77e-07, unchanged); `self_healing.maybe_trigger` returns immediately for prosumers and
+`community_bus` ("prosumer self-healing: future work"). Frontend: Dashboard, Sources, AI Insights and Analytics ignore `type
+"prosumer"`; Digital Twin map (`TwinNode`, `FlowEdge.TradeEdge`, `ProsumerPanel`, `MarketStrip`), Redistribution summary +
+Blockchain "Prosumer market" section (`components/ProsumerMarket.jsx`, `hooks/useMarketSocket.js`); Vite proxies `/market`.

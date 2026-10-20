@@ -64,6 +64,12 @@ CREATE TABLE IF NOT EXISTS readings (
 -- Module 3: extra real SCADA channels (see NormalizedReading.scada_channels).
 ALTER TABLE readings ADD COLUMN IF NOT EXISTS scada_channels JSONB;
 
+-- Prosumer market: optional channels (see NormalizedReading); NULL for wind/hydro.
+ALTER TABLE readings ADD COLUMN IF NOT EXISTS consumption_kw DOUBLE PRECISION;
+ALTER TABLE readings ADD COLUMN IF NOT EXISTS net_kw DOUBLE PRECISION;
+ALTER TABLE readings ADD COLUMN IF NOT EXISTS irradiance_wm2 DOUBLE PRECISION;
+ALTER TABLE readings ADD COLUMN IF NOT EXISTS provenance TEXT;
+
 SELECT create_hypertable('readings', by_range('time'), if_not_exists => TRUE);
 
 CREATE INDEX IF NOT EXISTS readings_node_time_idx ON readings (node_id, time DESC);
@@ -101,8 +107,9 @@ async def insert_reading(reading: NormalizedReading) -> None:
             """
             INSERT INTO readings
                 (time, node_id, source_type, type, power_output,
-                 wind_speed, vibration, temperature, fault_label, scada_channels)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 wind_speed, vibration, temperature, fault_label, scada_channels,
+                 consumption_kw, net_kw, irradiance_wm2, provenance)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 reading.timestamp,
@@ -115,6 +122,10 @@ async def insert_reading(reading: NormalizedReading) -> None:
                 reading.temperature,
                 reading.fault_label,
                 Jsonb(reading.scada_channels) if reading.scada_channels is not None else None,
+                reading.consumption_kw,
+                reading.net_kw,
+                reading.irradiance_wm2,
+                reading.provenance,
             ),
         )
 
@@ -127,22 +138,45 @@ async def fetch_history(node_id: str, limit: int = 100) -> list[dict]:
                 """
                 SELECT time, node_id, source_type, type, power_output,
                        wind_speed, vibration, temperature, fault_label
+                       {extra}
                 FROM readings
                 WHERE node_id = %s
                 ORDER BY time DESC
                 LIMIT %s
-                """,
+                """.format(extra=", consumption_kw, net_kw, irradiance_wm2, provenance" if node_id.startswith("prosumer_") else ""),
                 (node_id, limit),
             )
             rows = await cur.fetchall()
             columns = [desc[0] for desc in cur.description]
             out = [dict(zip(columns, row)) for row in rows]
     from app.models.reading import normalized_values
-    from app.twin.digital_twin import SOURCE_NODES
+    from app.twin.digital_twin import PROSUMER_NODES, SOURCE_NODES
     rated = next((n["rated_capacity_kw"] for n in SOURCE_NODES if n["node_id"] == node_id), None)
+    if rated is None:  # prosumers: normalise generation against their PV size
+        rated = next((n["pv_kwp"] for n in PROSUMER_NODES if n["node_id"] == node_id), None)
     for r in out:
         r["normalized"] = normalized_values(r, rated)
     return out
+
+
+async def fetch_prosumer_series(node_id: str, hours: int) -> list[dict]:
+    pool = get_pool()
+    async with pool.connection() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """
+                SELECT time_bucket('5 minutes', time) AS t, avg(power_output), avg(consumption_kw), avg(net_kw)
+                FROM readings
+                WHERE node_id = %s AND time > now() - make_interval(hours => %s)
+                GROUP BY t ORDER BY t
+                """,
+                (node_id, hours),
+            )
+            return [
+                {"time": t.isoformat(), "generation_kw": round(g, 3), "consumption_kw": round(c, 3), "net_kw": round(n, 3)}
+                for t, g, c, n in await cur.fetchall()
+                if g is not None and c is not None
+            ]
 
 
 async def insert_decision(decision: dict) -> None:

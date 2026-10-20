@@ -2,11 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ReactFlow, Background, Controls } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import TwinNode from './TwinNode'
-import FlowEdge, { flowWidth } from './FlowEdge'
+import FlowEdge, { TradeEdge, flowWidth } from './FlowEdge'
 import { SOURCE_COLORS } from '../ui/theme'
 
 const nodeTypes = { twinNode: TwinNode }
-const edgeTypes = { flow: FlowEdge }
+const edgeTypes = { flow: FlowEdge, trade: TradeEdge }
+
+// How long a settled trade edge stays on the map after it settles.
+const SETTLED_EDGE_MS = 40000
 
 // How long a just-changed edge stays visibly highlighted after a
 // reroute/isolate, so the reconfiguration reads as an event, not a silent
@@ -28,9 +31,50 @@ const POSITIONS = {
   bus_a: { x: 330, y: 120 },
   bus_b: { x: 330, y: 390 },
   grid: { x: 630, y: 260 },
+  // Prosumer market: community bus column (4 prosumer cards -> community_bus -> grid).
+  prosumer_home_01: { x: 0, y: 680 },
+  prosumer_apartment_01: { x: 0, y: 840 },
+  prosumer_shop_01: { x: 0, y: 1000 },
+  prosumer_school_01: { x: 0, y: 1160 },
+  community_bus: { x: 640, y: 930 },
 }
 
-function DigitalTwinTopology({ nodes, onSelectNode, selectedNodeId }) {
+// Temporary trade edges for the prosumer market. Seller -> buyer, violet (blockchain): dashed
+// with a moving dot while the interval runs, solid once settled on chain ("Settled · block #N").
+// Unmatched deficit: a thin grey edge from the grid ("served by grid", not on-chain).
+function buildTradeEdges(trades, orders, latestIntervalId, now) {
+  const edges = []
+  let lane = 0
+  for (const t of trades ?? []) {
+    const settled = t.status === 'settled'
+    const recentlySettled = settled && t.settled_at && now - new Date(t.settled_at).getTime() < SETTLED_EDGE_MS
+    if (t.status === 'failed' || !(t.interval_id === latestIntervalId || recentlySettled)) continue
+    const kwh = ((settled ? t.settled_wh : t.matched_wh) / 1000).toFixed(3)
+    edges.push({
+      id: `trade-${t.id}`,
+      source: t.seller,
+      target: t.buyer,
+      sourceHandle: 'trade-out',
+      targetHandle: 'trade-in',
+      type: 'trade',
+      data: { settled, lane: lane++ % 3, label: settled ? `${kwh} kWh · Settled · block #${t.settle_block}` : `${kwh} kWh · pending` },
+    })
+  }
+  for (const o of orders ?? []) {
+    if (o.side !== 'bid' || !(o.remaining_wh > 0)) continue
+    edges.push({
+      id: `grid-${o.id}`,
+      source: 'grid',
+      sourceHandle: 'grid-out',
+      target: o.node_id,
+      type: 'flow',
+      data: { width: 1.2, color: '#94a3b8', flowing: false, label: `served by grid · ${(o.remaining_wh / 1000).toFixed(3)} kWh` },
+    })
+  }
+  return edges
+}
+
+function DigitalTwinTopology({ nodes, onSelectNode, selectedNodeId, trades, orders, latestIntervalId, now }) {
   const flowNodes = useMemo(
     () =>
       Object.values(nodes).map((node) => ({
@@ -51,7 +95,7 @@ function DigitalTwinTopology({ nodes, onSelectNode, selectedNodeId }) {
   const sourceEdges = useMemo(
     () =>
       Object.values(nodes)
-        .filter((node) => node.type !== 'bus' && node.type !== 'grid' && !node.isolated && node.active_connection)
+        .filter((node) => node.type !== 'bus' && node.type !== 'grid' && node.type !== 'prosumer' && !node.isolated && node.active_connection)
         .map((node) => ({
           id: `${node.node_id}-${node.active_connection}`,
           source: node.node_id,
@@ -79,12 +123,31 @@ function DigitalTwinTopology({ nodes, onSelectNode, selectedNodeId }) {
     [nodes],
   )
 
+  // Prosumer <-> community bus links: surplus feeds the bus, deficit draws from it (kW arithmetic).
+  const prosumerEdges = useMemo(
+    () =>
+      Object.values(nodes)
+        .filter((node) => node.type === 'prosumer' && node.net_kw != null)
+        .map((node) => ({
+          id: `${node.node_id}-community_bus`,
+          source: node.node_id,
+          target: 'community_bus',
+          kw: Math.abs(node.net_kw),
+          color: node.role === 'surplus' ? SOURCE_COLORS.solar : SOURCE_COLORS.grid,
+          reverse: node.role === 'deficit',
+          idle: node.role === 'balanced',
+        })),
+    [nodes],
+  )
+
+  const tradeEdges = useMemo(() => buildTradeEdges(trades, orders, latestIntervalId, now), [trades, orders, latestIntervalId, now])
+
   const highlightedEdgeIds = useRecentlyChangedEdges(sourceEdges)
 
   const flowEdges = useMemo(() => {
-    const all = [...sourceEdges, ...busEdges]
+    const all = [...sourceEdges, ...busEdges, ...prosumerEdges]
     const maxKw = Math.max(1, ...all.map((e) => e.kw))
-    return all.map(({ kw, color, ...edge }) => {
+    const flows = all.map(({ kw, color, reverse, idle, ...edge }) => {
       const highlighted = highlightedEdgeIds.has(edge.id)
       return {
         ...edge,
@@ -93,11 +156,13 @@ function DigitalTwinTopology({ nodes, onSelectNode, selectedNodeId }) {
           width: highlighted ? Math.max(4, flowWidth(kw, maxKw)) : flowWidth(kw, maxKw),
           color: highlighted ? '#f97316' : color,
           dotColor: highlighted ? '#f97316' : color,
-          flowing: kw > 0,
+          flowing: kw > 0 && !idle,
+          reverse,
         },
       }
     })
-  }, [sourceEdges, busEdges, highlightedEdgeIds])
+    return [...flows, ...tradeEdges]
+  }, [sourceEdges, busEdges, prosumerEdges, tradeEdges, highlightedEdgeIds])
 
   return (
     <div className="h-full w-full">

@@ -379,9 +379,7 @@ class Ledger:
         if not self.db_ready or not self._connected.is_set():
             return {"state": "unknown", "checked_at": _now().isoformat(),
                     "reason": "database or chain unavailable"}
-        rows = await store.confirmed_for_deployment(self.client.deployment_key)
-
-        def _check() -> tuple[list[int], int]:
+        def _check(rows: list[dict]) -> tuple[list[int], int]:
             bad = []
             for r in rows:
                 if r["chain_record_id"] is None:
@@ -391,8 +389,15 @@ class Ledger:
                     bad.append(r["id"])
             return bad, self.client.record_count()
 
-        mismatched, onchain_count = await asyncio.to_thread(_check)
-        missing_offchain = max(0, onchain_count - len(rows)) if len(rows) < 500 else 0
+        # A record mined between reading the rows and counting the chain (live traffic: prosumer
+        # market trades, fault alerts) is not "missing off-chain": re-check once before flagging it.
+        for attempt in range(2):
+            rows = await store.confirmed_for_deployment(self.client.deployment_key)
+            mismatched, onchain_count = await asyncio.to_thread(_check, rows)
+            missing_offchain = max(0, onchain_count - len(rows)) if len(rows) < 500 else 0
+            if not missing_offchain or attempt == 1:
+                break
+            await asyncio.sleep(2.0)
         self.integrity = {
             "state": "intact" if not mismatched and not missing_offchain else "compromised",
             "checked_records": len(rows),

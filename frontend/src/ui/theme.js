@@ -52,6 +52,11 @@ export function nodeLabel(id) {
       bus_b: 'Bus B',
       grid: 'Main grid',
       federated_server: 'FL server',
+      community_bus: 'Community bus',
+      prosumer_home_01: 'House',
+      prosumer_apartment_01: 'Apartment block',
+      prosumer_shop_01: 'Small shop',
+      prosumer_school_01: 'School',
     }[id] ?? id
   )
 }

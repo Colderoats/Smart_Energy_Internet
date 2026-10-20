@@ -20,7 +20,10 @@ from app.auth.deps import origin_check_middleware, require_admin
 from app.auth.tokens import check_config as check_auth_config
 from app.api.twin_routes import router as twin_router
 from app.api.testbed_routes import router as testbed_router
+from app.api.market_routes import router as market_router
 from app.ingestion.poller import run_live_poller
+from app.ingestion.prosumer_source import run_prosumer_poller
+from app.market.service import market
 from app.ingestion.scada_replay import run_scada_replay
 
 if sys.platform == "win32":
@@ -58,11 +61,16 @@ async def lifespan(app: FastAPI):
     # waits on the chain: an unreachable node just leaves records queued.
     await ledger.start()
 
+    # Prosumer market: chain worker + interval clock. Never fatal, never blocks ingestion.
+    await market.start()
+
     background_tasks.append(asyncio.create_task(run_live_poller()))
     background_tasks.append(asyncio.create_task(run_scada_replay()))
+    background_tasks.append(asyncio.create_task(run_prosumer_poller()))
 
     yield
 
+    await market.stop()
     await ledger.stop()
     for task in background_tasks:
         task.cancel()
@@ -96,6 +104,7 @@ app.include_router(twin_router, dependencies=protected)
 app.include_router(ai_router, dependencies=protected)
 app.include_router(chain_router, dependencies=protected)
 app.include_router(testbed_router, dependencies=protected)  # simulated-testbed paper reproduction (read-only)
+app.include_router(market_router, dependencies=protected)  # prosumer market (read-only)
 app.include_router(ws_router)
 
 

@@ -122,6 +122,11 @@ class FaultPredictor:
         if not self.loaded or not self._last_step:
             return None
         F, torch = self._F, self._torch
+        # The model scores the ORIGINAL 9-node subgraph only: the prosumer market's
+        # community_bus + prosumers are filtered out before the edge_index is built.
+        known = set(F.NODE_ORDER)
+        twin_nodes = [n for n in twin_nodes if n["node_id"] in known]
+        twin_edges = [e for e in twin_edges if e["source"] in known and e["target"] in known]
         ref = min(self._last_step[n] for n in F.SCORED_NODES if n in self._last_step)
         dynamic = {}
         for node_id in F.SCORED_NODES:

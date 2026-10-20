@@ -67,6 +67,32 @@ class Settings(BaseSettings):
     # Dev-only tamper demo endpoint. Defaults to on for local, off for Sepolia.
     blockchain_dev_tools: bool | None = None
 
+    # Prosumer market (app/market/). Prosumers are SIMULATED buildings: solar is
+    # ESTIMATED from REAL live weather (Open-Meteo GHI + temperature at this
+    # location), load is a deterministic SYNTHETIC profile. See app/market/prosumers.py.
+    prosumer_lat: float = 13.0827  # Chennai
+    prosumer_lon: float = 80.2707
+    # Local clock offset (hours from UTC) for the load profiles. A fixed offset
+    # instead of a tz database: Chennai has no DST and Windows lacks tzdata.
+    prosumer_utc_offset_hours: float = 5.5
+    # Dev-only demo aid (W/m2, unset = off): replaces the live irradiance so
+    # trades can be shown at night. When set, solar provenance becomes "simulated".
+    prosumer_irradiance_override: float | None = None
+    prosumer_tick_seconds: float = 15.0  # how often a reading per prosumer enters the pipeline
+    prosumer_weather_poll_seconds: float = 60.0  # how often Open-Meteo is called
+    prosumer_role_deadband_kw: float = 0.1
+    community_bus_capacity_kw: float = 100.0
+    market_enabled: bool = True
+    market_interval_seconds: float = 120.0
+    # ILLUSTRATIVE demo-credit prices per kWh, NOT tariffs: node_id -> {"ask": seller's
+    # asking price, "max": buyer's maximum price}. Override with MARKET_PRICES (JSON).
+    market_prices: dict[str, dict[str, float]] = {
+        "prosumer_home_01": {"ask": 5.0, "max": 7.0},
+        "prosumer_apartment_01": {"ask": 5.4, "max": 7.4},
+        "prosumer_shop_01": {"ask": 5.7, "max": 7.7},
+        "prosumer_school_01": {"ask": 6.0, "max": 8.0},
+    }
+
     # Admin authentication (app/auth/). JWT_SECRET has no default on purpose:
     # the backend refuses to start without one (>= 32 chars) in .env.
     jwt_secret: str = ""

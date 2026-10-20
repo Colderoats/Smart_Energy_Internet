@@ -42,6 +42,8 @@ WEIGHT_OVERLOAD = 1.0
 
 async def maybe_trigger(node_id: str) -> None:
     node = digital_twin.get_node(node_id)
+    if node.get("type") == "prosumer" or node.get("community"):
+        return  # prosumer self-healing: future work (prosumers / community_bus never trigger or become candidates)
     status = node["health_status"]
     previous = _last_health_status.get(node_id, "normal")
     _last_health_status[node_id] = status

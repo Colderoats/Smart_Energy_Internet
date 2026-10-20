@@ -1088,3 +1088,86 @@ Twin evaluation (Tables VII-IX), FL grid and finals (Table X), trading + EnergyM
 - Words "journal" / "conference" / "testbed" are blanked from everything the UI displays: frontend strings plus served graph/topology/redistribution/fault text (`_scrub` in app/api/testbed_routes.py). Identifiers (directory `backend/testbed`, `/testbed/*` URLs, file names) are kept to avoid breaking code.
 - Data normalisation: readings carry a `normalized` dict (see ARCHITECTURE.md "Normalized data schema"); node-level frontend views display it. Backend `pytest tests` 46 passed, `vite build` OK.
 
+
+## Prosumer market (live) (2026-10-20)
+
+Four SIMULATED buildings (prosumers) on a new `community_bus` trade surplus solar for demo credits. Registration ("existence") and
+every exchange step are transactions on the unchanged `EnergyMarket` contract (local Hardhat node, next to `EnergyLedger`); each
+settled trade is mirrored into the ledger as a `P2P_TRADE` record, so Verify / integrity / the tamper demo cover live trades.
+Design and data flow: ARCHITECTURE.md "Prosumer market (live)".
+
+### What was built
+- **Backend** (`backend/app/market/`): `prosumers.py` (PV formula, synthetic load profiles, role), `engine.py` (matching, metering
+  allocation, settlement amount), `chain.py` (Web3 client + auto-deploy to `blockchain/deployments/localhost-market.json`),
+  `service.py` (interval clock + async chain worker + ledger mirror), `store.py` (`market_prosumers`, `market_intervals`,
+  `market_orders`, `market_trades`); `app/ingestion/prosumer_source.py` (weather poller + readings); `app/api/market_routes.py`
+  (`/market/status|prosumers|prosumers/{id}/series|intervals|intervals/{id}|trades`, all GET, protected, pinned in tests/test_auth.py).
+  Prosumers go through the existing pipeline (normalize -> twin update -> persist -> broadcast) and SKIP fault detection.
+- **Isolation**: `predictor.score` filters to the original 9-node subgraph before building `edge_index`; `self_healing.maybe_trigger`
+  ignores prosumers / community_bus ("prosumer self-healing: future work"); `backend/ai/federated` untouched.
+- **Frontend**: Digital Twin map (prosumer cards with role pill, provenance badges, "On-chain ✓ #block" chip, community bus,
+  violet dashed -> solid trade edges with "Settled · block #N", thin grey "served by grid" edges), prosumer side panel (24 h chart,
+  trades, address), "Prosumer market" strip; Redistribution: market summary card, "Source" column (Live market / Simulated (button)),
+  live-market flow cards ("Settled on chain · block #N"); Blockchain explorer: "Prosumer market" section (registrations table, live
+  order book, trade journey Registered -> Offer -> Bid -> Matched -> Metered -> Settled -> Mirrored to ledger, each with tx hash /
+  block / gas, linking into the existing record detail + Verify) and a "Market events" filter. Vite proxies `/market`.
+- Provenance on every value: code comments, API payloads, ledger payloads (`provenance_detail`) and UI badges. "Prosumers are
+  simulated buildings: solar estimated from live weather, load synthetic. Amounts are demo credits." is shown on every market view.
+
+### Decisions (as specified)
+Prosumers: house 5 kWp, apartment block 15, small shop 10, school 30; role deadband 0.1 kW; community bus capacity 100 kW (default).
+Solar = REAL Open-Meteo GHI + temperature (default Chennai), `kW = kWp * GHI/1000 * 0.80 * (1 - 0.004 * max(0, Tcell - 25))`,
+`Tcell = Tair + 0.03 GHI` -> provenance `live_api_estimated`; load = deterministic synthetic hourly profile (+-5 % seeded noise) ->
+`simulated`; `PROSUMER_IRRADIANCE_OVERRIDE` -> solar provenance `simulated`, UI "Demo irradiance". Per interval
+(`MARKET_INTERVAL_SECONDS`): kWh = mean net kW x interval hours; sellers = surplus prosumers (offer = forecast surplus), buyers =
+deficit prosumers; offers ascending by ask, bids descending by max, match while ask <= max, `qty = min(remaining)`, **price = the
+seller's ask**; unmatched deficit = "served by grid", unmatched surplus = "exported to grid" (UI only). At the end of the interval the
+backend (oracle) submits METERED Wh = energy actually delivered from that interval's readings; `settle` pays `p * min(q_s, q_b)`.
+Prices are illustrative demo credits (ask 5.0-6.0, max 7.0-8.0 per kWh), not tariffs.
+
+### How to run
+Hardhat node (`cd blockchain && npm run node`), TimescaleDB, backend (`cd backend && venv\Scripts\python run.py`), frontend; the
+market starts with the backend and registers the 4 prosumers on its own (auto-deploys EnergyMarket if needed). Env vars (`.env`,
+all optional, documented in `.env.example`): `PROSUMER_LAT`, `PROSUMER_LON`, `PROSUMER_UTC_OFFSET_HOURS`,
+`PROSUMER_IRRADIANCE_OVERRIDE` (dev only, W/m2, e.g. 800 to trade at night), `MARKET_INTERVAL_SECONDS` (default 120),
+`COMMUNITY_BUS_CAPACITY_KW` (100), `PROSUMER_ROLE_DEADBAND_KW` (0.1), `MARKET_PRICES` (JSON), `MARKET_ENABLED`. Headless UI check:
+`python experiments/market_ui_check.py --email ... --password ... --shots <dir>`.
+
+### Measured gas per step (local Hardhat node, 4 prosumers, ~13 settled intervals; `market_*` tables)
+| step | n | min | mean | max |
+|---|---|---|---|---|
+| register | 4 | 67,915 | 67,936 | 67,975 |
+| postOffer | 54 | 78,531 | 78,848 | 95,631 (first write per account) |
+| postBid | 26 | 78,598 | 79,256 | 95,698 |
+| matchTrade | 37 | 163,929 | 166,670 | 166,751 |
+| submitMeter | 26 | 33,521 | 33,521 | 33,521 |
+| settle | 26 | 47,176 | 49,163 | 81,392 (first settle credits a fresh balance slot) |
+| advanceInterval | 13 | 28,044 | 28,044 | 28,044 |
+| deployment (EnergyMarket) | 1 | | 1,540,982 | |
+
+### Verification (2026-10-20, PROSUMER_IRRADIANCE_OVERRIDE=800, MARKET_INTERVAL_SECONDS=60)
+- `backend pytest tests`: **67 passed** (46 before + 21 new in `tests/test_market.py`: PV formula, load shape/determinism, deadband,
+  matching, settlement, ledger-mirror payload, 9-node isolation, self-healing guard, worker not blocking with the chain down; the
+  pinned protected-route list in `tests/test_auth.py` is extended with the 6 `/market` routes). TimescaleDB was running.
+- `blockchain npm test`: **22 passing** (EnergyLedger 10 + EnergyMarket 12), contracts and tests unchanged.
+- `ai/check_serving_parity.py`: max logit difference **4.77e-07** (baseline 4.8e-07), PARITY OK.
+- `GET /twin/nodes`: the original 9 nodes with the same keys + 5 new (`community_bus`, 4 prosumers), 13 edges (8 + 5); `GET /nodes`: 7
+  nodes / 6 edges; `GET /twin/decisions` unchanged.
+- End to end on the local Hardhat node: 4 registrations on chain (blocks 64-68), 13 settled intervals, 26 settled trades, **26
+  mirrored `P2P_TRADE` records, every one verified `match`**; tamper demo -> `mismatch`, restored copy -> `match`; integrity `intact`.
+- `npm run build` and `npm run lint` clean. Headless Chrome (`experiments/market_ui_check.py`): 29/29 checks (Digital Twin cards,
+  badges, on-chain chips, dashed and settled trade edges, side panel; Redistribution summary, Source column, Blockchain registrations /
+  order book / trade journey / Market events; every existing view, no console errors).
+
+### Limits
+kW arithmetic, not power flow; synthetic loads and estimated solar (nothing is physically sensed; the ESP32 -> MQTT -> TimescaleDB
+path is only a documented seam); local chain only (the market refuses other networks; the prosumer keys are Hardhat's public dev
+keys); amounts are demo credits; no prosumer self-healing; the AI excludes prosumers; with 60-120 s intervals the traded energy is a
+few tens of Wh per trade; interval count/backlog: while the chain is down at most 3 intervals are queued, later ones are recorded as
+`skipped`; a backend restart abandons the interval that was open (its trades stay matched on the contract, never settled).
+`mockConsumptionKw` (Analytics mock) could now be wired to prosumer consumption (`GET /market/prosumers/{id}/series`); left as is.
+
+### Other changes this required
+`address_lock` (`app/blockchain/chain_client.py`): the ledger and the market both send from account #0 and raced for its nonce
+("Nonce too low"), so both take a per-address lock. `Ledger.integrity_check` re-checks once before reporting "missing off-chain":
+with live traffic a record mined between reading the rows and counting the chain produced a transient false "MISMATCH".

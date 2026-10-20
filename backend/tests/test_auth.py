@@ -247,6 +247,8 @@ def test_every_non_public_route_requires_auth(client, admin):
         ("GET", "/auth/me"), ("POST", "/auth/invites"), ("GET", "/auth/invites"),
         # simulated testbed (paper reproduction), read-only
         ("GET", "/testbed/status"), ("GET", "/testbed/results"), ("GET", "/testbed/runs/1"), ("GET", "/testbed/comparison"), ("GET", "/testbed/kelmarsh"),
+        # prosumer market (live), read-only
+        ("GET", "/market/status"), ("GET", "/market/prosumers"), ("GET", "/market/prosumers/1/series"),("GET", "/market/intervals"), ("GET", "/market/intervals/1"), ("GET", "/market/trades"),
         ("GET", "/testbed/topologies"), ("GET", "/testbed/topologies/1/redistribution"), ("GET", "/testbed/topologies/1/faults"),
         ("GET", "/testbed/topologies/1/faults/1"), ("GET", "/testbed/graphs"),
     ])

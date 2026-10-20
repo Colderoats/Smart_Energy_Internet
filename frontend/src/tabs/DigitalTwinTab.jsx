@@ -3,7 +3,10 @@ import DigitalTwinTopology from '../components/DigitalTwinTopology'
 import DecisionLogPanel from '../components/DecisionLogPanel'
 import TimeSeriesPanel from '../components/TimeSeriesPanel'
 import NodeSidePanel from '../components/NodeSidePanel'
+import MarketStrip from '../components/MarketStrip'
+import ProsumerPanel from '../components/ProsumerPanel'
 import { useDigitalTwinSocket } from '../hooks/useDigitalTwinSocket'
+import { useMarketSocket } from '../hooks/useMarketSocket'
 import { useReportConnection } from '../ui/AppShell'
 import { SOURCE_COLORS } from '../ui/theme'
 import { Legend } from './LiveDataTab'
@@ -13,14 +16,18 @@ import { Legend } from './LiveDataTab'
 // Shown as the Grid Map's "Digital Twin" view. Shared with the Live View:
 // only the generic TimeSeriesPanel chart (parameterized to hit
 // /twin/nodes/{id}/history) and presentation pieces (legend, side panel).
+// The prosumer market (4 simulated buildings on the community bus, live trades) comes from
+// useMarketSocket: its own REST + WebSocket messages, separate from the fault pipeline.
 function DigitalTwinTab() {
   const { nodes, decisions, connected } = useDigitalTwinSocket()
+  const market = useMarketSocket()
   useReportConnection(connected)
   const [selectedNodeId, setSelectedNodeId] = useState('wind_scada_kelmarsh_1')
 
   const handleSelectNode = useCallback((nodeId) => setSelectedNodeId(nodeId), [])
   const selectedNode = nodes[selectedNodeId]
-  const isSource = selectedNode && selectedNode.type !== 'bus' && selectedNode.type !== 'grid'
+  const isProsumer = selectedNode?.type === 'prosumer'
+  const isSource = selectedNode && selectedNode.type !== 'bus' && selectedNode.type !== 'grid' && !isProsumer
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -28,14 +35,27 @@ function DigitalTwinTab() {
         Simulated self-healing: auto-applied to the twin's state only, no real actuation. TA-GNN predictions are forecasts
         on replayed Kelmarsh SCADA data, not sensed values.
       </p>
+      <MarketStrip market={market} />
       <div className="flex min-h-0 flex-1 gap-4">
         <div className="relative min-w-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          <DigitalTwinTopology nodes={nodes} onSelectNode={handleSelectNode} selectedNodeId={selectedNodeId} />
+          <DigitalTwinTopology
+            nodes={nodes}
+            onSelectNode={handleSelectNode}
+            selectedNodeId={selectedNodeId}
+            trades={market.trades}
+            orders={market.currentOrders}
+            latestIntervalId={market.latestInterval?.id}
+            now={market.now}
+          />
           <Legend />
         </div>
         <aside className="flex w-[360px] shrink-0 flex-col gap-4 overflow-y-auto">
           <div className="rounded-2xl border border-slate-200 bg-white p-5">
-            <NodeSidePanel node={selectedNode} twin />
+            {isProsumer ? (
+              <ProsumerPanel node={selectedNode} info={market.prosumers[selectedNodeId]} trades={market.trades} />
+            ) : (
+              <NodeSidePanel node={selectedNode} twin />
+            )}
           </div>
           {isSource && (
             <div className="h-56 shrink-0 rounded-2xl border border-slate-200 bg-white p-4">

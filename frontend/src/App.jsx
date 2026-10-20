@@ -47,7 +47,7 @@ function Dashboard({ tab, search }) {
       {tab === 'home' && <DashboardTab />}
       {tab === 'map' && <GridMapTab search={search} />}
       {tab === 'sources' && <SourcesTab />}
-      {tab === 'chain' && <RedistributionTab />}
+      {tab === 'chain' && <RedistributionTab search={search} />}
       {tab === 'ai' && <AIInsightsTab />}
       {tab === 'analytics' && <AnalyticsTab />}
       {tab === 'topologies' && <TopologiesTab />}

@@ -15,7 +15,8 @@ import { mockConsumptionKw } from '../mocks/uiMocks'
 const MAX_POINTS = 60
 const MAX_STREAM = 40
 
-const isSource = (n) => n.type !== 'bus' && n.type !== 'grid'
+// Prosumers (simulated buildings on the community bus) are not generation sources of the grid view.
+const isSource = (n) => n.type !== 'bus' && n.type !== 'grid' && n.type !== 'prosumer'
 
 function sumBy(nodes, pred, f) {
   return nodes.filter(pred).reduce((acc, n) => acc + (f(n) ?? 0), 0)

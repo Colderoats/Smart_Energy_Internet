@@ -37,6 +37,9 @@ Admin authentication is built (ARCHITECTURE.md "Admin authentication"). The whol
 REST route except /health + /auth/{login,register,refresh,logout}, and the /ws/updates WebSocket
 require an admin session. New routers MUST be included with `dependencies=protected` in
 app/main.py; tests/test_auth.py pins the protected-route list and fails if a route is added unprotected.
+A live PROSUMER MARKET is built (4 simulated buildings on a `community_bus`: solar estimated from live weather, load synthetic;
+automatic surplus->deficit trading; registration + every exchange step on the EnergyMarket contract, settled trades mirrored to
+the ledger as P2P_TRADE): PROGRESS.md "Prosumer market (live)", ARCHITECTURE.md "Prosumer market (live)".
 The frontend UI was redesigned (presentation layer only): sidebar shell, design tokens and the view map
 are in ARCHITECTURE.md "Frontend structure (UI redesign)"; what is mocked is in PROGRESS.md "UI redesign".
 
