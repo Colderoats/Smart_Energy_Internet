@@ -47,10 +47,10 @@ export default function NodeSidePanel({ node, twin = false }) {
             <Row label="Data source">
               <SourceBadge sourceType={node.source_type} />
             </Row>
-            <Row label="Power output">{r ? `${fmtNum(r.power_output, 1)} kW` : '—'}</Row>
-            {r?.wind_speed != null && <Row label="Wind speed">{fmtNum(r.wind_speed, 1)} m/s</Row>}
-            {r?.temperature != null && <Row label="Temperature">{fmtNum(r.temperature, 1)} °C</Row>}
-            {r?.vibration != null && <Row label="Vibration">{fmtNum(r.vibration, 2)}</Row>}
+            <Row label="Power output (norm.)">{r?.normalized?.power_output != null ? fmtNum(r.normalized.power_output, 3) : '—'}</Row>
+            {r?.normalized?.wind_speed != null && <Row label="Wind speed (norm.)">{fmtNum(r.normalized.wind_speed, 3)}</Row>}
+            {r?.normalized?.temperature != null && <Row label="Temperature (norm.)">{fmtNum(r.normalized.temperature, 3)}</Row>}
+            {r?.normalized?.vibration != null && <Row label="Vibration (norm.)">{fmtNum(r.normalized.vibration, 3)}</Row>}
             {node.rated_capacity_kw != null && <Row label="Rated capacity">{fmtNum(node.rated_capacity_kw)} kW</Row>}
             {twin && !node.isolated && <Row label="Routed via">{nodeLabel(node.active_connection)}</Row>}
             {twin && node.load_share < 1 && !node.isolated && <Row label="Curtailed to">{Math.round(node.load_share * 100)}%</Row>}

@@ -57,6 +57,12 @@ Offline (Module 4, federated layer):
                                            // NaN channels omitted. Not the live-API `wind_speed`.
 }
 
+**Normalised values (added).** `ingest_reading` (app/ingestion/pipeline.py) attaches `normalized` to every reading before the twin,
+detectors, WebSocket and DB history see it: `power_output` = per-unit of rated capacity, `wind_speed` / 25 m/s, `temperature`
+min-max over -20..120 degC, `vibration` / 10, all clipped to [0, 1] (`normalized_values` in app/models/reading.py). Raw fields are
+unchanged. `db.fetch_history` adds the same `normalized` dict to history rows. The node-level views (Dashboard stream, node side
+panel, Sources cards, node time series, topology nodes) show these normalised values; totals/aggregates remain in kW.
+
 ## Digital Twin state (NetworkX graph, in-memory in FastAPI backend)
 
 Node attributes: node_id, type, latest reading (per schema above), 
@@ -353,7 +359,7 @@ Settings are fixed in `backend/testbed/PREREGISTRATION.md` before the first meas
 | Redistribution | `backend/testbed/market/` | topology-aware matching with pandapower feasibility check; on-chain settlement through web3 |
 | Runner | `experiments/run_all.py` | one named config per paper table; results in `experiments/results/<run_id>/metrics.json` |
 | API | `backend/app/api/testbed_routes.py` (prefix `/testbed`, `dependencies=protected`) | read-only |
-| Views | `frontend/src/tabs/{ResultsTab,TopologiesTab,GraphsTab}.jsx`, `src/testbed/` | `/dashboard/results`, `/dashboard/topologies`, `/dashboard/graphs`; proxy prefix `/testbed` |
+| Views | `frontend/src/tabs/{TopologiesTab,GraphsTab}.jsx`, `src/testbed/` | `/dashboard/topologies`, `/dashboard/graphs` (the Results tab was removed); proxy prefix `/testbed` |
 
 **Environments.** `backend/testbed/venv` (Python 3.14.6; torch 2.14.0, torch_geometric 2.8.0.post1, pandapower 3.5.6, scikit-learn, web3 8.0.0) is separate from `backend/venv`
 (pandapower would upgrade its networkx/numpy pins) and from `backend/ai/federated/venv` (Flower). The FastAPI app does not import pandapower; it only reads result files.

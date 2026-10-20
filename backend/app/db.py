@@ -136,7 +136,13 @@ async def fetch_history(node_id: str, limit: int = 100) -> list[dict]:
             )
             rows = await cur.fetchall()
             columns = [desc[0] for desc in cur.description]
-            return [dict(zip(columns, row)) for row in rows]
+            out = [dict(zip(columns, row)) for row in rows]
+    from app.models.reading import normalized_values
+    from app.twin.digital_twin import SOURCE_NODES
+    rated = next((n["rated_capacity_kw"] for n in SOURCE_NODES if n["node_id"] == node_id), None)
+    for r in out:
+        r["normalized"] = normalized_values(r, rated)
+    return out
 
 
 async def insert_decision(decision: dict) -> None:

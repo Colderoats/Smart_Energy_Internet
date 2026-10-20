@@ -26,7 +26,7 @@ function Sparkline({ nodeId, reading, color }) {
     apiFetch(`/twin/nodes/${nodeId}/history?limit=30`)
       .then((res) => res.json())
       .then((data) => {
-        if (!cancelled) setPoints([...(data.history ?? [])].reverse().map((r) => ({ v: r.power_output })))
+        if (!cancelled) setPoints([...(data.history ?? [])].reverse().map((r) => ({ v: r.normalized?.power_output ?? 0 })))
       })
       .catch(() => {})
     return () => {
@@ -34,8 +34,8 @@ function Sparkline({ nodeId, reading, color }) {
     }
   }, [nodeId])
   useEffect(() => {
-    if (reading?.power_output != null) setPoints((p) => [...p, { v: reading.power_output }].slice(-40))
-  }, [reading?.timestamp, reading?.power_output])
+    if (reading?.normalized?.power_output != null) setPoints((p) => [...p, { v: reading.normalized.power_output }].slice(-40))
+  }, [reading?.timestamp, reading?.normalized?.power_output])
   if (points.length < 2) return <div className="h-12" />
   return (
     <div className="h-12">
@@ -75,9 +75,9 @@ function SourceCard({ node, open, onToggle }) {
         </div>
         <div className="mt-4 grid grid-cols-2 gap-4">
           <div>
-            <div className="text-sm text-slate-500">Current output</div>
+            <div className="text-sm text-slate-500">Current output (normalized)</div>
             <div className="mt-0.5 text-2xl font-semibold text-slate-900">
-              {r ? fmtNum(r.power_output) : '—'} <span className="text-sm font-medium text-slate-500">kW</span>
+              {r?.normalized?.power_output != null ? fmtNum(r.normalized.power_output, 3) : '—'} <span className="text-sm font-medium text-slate-500">p.u.</span>
             </div>
           </div>
           <div>

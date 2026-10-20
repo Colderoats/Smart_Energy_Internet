@@ -8,17 +8,21 @@ import logging
 from app import db
 from app.ai_service.integration import apply_detectors
 from app.api.ws_manager import manager
-from app.models.reading import NormalizedReading
+from app.models.reading import NormalizedReading, normalized_values
 from app.twin import fault_detection, self_healing
-from app.twin.digital_twin import digital_twin
+from app.twin.digital_twin import SOURCE_NODES, digital_twin
 from app.twin.graph import twin
 
 logger = logging.getLogger("sei")
+
+_RATED_KW = {n["node_id"]: n["rated_capacity_kw"] for n in SOURCE_NODES}
 
 
 async def ingest_reading(reading: NormalizedReading) -> None:
     health_status = fault_detection.evaluate(reading)
     reading_dict = reading.model_dump(mode="json")
+    # Normalise once, here, so the twin, detectors and frontend all get it.
+    reading_dict["normalized"] = normalized_values(reading_dict, _RATED_KW.get(reading.node_id))
     node_state = twin.update_node(reading.node_id, reading_dict, health_status)
 
     # Module 2's digital twin keeps its own (richer) state view of the same

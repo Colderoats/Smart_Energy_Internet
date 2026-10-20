@@ -6,8 +6,7 @@ export const NAV = [
   { id: 'chain', label: 'Redistribution', icon: 'chain', title: 'Redistribution (Blockchain)' },
   { id: 'ai', label: 'AI Insights', icon: 'ai', title: 'AI Insights' },
   { id: 'analytics', label: 'Analytics', icon: 'analytics', title: 'Analytics' },
-  // Simulated-testbed paper reproduction (backend /testbed/*, admin-protected)
-  { id: 'results', label: 'Results', icon: 'gauge', title: 'Results (simulated testbed vs paper)' },
+  // Paper reproduction views (backend /testbed/*, admin-protected)
   { id: 'topologies', label: 'Topologies', icon: 'nodes', title: 'Topologies (A / B / C)' },
   { id: 'graphs', label: 'Graphs', icon: 'pulse', title: 'Graphs (paper figures)' },
   { id: 'settings', label: 'Settings', icon: 'settings', title: 'Settings' },

@@ -1,10 +1,10 @@
 import { Pill } from '../ui/components'
 
-// Every testbed number is simulated; the real Kelmarsh results live on their own tab / endpoint.
+// Every number here is simulated; the real Kelmarsh results live on their own tab / endpoint.
 export function SimPill({ className = '' }) {
   return (
     <Pill tone="info" dot={false} className={className}>
-      Simulated testbed
+      Simulated
     </Pill>
   )
 }

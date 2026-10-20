@@ -51,7 +51,7 @@ function EnergyNode({ data, selected }) {
         </span>
         <div className="min-w-0 flex-1 leading-tight">
           <div className="truncate text-sm font-semibold">{nodeLabel(data.node_id)}</div>
-          <div className="text-sm text-slate-600">{reading ? `${reading.power_output.toFixed(0)} kW` : '—'}</div>
+          <div className="text-sm text-slate-600">{reading?.normalized ? `${reading.normalized.power_output.toFixed(2)} p.u.` : '—'}</div>
         </div>
         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: statusColor }} />
       </div>

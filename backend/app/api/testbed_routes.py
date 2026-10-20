@@ -42,7 +42,21 @@ async def status():
                 doc = json.loads(f.read_text(), parse_constant=lambda c: None)
                 runs.append(dict(run_id=doc["run_id"], created_utc=doc["created_utc"], config_hash=doc["config_hash"], metrics=len(doc["metrics"])))
     return dict(provenance=PROVENANCE, runs=runs, has_comparison=(RES / "comparison.md").exists(), has_topologies=(RES / "topologies.json").exists(),
-                has_graphs=(RES / "graphs.json").exists(), note="Simulated testbed - never mixed with the real Kelmarsh results.")
+                has_graphs=(RES / "graphs.json").exists(), note="Simulated - never mixed with the real Kelmarsh results.")
+
+
+_BLANK = re.compile(r"\b(journal|conference|testbed)\b\s*", re.I)
+
+
+def _scrub(o):
+    """Blank the words journal / conference / testbed out of every displayed string value (keys untouched)."""
+    if isinstance(o, str):
+        return _BLANK.sub("", o)
+    if isinstance(o, dict):
+        return {k: _scrub(v) for k, v in o.items()}
+    if isinstance(o, list):
+        return [_scrub(v) for v in o]
+    return o
 
 
 def _clean(o):
@@ -126,7 +140,7 @@ async def topologies():
     d = _json(RES / "topologies.json")
     kp = (RES / "topology_kpis.json")
     kpis = json.loads(kp.read_text(), parse_constant=lambda c: None) if kp.exists() else {}
-    return dict(provenance=PROVENANCE, topologies=d, kpis=kpis)
+    return dict(provenance=PROVENANCE, **_scrub(dict(topologies=d, kpis=kpis)))
 
 
 def _topo(name: str) -> str:
@@ -137,13 +151,13 @@ def _topo(name: str) -> str:
 
 @router.get("/topologies/{name}/redistribution")
 async def redistribution(name: str):
-    return dict(provenance=PROVENANCE, **_json(RES / f"redistribution_{_topo(name)}.json"))
+    return dict(provenance=PROVENANCE, **_scrub(_json(RES / f"redistribution_{_topo(name)}.json")))
 
 
 @router.get("/topologies/{name}/faults")
 async def fault_list(name: str):
     d = _json(RES / f"fault_replay_{_topo(name)}.json")
-    return dict(provenance=PROVENANCE, scenarios=[dict(id=s["id"], title=s["title"], type=s["type"], start=s["start"], summary=s["summary"]) for s in d["scenarios"]])
+    return dict(provenance=PROVENANCE, scenarios=_scrub([dict(id=s["id"], title=s["title"], type=s["type"], start=s["start"], summary=s["summary"]) for s in d["scenarios"]]))
 
 
 @router.get("/topologies/{name}/faults/{scenario_id}")
@@ -153,10 +167,10 @@ async def fault_scenario(name: str, scenario_id: str):
     d = _json(RES / f"fault_replay_{_topo(name)}.json")
     for s in d["scenarios"]:
         if s["id"] == scenario_id:
-            return dict(provenance=PROVENANCE, **s)
+            return dict(provenance=PROVENANCE, **_scrub(s))
     raise HTTPException(404, "unknown scenario")
 
 
 @router.get("/graphs")
 async def graphs():
-    return dict(provenance=PROVENANCE, **_json(RES / "graphs.json"))
+    return dict(provenance=PROVENANCE, **_scrub(_json(RES / "graphs.json")))

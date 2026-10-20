@@ -298,7 +298,6 @@ export default function TopologiesTab() {
   return (
     <div className="mx-auto max-w-7xl space-y-5 p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-3xl text-sm text-slate-500">The three journal topologies of the simulated testbed. Nodes are generation, storage, load and collector buses (prosumer buses carry both generation and load); there are no households.</p>
         <Segmented options={TOPS} value={name} onChange={setName} />
       </div>
       <Card title={top.title} subtitle={`${top.counts.nodes} nodes · ${top.counts.lines} lines · ${top.counts.solar} solar · ${top.counts.wind_hydro} wind/hydro · ${top.counts.ties} tie switches · ${top.counts.storage} storage units`} action={<SimPill />}>
@@ -307,7 +306,7 @@ export default function TopologiesTab() {
       </Card>
       <Redistribution key={`r${name}`} name={name} top={top} />
       <FaultReplay key={`f${name}`} name={name} top={top} />
-      <Card title="Topology KPIs" subtitle="From the saved runs behind the Results tab." action={<SimPill />}><Kpis k={data.kpis?.[name]} /></Card>
+      <Card title="Topology KPIs" subtitle="From the saved runs." action={<SimPill />}><Kpis k={data.kpis?.[name]} /></Card>
       <Why top={top} k={data.kpis?.[name]} />
       <Details label="Topology description"><pre className="overflow-x-auto rounded-xl bg-slate-50 p-3 text-xs">{JSON.stringify(top.counts, null, 1)}</pre></Details>
     </div>

@@ -1081,3 +1081,10 @@ Twin evaluation (Tables VII-IX), FL grid and finals (Table X), trading + EnergyM
 - Fixes this round: `/testbed/results` served NaN (invalid JSON) for single-iteration metrics -> now null; `export_all.fault_replay` doubled the path (`it0/it0`) -> fixed; `fl_runner tables` skips a cell whose run has not finished; `Market` reads the node URL from `SEI_RPC` (default unchanged).
 - Honest outcome: the structural and counting targets (Tables II, III) match; the learned / simulated metrics mostly do **not** land inside +-5 % of the papers' values (see comparison.md and the per-row reasons). Nothing was tuned toward a paper number. Journal Table X rounds-to-target is degenerate (1 for every method) because the centralised reference overfits - PREREGISTRATION disclosure 6.
 - Final (2026-10-13 20:55): topology C FedProx run finished; Table X is complete for A, B, C (n = 3 / 3 / 1 iterations). 57 of 282 targets within tolerance.
+
+## UI clean-up (2026-10-20)
+- Removed the Results tab (nav entry, App route, `ResultsTab.jsx`); the `/testbed/results` backend route is kept but unused by the UI.
+- Removed the explanatory disclaimer paragraphs at the top of the Graphs and Topologies tabs; the pill now reads "Simulated".
+- Words "journal" / "conference" / "testbed" are blanked from everything the UI displays: frontend strings plus served graph/topology/redistribution/fault text (`_scrub` in app/api/testbed_routes.py). Identifiers (directory `backend/testbed`, `/testbed/*` URLs, file names) are kept to avoid breaking code.
+- Data normalisation: readings carry a `normalized` dict (see ARCHITECTURE.md "Normalized data schema"); node-level frontend views display it. Backend `pytest tests` 46 passed, `vite build` OK.
+

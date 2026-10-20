@@ -46,7 +46,6 @@ export default function GraphsTab() {
   for (const c of data.charts) (groups[c.group] ??= []).push(c)
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-6">
-      <p className="max-w-3xl text-sm text-slate-500">Paper figures recreated from measured runs on the simulated testbed, plus extra comparison charts. Captions name the figure or table reproduced and the run that produced the data.</p>
       {data.charts.length === 0 && <EmptyState>No graphs exported yet.</EmptyState>}
       {Object.entries(groups).map(([g, cs]) => (
         <section key={g} className="space-y-4">

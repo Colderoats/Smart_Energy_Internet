@@ -26,7 +26,7 @@ function TimeSeriesPanel({ nodeId, latestReading, historyUrl, color }) {
       .then((data) => {
         const rows = [...data.history].reverse().map((row) => ({
           time: formatTime(row.time),
-          power_output: row.power_output,
+          power_output: row.normalized?.power_output ?? 0,
         }))
         setHistory(rows)
       })
@@ -37,7 +37,7 @@ function TimeSeriesPanel({ nodeId, latestReading, historyUrl, color }) {
     if (!latestReading || latestReading.node_id !== nodeId) return
     setHistory((prev) => [
       ...prev,
-      { time: formatTime(latestReading.timestamp), power_output: latestReading.power_output },
+      { time: formatTime(latestReading.timestamp), power_output: latestReading.normalized?.power_output ?? 0 },
     ])
   }, [latestReading, nodeId])
 
@@ -48,7 +48,7 @@ function TimeSeriesPanel({ nodeId, latestReading, historyUrl, color }) {
   return (
     <div className="flex h-full flex-col">
       <h2 className="mb-2 text-sm font-semibold text-slate-700" title={nodeId}>
-        {nodeLabel(nodeId)} — power output (kW)
+        {nodeLabel(nodeId)} — normalized power output (p.u.)
       </h2>
       <div className="min-h-0 flex-1">
         <ResponsiveContainer width="100%" height="100%">

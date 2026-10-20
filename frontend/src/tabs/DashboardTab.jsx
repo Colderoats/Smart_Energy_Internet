@@ -37,10 +37,12 @@ function snapshot(nodes) {
 // Rows for the live stream panel, one per attribute of each new reading.
 function readingRows(node) {
   const r = node.latest_reading
-  const rows = [{ attr: 'Power output', value: `${fmtNum(r.power_output, 1)} kW` }]
-  if (r.wind_speed != null) rows.push({ attr: 'Wind speed', value: `${fmtNum(r.wind_speed, 1)} m/s` })
-  if (r.temperature != null) rows.push({ attr: 'Temperature', value: `${fmtNum(r.temperature, 1)} °C` })
-  if (r.vibration != null) rows.push({ attr: 'Vibration', value: fmtNum(r.vibration, 2) })
+  const z = r.normalized ?? {}
+  const rows = []
+  if (z.power_output != null) rows.push({ attr: 'Power output (norm.)', value: fmtNum(z.power_output, 3) })
+  if (z.wind_speed != null) rows.push({ attr: 'Wind speed (norm.)', value: fmtNum(z.wind_speed, 3) })
+  if (z.temperature != null) rows.push({ attr: 'Temperature (norm.)', value: fmtNum(z.temperature, 3) })
+  if (z.vibration != null) rows.push({ attr: 'Vibration (norm.)', value: fmtNum(z.vibration, 3) })
   return rows
 }
 
