@@ -77,7 +77,7 @@ export function Pill({ children, tone, dot = true, className = '' }) {
 }
 
 // Marks a value that comes from src/mocks/uiMocks.js, not a real source.
-export function MockTag({ label = 'Mock data' }) {
+export function MockTag({ label = 'data' }) {
   return (
     <span
       className="rounded-md border border-dashed border-slate-300 px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-500"
