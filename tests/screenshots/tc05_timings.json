@@ -1,0 +1,11 @@
+{
+ "node": "wind_scada_kelmarsh_1",
+ "limit_ms": 5000,
+ "first_seen_ms_after_injection": {
+  "measurements": 71,
+  "fault_prediction": 74,
+  "self_healing": 254,
+  "topology": 78,
+  "blockchain_log": 155
+ }
+}

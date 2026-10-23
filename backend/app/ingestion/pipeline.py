@@ -8,6 +8,7 @@ import logging
 from app import db
 from app.ai_service.integration import apply_detectors
 from app.api.ws_manager import manager
+from app.ingestion.validation import validate_live
 from app.models.reading import NormalizedReading, normalized_values
 from app.twin import fault_detection, self_healing
 from app.twin.digital_twin import COMMUNITY_BUS, PROSUMER_NODES, SOURCE_NODES, digital_twin
@@ -47,6 +48,9 @@ async def _ingest_prosumer(reading: NormalizedReading) -> None:
 async def ingest_reading(reading: NormalizedReading) -> None:
     if reading.type == "prosumer":
         await _ingest_prosumer(reading)
+        return
+    reading = validate_live(reading, _RATED_KW.get(reading.node_id))
+    if reading is None:
         return
     health_status = fault_detection.evaluate(reading)
     reading_dict = reading.model_dump(mode="json")

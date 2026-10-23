@@ -1227,3 +1227,16 @@ stored. Idempotent: a node with an account is skipped unless `--reset`, which ro
 ### Limits
 Local Hardhat dev accounts only (public keys); a manual order can wait up to one interval (120 s default); the book is the current interval's, so
 orders disappear from it once the interval is done (they live on in "My trades"); the page shows no history chart.
+
+## Software-only test cases TC01-TC05 (2026-10-23)
+All code in `tests/` (see `tests/README.md` for how to run each); no product code changed. Results:
+
+| ID | Result | Observed |
+|---|---|---|
+| TC01 wind/hydro reading outside limits | **PASS** (after fix) | First run FAILED: no validation step existed (9.9 GW / 400 m/s and -700 MW were stored as-is). At the user's request added `app/ingestion/validation.py` (`validate_live`, called from `ingest_reading`): non-finite or out-of-limit live wind/hydro samples (power outside [0, 100 x rated], wind speed outside [0, 75] m/s) are logged and replaced by the node's last valid value, or dropped if there is none. Limits are loose sanity bounds on purpose: live power is an estimate and the hydro estimate legitimately exceeds the 400 kW rating. SCADA replay and prosumers are untouched. Backend suite still 90 passed; 4 tests in `tests/test_tc01_tc03.py` pass. |
+| TC02 switch change in topology C | PASS | Closing TS34 (buses 9-15) changes A at (9,15) 0->1 (32->33 edges), 12 entries of A_hat change; closing TS34 + opening 9-10 changes (9,10) 1->0 and (9,15) 0->1. The same journal_C/it0 `3_LRS` model (weights hash identical before/after) predicted on every topology (finite demand + 5-class output). Caveat: this is the offline simulated-testbed twin (`backend/testbed`); the live app twin is the 9-node graph, not IEEE-33. |
+| TC03 prediction service stopped | PASS | Predictor load forced to fail -> `loaded=False`. Temperature 95 C vs a stable baseline -> `fault_predicted`, flagged_by `["rule_based"]`, no ta_gnn verdict, rule-based decision `reduce_load_share 0.5`; a labelled fault -> `fault` + a decision. |
+| TC04 prosumer cannot edit records | PASS | 22/22 checks on in-process Hardhat. Trade 0: 120 milli/kWh, metered 3800/3900 Wh, settled, balances +456/-456, Settlement tx `0x665b2c96...950e1d` block 8. Seller and buyer: submitMeter -> `NotGateway`, settle again -> `AlreadySettled`, matchTrade/advanceInterval -> `NotGateway`, setGateway -> `NotOwner`, register again -> `AlreadyRegistered`. Trade, balances, tradeCount and the Settlement event identical afterwards. The ABI has no edit/cancel/delete function. |
+| TC05 dashboard during a fault | PASS | Fault injected on Kelmarsh T1 through the real ingestion path: KPIs/alert, AI Insights flag, self-healing log, topology panel, blockchain log each updated 48-254 ms after injection (limit 5 s). Screenshots + `tc05_timings.json` in `tests/screenshots/`. |
+
+Test-environment notes: TC05 used a synthetic healthy feed instead of the SCADA replay (the replay starts inside a logged fault) and a test-only inject route in `tests/tc05_server.py`, on an isolated DB / Hardhat node / ports; the "blockchain log" time is when the record appears in the dashboard (WebSocket), the Hardhat node mines instantly.
