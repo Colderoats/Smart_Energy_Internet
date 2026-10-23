@@ -18,3 +18,14 @@ TC01 first FAILED (real gap: no validation step); the user then asked for a fix:
 
 Restart step 3 (and drop/recreate `sei_tc05`) before each run: self-healing is edge-triggered, a node already faulted cannot be injected again.
 The server auto-deploys the contracts and rewrites `blockchain/deployments/localhost*.json`; back them up and restore them afterwards.
+
+# Set 2 (TC01-TC10 of the second test sheet, run 2026-10-23) - on top of the tests above
+Same IDs as the first sheet but different cases; in docs they are written "Set-2 TCnn". Files:
+
+| Set-2 ID | How to run |
+|---|---|
+| TC01, TC03 | the existing `tests\test_tc01_tc03.py` (same scenarios as the first sheet's TC01/TC03) |
+| TC02 | `backend\venv\Scripts\python -m pytest tests\test_set2_tc02_broker.py -q -s` (new module `backend/app/ingestion/buffered_publisher.py`, fake broker; the product has no MQTT path yet) |
+| TC04-TC07 | `cd backend && testbed\venv\Scripts\python -m pytest ..\tests\test_set2_testbed.py -q -s` (~20 min: TC05/TC06 re-evaluate the 20 outages 12-13 live; TC07 reads the stored FL result, not re-trained) |
+| TC08, TC09 | `cd blockchain && set NODE_PATH=%CD%\node_modules && npx hardhat run ..\tests\tc_set2_market_events.js` |
+| TC10 | same test as the first sheet's TC05 (`tests/tc05_dashboard_fault.py`, stack above); the result of the run made earlier the same day is reused, not re-run |

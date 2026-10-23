@@ -89,8 +89,8 @@ are in ARCHITECTURE.md "Frontend structure (UI redesign)"; what is mocked is in 
   blockchain violet; green/amber/red only for status). Data no endpoint exposes goes ONLY in
   `src/mocks/uiMocks.js`, tagged MOCK or SNAPSHOT, shown with a "Mock data" tag, and listed in PROGRESS.md.
 
-## Tests (TC01-TC05)
-Software-only test cases and how to run them: `tests/README.md`; results: PROGRESS.md "Software-only test cases TC01-TC05" (TC01 passes since `app/ingestion/validation.py` was added: live wind/hydro samples outside physical limits (no upper power limit for hydro) are replaced by the last valid value).
+## Tests (TC01-TC05 and Set-2 TC01-TC10)
+Software-only test cases and how to run them: `tests/README.md`; results: PROGRESS.md "Software-only test cases TC01-TC05" and "...second sheet Set-2 TC01-TC10" (Set-2: 9 PASS, TC07 FAIL left unaltered; new unused module app/ingestion/buffered_publisher.py for TC02) (TC01 passes since `app/ingestion/validation.py` was added: live wind/hydro samples outside physical limits (no upper power limit for hydro) are replaced by the last valid value).
 
 ## See also
 - ARCHITECTURE.md — module details, data schemas, twin state model and why each stack choice was made (avoid re-litigating)
