@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { EMAIL_RE } from '../auth/passwordPolicy'
-import { navigate, safeNext } from '../auth/router'
+import { homeFor, navigate, safeNext } from '../auth/router'
 import { Alert, Field, SubmitButton } from './AuthForm'
 
 // Registration is invite-only. The inline "Register?" section accepts the
@@ -169,8 +169,8 @@ export default function LoginPage({ search }) {
     if (Object.keys(found).length) return
     setBusy(true)
     try {
-      await login(email.trim(), password)
-      navigate(next, { replace: true })
+      const user = await login(email.trim(), password)
+      navigate(homeFor(user) ?? next, { replace: true })
     } catch (err) {
       setServerError(
         err.status === 401
@@ -206,7 +206,7 @@ export default function LoginPage({ search }) {
       <div className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm">
           <h2 className="text-3xl font-semibold text-slate-900">Login</h2>
-          <p className="mt-1.5 text-sm text-slate-500">Access is limited to registered administrators.</p>
+          <p className="mt-1.5 text-sm text-slate-500">Access is limited to registered administrators and prosumers.</p>
           <form onSubmit={submit} noValidate className="mt-8 space-y-5">
             {registered && <Alert kind="ok">Account created. Sign in with your new credentials.</Alert>}
             {serverError && <Alert>{serverError}</Alert>}

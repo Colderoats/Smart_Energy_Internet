@@ -3,7 +3,7 @@ Admin authentication endpoints (/auth/*). Design notes in ARCHITECTURE.md
 "Admin authentication".
 
 Public (no access token): POST /auth/login, /auth/register, /auth/refresh,
-/auth/logout. Admin only: GET /auth/me, POST /auth/invites, GET /auth/invites.
+/auth/logout. Any session: GET /auth/me. Admin only: POST /auth/invites (optionally for a prosumer node), GET /auth/invites.
 """
 
 import re
@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.auth import store
-from app.auth.deps import client_ip, require_admin
+from app.auth.deps import client_ip, require_admin, require_session
 from app.auth.passwords import hash_password, password_problem, verify_password
 from app.auth.rate_limit import limiter
 from app.auth.tokens import (
@@ -28,6 +28,7 @@ from app.auth.tokens import (
     now,
 )
 from app.config import settings
+from app.twin.digital_twin import PROSUMER_NODES
 
 router = APIRouter(prefix="/auth")
 
@@ -38,6 +39,10 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+class InviteRequest(BaseModel):
+    prosumer_node_id: str | None = None  # set: the invite registers a prosumer linked to this node
 
 
 class RegisterRequest(BaseModel):
@@ -55,6 +60,7 @@ def _public_user(user: dict) -> dict:
         "id": user["id"],
         "email": user["email"],
         "role": user["role"],
+        "prosumer_node_id": user.get("prosumer_node_id"),
         "created_at": user["created_at"],
         "last_login_at": user.get("last_login_at"),
     }
@@ -169,7 +175,7 @@ async def logout(request: Request, response: Response):
 
 
 @router.get("/me")
-async def me(user: dict = Depends(require_admin)):
+async def me(user: dict = Depends(require_session)):
     return {"user": _public_user(user)}
 
 
@@ -198,16 +204,23 @@ async def register(body: RegisterRequest, request: Request):
 
 
 @router.post("/invites", status_code=201)
-async def create_invite(request: Request, user: dict = Depends(require_admin)):
+async def create_invite(request: Request, body: InviteRequest | None = None, user: dict = Depends(require_admin)):
+    node = body.prosumer_node_id if body else None
+    if node is not None and node not in {p["node_id"] for p in PROSUMER_NODES}:
+        raise HTTPException(status_code=422, detail="Unknown prosumer node.")
+    if node is not None and await store.get_prosumer_user(node):
+        raise HTTPException(status_code=409, detail="That prosumer node already has an account.")
     raw = new_opaque_token()
     invite = await store.create_invite(
-        hash_token(raw), user["id"], now() + timedelta(hours=settings.invite_ttl_hours)
+        hash_token(raw), user["id"], now() + timedelta(hours=settings.invite_ttl_hours), node
     )
     await store.audit("invite_created", user_id=user["id"], email=user["email"], **_meta(request))
     # The raw token is returned exactly once and never stored.
     return {
         "id": invite["id"],
         "token": raw,
+        "role": invite["role"],
+        "prosumer_node_id": invite["prosumer_node_id"],
         "invite_url": f"{settings.frontend_origin.rstrip('/')}/register?token={raw}",
         "created_at": invite["created_at"],
         "expires_at": invite["expires_at"],

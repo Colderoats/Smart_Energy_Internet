@@ -92,10 +92,34 @@ CREATE TABLE IF NOT EXISTS market_trades (
 );
 CREATE INDEX IF NOT EXISTS market_trades_interval_idx ON market_trades (interval_id);
 CREATE INDEX IF NOT EXISTS market_trades_created_idx ON market_trades (created_at DESC);
+
+-- Prosumer dashboard (app/api/p2p_routes.py). manual = placed by the prosumer, not by the auto-trader.
+ALTER TABLE market_orders ADD COLUMN IF NOT EXISTS manual BOOLEAN NOT NULL DEFAULT FALSE;
+-- Per-prosumer switch: auto_trade FALSE = the market service skips automatic orders for that node.
+CREATE TABLE IF NOT EXISTS market_node_settings (
+    node_id TEXT PRIMARY KEY,
+    auto_trade BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at TIMESTAMPTZ
+);
+-- A manual order waits here until the next interval opens, then becomes that node's order for it
+-- (status queued -> used | expired (role changed / no surplus left) | cancelled (replaced)).
+CREATE TABLE IF NOT EXISTS market_manual_orders (
+    id BIGSERIAL PRIMARY KEY,
+    node_id TEXT NOT NULL,
+    side TEXT NOT NULL,
+    qty_wh BIGINT NOT NULL,
+    price_milli INTEGER NOT NULL,
+    user_id BIGINT,
+    status TEXT NOT NULL DEFAULT 'queued',
+    interval_id BIGINT,
+    order_id BIGINT,
+    error TEXT,
+    created_at TIMESTAMPTZ NOT NULL
+);
 """
 
 _JSON = {"events", "forecast", "actuals", "summary"}
-_TABLES = {"market_prosumers", "market_intervals", "market_orders", "market_trades"}
+_TABLES = {"market_prosumers", "market_intervals", "market_orders", "market_trades", "market_node_settings", "market_manual_orders"}
 
 
 def _row(columns: list[str], row: tuple) -> dict:

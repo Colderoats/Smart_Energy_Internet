@@ -68,6 +68,14 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
     replaced_by BIGINT REFERENCES refresh_tokens(id)
 );
 CREATE INDEX IF NOT EXISTS refresh_tokens_family_idx ON refresh_tokens (family_id);
+
+-- Prosumer login: the 4 market prosumers (seeded in init_schema) are the only
+-- nodes a prosumer user / invite can point at. users.role = 'prosumer' + prosumer_node_id.
+CREATE TABLE IF NOT EXISTS prosumer_nodes (node_id TEXT PRIMARY KEY);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS prosumer_node_id TEXT REFERENCES prosumer_nodes(node_id);
+CREATE UNIQUE INDEX IF NOT EXISTS users_prosumer_node_uq ON users (prosumer_node_id) WHERE prosumer_node_id IS NOT NULL;
+ALTER TABLE invites ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'admin';
+ALTER TABLE invites ADD COLUMN IF NOT EXISTS prosumer_node_id TEXT REFERENCES prosumer_nodes(node_id);
 """
 
 # A rotated token presented again within this window is treated as a benign
@@ -84,8 +92,12 @@ class EmailTaken(Exception):
 
 
 async def init_schema() -> None:
+    from app.twin.digital_twin import PROSUMER_NODES
+
     async with db.get_pool().connection() as conn:
         await conn.execute(AUTH_SCHEMA_SQL)
+        for p in PROSUMER_NODES:
+            await conn.execute("INSERT INTO prosumer_nodes (node_id) VALUES (%s) ON CONFLICT DO NOTHING", (p["node_id"],))
 
 
 async def _fetchone(sql: str, params: tuple) -> dict | None:
@@ -108,11 +120,15 @@ async def count_admins() -> int:
     return row["n"]
 
 
-async def create_user(email: str, password_hash: str, role: str = "admin") -> dict:
+async def get_prosumer_user(node_id: str) -> dict | None:
+    return await _fetchone("SELECT * FROM users WHERE role = 'prosumer' AND prosumer_node_id = %s", (node_id,))
+
+
+async def create_user(email: str, password_hash: str, role: str = "admin", prosumer_node_id: str | None = None) -> dict:
     try:
         return await _fetchone(
-            "INSERT INTO users (email, password_hash, role) VALUES (%s, %s, %s) RETURNING *",
-            (email, password_hash, role),
+            "INSERT INTO users (email, password_hash, role, prosumer_node_id) VALUES (%s, %s, %s, %s) RETURNING *",
+            (email, password_hash, role, prosumer_node_id),
         )
     except errors.UniqueViolation as exc:
         raise EmailTaken() from exc
@@ -234,11 +250,13 @@ async def revoke_refresh_family(token_hash: str) -> int | None:
 
 # ---- invites --------------------------------------------------------------
 
-async def create_invite(token_hash: str, created_by: int, expires_at: datetime) -> dict:
+async def create_invite(token_hash: str, created_by: int, expires_at: datetime,
+                        prosumer_node_id: str | None = None) -> dict:
+    """An invite with a prosumer node registers a 'prosumer' user linked to it; otherwise an admin."""
     return await _fetchone(
-        "INSERT INTO invites (token_hash, created_by, expires_at) VALUES (%s, %s, %s) "
-        "RETURNING id, created_by, created_at, expires_at",
-        (token_hash, created_by, expires_at),
+        "INSERT INTO invites (token_hash, created_by, expires_at, role, prosumer_node_id) VALUES (%s, %s, %s, %s, %s) "
+        "RETURNING id, created_by, created_at, expires_at, role, prosumer_node_id",
+        (token_hash, created_by, expires_at, "prosumer" if prosumer_node_id else "admin", prosumer_node_id),
     )
 
 
@@ -247,7 +265,7 @@ async def list_invites(limit: int = 100) -> list[dict]:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(
                 """
-                SELECT i.id, i.created_at, i.expires_at, i.used_at,
+                SELECT i.id, i.created_at, i.expires_at, i.used_at, i.role, i.prosumer_node_id,
                        c.email AS created_by_email, u.email AS used_by_email
                 FROM invites i
                 JOIN users c ON c.id = i.created_by
@@ -278,9 +296,13 @@ async def register_with_invite(token_hash: str, email: str, password_hash: str) 
                         raise InviteError("This invite link has already been used.")
                     if invite["expires_at"] <= now():
                         raise InviteError("This invite link has expired. Ask an admin for a new one.")
+                    if invite["prosumer_node_id"]:
+                        await cur.execute("SELECT 1 FROM users WHERE prosumer_node_id = %s", (invite["prosumer_node_id"],))
+                        if await cur.fetchone():
+                            raise InviteError("That prosumer node already has an account.")
                     await cur.execute(
-                        "INSERT INTO users (email, password_hash, role) VALUES (%s, %s, 'admin') RETURNING *",
-                        (email, password_hash),
+                        "INSERT INTO users (email, password_hash, role, prosumer_node_id) VALUES (%s, %s, %s, %s) RETURNING *",
+                        (email, password_hash, invite["role"], invite["prosumer_node_id"]),
                     )
                     user = await cur.fetchone()
                     await cur.execute(

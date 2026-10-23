@@ -16,11 +16,12 @@ from app.api.chain_routes import router as chain_router
 from app.api.routes import router as api_router
 from app.api.routes import ws_router
 from app.auth import store as auth_store
-from app.auth.deps import origin_check_middleware, require_admin
+from app.auth.deps import origin_check_middleware, require_admin, require_prosumer
 from app.auth.tokens import check_config as check_auth_config
 from app.api.twin_routes import router as twin_router
 from app.api.testbed_routes import router as testbed_router
 from app.api.market_routes import router as market_router
+from app.api.p2p_routes import router as p2p_router
 from app.ingestion.poller import run_live_poller
 from app.ingestion.prosumer_source import run_prosumer_poller
 from app.market.service import market
@@ -105,6 +106,7 @@ app.include_router(ai_router, dependencies=protected)
 app.include_router(chain_router, dependencies=protected)
 app.include_router(testbed_router, dependencies=protected)  # simulated-testbed paper reproduction (read-only)
 app.include_router(market_router, dependencies=protected)  # prosumer market (read-only)
+app.include_router(p2p_router, dependencies=[Depends(require_prosumer)])  # prosumer dashboard: own node only
 app.include_router(ws_router)
 
 

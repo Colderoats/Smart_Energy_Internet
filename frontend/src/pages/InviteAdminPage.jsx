@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiJson } from '../auth/api'
+import { nodeLabel } from '../ui/theme'
+
+const PROSUMER_NODES = ['prosumer_home_01', 'prosumer_apartment_01', 'prosumer_shop_01', 'prosumer_school_01']
 
 const STATUS_STYLES = {
   pending: 'bg-sky-50 text-sky-700',
@@ -13,6 +16,7 @@ function formatTime(iso) {
 
 export default function InviteAdminPage() {
   const [created, setCreated] = useState(null)
+  const [node, setNode] = useState('') // '' = admin invite, else a prosumer node id
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState(null)
   const [copied, setCopied] = useState(false)
@@ -35,7 +39,7 @@ export default function InviteAdminPage() {
     setCreateError(null)
     setCopied(false)
     try {
-      setCreated(await apiJson('/auth/invites', { method: 'POST', body: '{}' }))
+      setCreated(await apiJson('/auth/invites', { method: 'POST', body: JSON.stringify(node ? { prosumer_node_id: node } : {}) }))
       loadInvites()
     } catch (err) {
       setCreateError(err.message)
@@ -57,11 +61,27 @@ export default function InviteAdminPage() {
     <div className="min-h-0 flex-1 overflow-y-auto p-6">
       <div className="mx-auto max-w-3xl space-y-6">
         <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="text-base font-semibold">Invite an admin</h2>
+          <h2 className="text-base font-semibold">Invite an admin or a prosumer</h2>
           <p className="mt-1 text-sm text-slate-500">
             Generates a single-use registration link that expires in 48 hours. The link is shown only once; only
-            a hash of it is stored.
+            a hash of it is stored. Choose a building to invite a prosumer who can trade for that building only.
           </p>
+          <label className="mt-4 block text-sm font-medium text-slate-700" htmlFor="invite-role">
+            Invite as
+          </label>
+          <select
+            id="invite-role"
+            value={node}
+            onChange={(e) => setNode(e.target.value)}
+            className="mt-1 w-full max-w-xs rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
+          >
+            <option value="">Admin (full dashboard)</option>
+            {PROSUMER_NODES.map((n) => (
+              <option key={n} value={n}>
+                Prosumer · {nodeLabel(n)}
+              </option>
+            ))}
+          </select>
           <button
             onClick={generate}
             disabled={creating}
@@ -118,6 +138,7 @@ export default function InviteAdminPage() {
                 <thead className="text-xs text-slate-500">
                   <tr>
                     <th className="py-1.5 pr-3 font-medium">Status</th>
+                    <th className="py-1.5 pr-3 font-medium">For</th>
                     <th className="py-1.5 pr-3 font-medium">Created by</th>
                     <th className="py-1.5 pr-3 font-medium">Created</th>
                     <th className="py-1.5 pr-3 font-medium">Expires</th>
@@ -129,6 +150,9 @@ export default function InviteAdminPage() {
                     <tr key={inv.id}>
                       <td className="py-1.5 pr-3">
                         <span className={`rounded px-1.5 py-0.5 text-xs ${STATUS_STYLES[inv.status]}`}>{inv.status}</span>
+                      </td>
+                      <td className="py-1.5 pr-3 text-slate-600">
+                        {inv.prosumer_node_id ? `Prosumer · ${nodeLabel(inv.prosumer_node_id)}` : 'Admin'}
                       </td>
                       <td className="py-1.5 pr-3 text-slate-600">{inv.created_by_email}</td>
                       <td className="py-1.5 pr-3 text-slate-500">{formatTime(inv.created_at)}</td>

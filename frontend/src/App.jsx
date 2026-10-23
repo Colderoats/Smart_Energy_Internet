@@ -9,8 +9,9 @@ import TopologiesTab from './tabs/TopologiesTab'
 import SettingsTab from './tabs/SettingsTab'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import ProsumerPage from './pages/ProsumerPage'
 import { AuthProvider, useAuth } from './auth/AuthContext'
-import { navigate, safeNext, useLocation } from './auth/router'
+import { homeFor, navigate, safeNext, useLocation } from './auth/router'
 import AppShell from './ui/AppShell'
 import { NAV } from './ui/nav'
 
@@ -56,7 +57,7 @@ function Dashboard({ tab, search }) {
 }
 
 function Routes() {
-  const { status } = useAuth()
+  const { status, user } = useAuth()
   const { path, search } = useLocation()
 
   if (status === 'loading') return <FullScreenMessage>Checking session…</FullScreenMessage>
@@ -65,16 +66,24 @@ function Routes() {
 
   if (path === '/login') {
     if (status === 'authenticated') {
-      return <Redirect to={safeNext(new URLSearchParams(search).get('next'))} />
+      return <Redirect to={homeFor(user) ?? safeNext(new URLSearchParams(search).get('next'))} />
     }
     return <LoginPage search={search} />
   }
 
-  // Everything else is the dashboard, behind the guard.
+  // Prosumer page: prosumers only. A signed-in admin goes to the dashboard instead.
+  if (path === '/prosumer') {
+    if (status !== 'authenticated') return <Redirect to="/login" />
+    if (!homeFor(user)) return <Redirect to="/dashboard/home" />
+    return <ProsumerPage />
+  }
+
+  // Everything else is the dashboard, behind the guard. A prosumer never sees an admin view.
   if (status !== 'authenticated') {
     const here = path.startsWith('/dashboard') ? path + search : '/dashboard/home'
     return <Redirect to={`/login?next=${encodeURIComponent(here)}`} />
   }
+  if (homeFor(user)) return <Redirect to={homeFor(user)} />
 
   const tab = path.match(/^\/dashboard\/([a-z]+)\/?$/)?.[1]
   if (LEGACY_TABS[tab]) {

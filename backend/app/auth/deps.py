@@ -3,7 +3,12 @@ Server-side enforcement.
 
 - require_admin: FastAPI dependency applied to every protected REST router
   (see app/main.py). 401 without a valid access cookie, 403 for a non-admin.
-- authenticate_websocket: the same check for the /ws/updates handshake.
+- require_prosumer: the same for the /p2p router: 403 for anyone who is not a
+  prosumer user linked to a node (admins included: no admin view opens for a
+  prosumer and no prosumer view for an admin).
+- require_session: any active user (GET /auth/me, so the SPA can route by role).
+- authenticate_websocket: the same check for the /ws/updates handshake; prosumers
+  are accepted but only receive market_* messages (app/api/ws_manager.py).
 - origin_check_middleware: CSRF defence. Cookies are SameSite=Strict AND every
   state-changing request (POST/PUT/PATCH/DELETE) must carry an Origin (or
   Referer) equal to FRONTEND_ORIGIN, otherwise 403.
@@ -67,9 +72,23 @@ async def require_admin(request: Request) -> dict:
     return user
 
 
+async def require_session(request: Request) -> dict:
+    found = await user_from_connection(request)
+    if found is None:
+        raise HTTPException(status_code=401, detail="Not authenticated", headers={"WWW-Authenticate": "Cookie"})
+    return found[0]
+
+
+async def require_prosumer(request: Request) -> dict:
+    user = await require_session(request)
+    if user["role"] != "prosumer" or not user.get("prosumer_node_id"):
+        raise HTTPException(status_code=403, detail="Prosumer access required")
+    return user
+
+
 async def authenticate_websocket(conn: HTTPConnection) -> tuple[dict, dict] | None:
     found = await user_from_connection(conn)
-    if found is None or found[0]["role"] != "admin":
+    if found is None or found[0]["role"] not in ("admin", "prosumer"):
         return None
     return found
 

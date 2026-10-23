@@ -249,6 +249,9 @@ def test_every_non_public_route_requires_auth(client, admin):
         ("GET", "/testbed/status"), ("GET", "/testbed/results"), ("GET", "/testbed/runs/1"), ("GET", "/testbed/comparison"), ("GET", "/testbed/kelmarsh"),
         # prosumer market (live), read-only
         ("GET", "/market/status"), ("GET", "/market/prosumers"), ("GET", "/market/prosumers/1/series"),("GET", "/market/intervals"), ("GET", "/market/intervals/1"), ("GET", "/market/trades"),
+        # prosumer dashboard (prosumer role only: admins get 403 there, anonymous 401)
+        ("GET", "/p2p/me"), ("GET", "/p2p/book"), ("GET", "/p2p/trades"),
+        ("POST", "/p2p/offer"), ("POST", "/p2p/bid"), ("POST", "/p2p/auto"),
         ("GET", "/testbed/topologies"), ("GET", "/testbed/topologies/1/redistribution"), ("GET", "/testbed/topologies/1/faults"),
         ("GET", "/testbed/topologies/1/faults/1"),
     ])

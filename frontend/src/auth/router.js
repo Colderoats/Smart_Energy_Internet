@@ -37,3 +37,8 @@ export function safeNext(next) {
     ? next
     : '/dashboard/live'
 }
+
+// Where a signed-in user belongs: prosumers have their own page, admins the dashboard.
+export function homeFor(user) {
+  return user?.role === 'prosumer' ? '/prosumer' : null
+}

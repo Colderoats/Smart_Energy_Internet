@@ -53,10 +53,10 @@ async def ws_updates(websocket: WebSocket):
         await websocket.accept()
         await websocket.close(code=4401, reason="unauthenticated")
         return
-    _, claims = found
+    user, claims = found
     expires_at = float(claims["exp"])
 
-    await manager.connect(websocket)
+    await manager.connect(websocket, market_only=user["role"] != "admin")
     try:
         while True:
             # This socket is push-only; we still need to await something

@@ -50,6 +50,9 @@ are in ARCHITECTURE.md "Frontend structure (UI redesign)"; what is mocked is in 
   dashboard -> "Invite admin" -> send the one-time link.
 - Backend tests: `cd backend && venv\Scripts\python -m pytest tests -q` (needs TimescaleDB running;
   uses its own `sei_auth_test` database, created automatically).
+- Prosumer logins (one per simulated building; role `prosumer`, page `/prosumer`, API `/p2p/*` via `require_prosumer`): an admin invites from
+  Settings -> Admins ("Invite as" a building), or seed with `cd backend && venv\Scripts\python scripts\create_prosumers.py [--all|--node ..|--reset]`
+  (random passwords printed once, never stored). See PROGRESS.md / ARCHITECTURE.md "Prosumer login + P2P dashboard". New /p2p routes are pinned in tests/test_auth.py.
 - Auth libraries: argon2-cffi (password hashing) and PyJWT (access tokens), plus pytest for tests.
   The frontend has no new dependency.
 

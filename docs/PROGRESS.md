@@ -1171,3 +1171,59 @@ few tens of Wh per trade; interval count/backlog: while the chain is down at mos
 `address_lock` (`app/blockchain/chain_client.py`): the ledger and the market both send from account #0 and raced for its nonce
 ("Nonce too low"), so both take a per-address lock. `Ledger.integrity_check` re-checks once before reporting "missing off-chain":
 with live traffic a record mined between reading the rows and counting the chain produced a transient false "MISMATCH".
+
+
+## Prosumer login + P2P dashboard (2026-10-23)
+
+A prosumer (one per simulated building) can now log in, see their building and place a manual offer/bid on the live market.
+Additive: admin routes, the admin dashboard, both contracts and the market's automatic trading are unchanged. Design: ARCHITECTURE.md
+"Prosumer login + P2P dashboard".
+
+### What was built
+- **Auth**: role `prosumer` + `users.prosumer_node_id` (FK to a new 4-row `prosumer_nodes` table, unique per node). `invites` gained `role` and
+  `prosumer_node_id`. Settings -> Admins -> "Invite as" lets an admin pick a building; registering through that link creates a prosumer linked
+  to it (a plain invite still creates an admin; a node that already has an account cannot be invited again). `require_prosumer` (401 / 403)
+  guards the new router; `require_admin` already 403s prosumers; `GET /auth/me` now answers any signed-in user so the SPA can route by role.
+  After login a prosumer lands on `/prosumer`; admins keep `/dashboard`. A prosumer opening `/dashboard/*` is redirected back, an admin
+  opening `/prosumer` is sent to the dashboard.
+- **Backend** `app/api/p2p_routes.py` (`/p2p`, `dependencies=require_prosumer`, own node only; an optional `node_id` naming another node -> 403):
+  `GET /p2p/me`, `GET /p2p/book`, `GET /p2p/trades`, `POST /p2p/offer {kwh, ask}` (only in surplus), `POST /p2p/bid {kwh, max}` (only in
+  deficit), `POST /p2p/auto {enabled}` (per-prosumer auto-trade switch, default on; off = the market service skips automatic orders for that node).
+- **Frontend** `/prosumer` (`pages/ProsumerPage.jsx`, reuses `src/ui`): header (building, role pill, net kW, balance in demo credits, auto-trade
+  switch), "Sell surplus" / "Buy energy" cards (only the one valid for the role is enabled), live order book, "My trades" with a status chip
+  (pending -> matched -> settled) and block number, the "Simulated building ..." banner. Live updates through `useMarketSocket({ rest: false })`;
+  `/p2p/*` is re-read when a socket message arrives (no polling). Vite proxies `/p2p`.
+- **Seeding**: `backend/scripts/create_prosumers.py` (see below).
+
+### Decisions made (flag if you want them changed)
+- **A manual order is queued and joins the next interval** (it does not match mid-interval): it replaces that node's automatic order for the
+  interval, is capped at the forecast quantity at that moment (so metering can back it) and lapses if the role flipped. One queued order per
+  node (a new one replaces it). Then it is the normal pipeline: matching with price = seller's ask, the chain worker (signed by the node's own
+  Hardhat dev account), metering, settlement, ledger mirror as `P2P_TRADE`.
+- **Quantity** must be > 0 and <= forecast surplus/deficit x one interval (shown as "up to X kWh"). **Price** must lie within the `MARKET_PRICES`
+  bounds = [lowest configured ask, highest configured max] (5.0 - 8.0 with the defaults).
+- **WebSocket**: prosumer sessions are accepted on `/ws/updates` but receive only `market_*` messages (the manager filters per connection);
+  admins still get everything. The order book shows all buildings' open orders (it is a market book); balance/trades/me are own-node only.
+- New tables: `prosumer_nodes`, `market_node_settings`, `market_manual_orders`; `market_orders.manual` column (all idempotent migrations).
+
+### Seeded accounts (`create_prosumers.py`)
+`cd backend && venv\Scripts\python scripts\create_prosumers.py [--all] [--node prosumer_x_01 ...] [--reset]`. Default: `prosumer_home_01`
+(home01@sei.local) and `prosumer_shop_01` (shop01@sei.local); `--all` adds `apartment01@sei.local` and `school01@sei.local`. A random 16-character
+password per account (passes the password policy) is printed once as a table; never written to a file, log or .env; only the argon2 hash is
+stored. Idempotent: a node with an account is skipped unless `--reset`, which rotates the password and prints the new one. Audit events
+`prosumer_created_cli` / `prosumer_password_reset_cli`.
+
+### Verification (2026-10-23; demo run `PROSUMER_IRRADIANCE_OVERRIDE=800 MARKET_INTERVAL_SECONDS=30`)
+- `backend pytest tests`: **90 passed** (67 + 23 new in `tests/test_p2p.py`: role separation both ways, another node's data -> 403, quantity/price/side
+  validation, queue replacement, auto-trade switch, prosumer invite -> registration, WebSocket market-only filter, the script as a real subprocess:
+  refuses duplicates, `--reset` rotates, `--all`, a seeded account logs in, reaches `/p2p/me` and gets 401/403 on admin routes, only the hash is stored).
+  The 6 `/p2p` routes are pinned in `tests/test_auth.py`.
+- `blockchain npm test`: **22 passing** (contracts untouched). `npm run build` and `npm run lint` clean.
+- Headless Chrome, `python experiments/p2p_ui_check.py --email ... --password ...` (shop01): **14/14** - login lands on `/prosumer`, `/dashboard/home` bounces back,
+  `/nodes` -> 403, header/banner/live badge, only the Buy card enabled (deficit), 0.01 kWh bid queued -> in the live book as "manual" -> trade pending/matched ->
+  **settled with block 178**, and the settle tx receipt on the Hardhat node has status 1 at that block. Auto-trade off: the node placed no automatic order in the next
+  two intervals; switched back on afterwards.
+
+### Limits
+Local Hardhat dev accounts only (public keys); a manual order can wait up to one interval (120 s default); the book is the current interval's, so
+orders disappear from it once the interval is done (they live on in "My trades"); the page shows no history chart.

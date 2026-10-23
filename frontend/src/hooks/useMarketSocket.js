@@ -16,7 +16,9 @@ async function getJson(url) {
   return res.json()
 }
 
-export function useMarketSocket() {
+// `{ rest: false }` (prosumer page): skip the admin-only /market/* fetches and use only the
+// live socket; the prosumer's own data comes from /p2p/* (a prosumer socket carries market_* messages only).
+export function useMarketSocket({ rest = true } = {}) {
   const [status, setStatus] = useState(null)
   const [prosumers, setProsumers] = useState({})
   const [intervals, setIntervals] = useState({})
@@ -35,14 +37,14 @@ export function useMarketSocket() {
 
   useEffect(() => {
     let cancelled = false
-    refreshStatus()
-    getJson('/market/prosumers')
+    if (rest) refreshStatus()
+    if (rest) getJson('/market/prosumers')
       .then((d) => !cancelled && setProsumers(Object.fromEntries(d.prosumers.map((p) => [p.node_id, p]))))
       .catch((err) => console.error('Failed to load prosumers', err))
-    getJson('/market/trades?limit=30')
+    if (rest) getJson('/market/trades?limit=30')
       .then((d) => !cancelled && setTrades(Object.fromEntries(d.trades.map((t) => [t.id, t]))))
       .catch(() => {})
-    getJson('/market/intervals?limit=4')
+    if (rest) getJson('/market/intervals?limit=4')
       .then(async (d) => {
         if (cancelled) return
         setIntervals(Object.fromEntries(d.intervals.map((i) => [i.id, i])))
@@ -76,8 +78,10 @@ export function useMarketSocket() {
             break
           case 'market_interval':
             setIntervals((prev) => ({ ...prev, [m.interval.id]: m.interval }))
-            clearTimeout(statusTimer.current)
-            statusTimer.current = setTimeout(refreshStatus, 400)
+            if (rest) {
+              clearTimeout(statusTimer.current)
+              statusTimer.current = setTimeout(refreshStatus, 400)
+            }
             break
           default:
         }
@@ -88,7 +92,7 @@ export function useMarketSocket() {
       clearTimeout(statusTimer.current)
       ws.close()
     }
-  }, [])
+  }, [rest])
 
   const tradeList = useMemo(() => Object.values(trades).sort((a, b) => b.id - a.id).slice(0, MAX_TRADES), [trades])
   const latestInterval = useMemo(() => {

@@ -29,6 +29,7 @@ import logging
 from collections import deque
 from datetime import datetime, timedelta, timezone
 
+from app import db
 from app.api.ws_manager import manager
 from app.blockchain import events
 from app.blockchain.ledger import ledger
@@ -73,6 +74,7 @@ class MarketService:
         self._tasks: list[asyncio.Task] = []
         self._backlog = 0
         self._dep_seen: str | None = None
+        self.auto_trade: dict[str, bool] = {}  # node_id -> automatic orders on (default on)
 
     # -- lifecycle ------------------------------------------------------------
 
@@ -84,6 +86,7 @@ class MarketService:
         try:
             await store.init_schema()
             self.db_ready = True
+            await self._load_settings()
             await self._recover()
         except Exception as exc:
             logger.warning("Prosumer market: tables unavailable (TimescaleDB down?): %s", exc)
@@ -93,6 +96,12 @@ class MarketService:
     async def stop(self) -> None:
         for t in self._tasks:
             t.cancel()
+
+    async def _load_settings(self) -> None:
+        self.auto_trade = {r["node_id"]: r["auto_trade"] for r in await store.select("market_node_settings", order="node_id")}
+
+    def is_auto(self, node_id: str) -> bool:
+        return self.auto_trade.get(node_id, True)
 
     async def _recover(self) -> None:
         """After a backend restart: a 'closing' interval already has its metered numbers, so its
@@ -220,15 +229,34 @@ class MarketService:
             await self._push("market_interval", {"interval": iv})
             return {**base, "id": iv["id"], "skip": True}
 
-        offers, bids = [], []
+        queued = {m["node_id"]: m for m in await store.select("market_manual_orders", "status = 'queued'", order="id ASC")}
+        offers, bids, manual_of = [], [], {}  # manual_of: id(order) -> manual order row
         for n in self._ids:
             f = forecast[n]
             price = settings.market_prices.get(n, {})
-            if fc[n]["role"] == "surplus":
+            role = fc[n]["role"]
+            man = queued.get(n)
+            if man is not None:
+                # A prosumer's own order replaces the auto order of this node for this interval, capped at what
+                # the forecast can still deliver (so metering can back it); if the role flipped it lapses.
+                cap = engine.energy_wh(abs(f), hours) if f is not None else 0
+                want = "surplus" if man["side"] == "offer" else "deficit"
+                qty = min(man["qty_wh"], cap)
+                if role == want and qty > 0:
+                    order = engine.Order(n, qty, man["price_milli"])
+                    (offers if man["side"] == "offer" else bids).append(order)
+                    manual_of[id(order)] = man
+                else:
+                    await store.update("market_manual_orders", {"id": man["id"]}, status="expired",
+                                       error="no longer in " + want + " when the interval opened")
+                continue
+            if not self.is_auto(n):
+                continue
+            if role == "surplus":
                 qty = engine.energy_wh(f, hours)
                 if qty > 0:
                     offers.append(engine.Order(n, qty, int(round(price.get("ask", 5.0) * 1000))))
-            elif fc[n]["role"] == "deficit":
+            elif role == "deficit":
                 qty = engine.energy_wh(-f, hours)
                 if qty > 0:
                     bids.append(engine.Order(n, qty, int(round(price.get("max", 7.0) * 1000))))
@@ -236,10 +264,12 @@ class MarketService:
 
         iv = await store.insert("market_intervals", {**row, "status": "open"})
         off_rows, bid_rows = [], []
-        for o, rem in zip(offers, off_rem):
-            off_rows.append(await store.insert("market_orders", self._order_row(iv, "offer", o, rem)))
-        for b, rem in zip(bids, bid_rem):
-            bid_rows.append(await store.insert("market_orders", self._order_row(iv, "bid", b, rem)))
+        for side, orders_, rems, out in (("offer", offers, off_rem, off_rows), ("bid", bids, bid_rem, bid_rows)):
+            for o, rem in zip(orders_, rems):
+                man = manual_of.get(id(o))
+                out.append(await store.insert("market_orders", self._order_row(iv, side, o, rem, manual=man is not None)))
+                if man is not None:
+                    await store.update("market_manual_orders", {"id": man["id"]}, status="used", interval_id=iv["id"], order_id=out[-1]["id"])
         trade_rows = []
         for m in matches:
             trade_rows.append(await store.insert("market_trades", {
@@ -257,9 +287,9 @@ class MarketService:
         return {**base, "id": iv["id"]}
 
     @staticmethod
-    def _order_row(iv: dict, side: str, o: engine.Order, remaining: int) -> dict:
+    def _order_row(iv: dict, side: str, o: engine.Order, remaining: int, manual: bool = False) -> dict:
         return {"interval_id": iv["id"], "side": side, "node_id": o.node_id, "qty_wh": o.qty_wh, "price_milli": o.price_milli,
-                "remaining_wh": remaining, "status": "planned", "created_at": _now()}
+                "remaining_wh": remaining, "status": "planned", "manual": manual, "created_at": _now()}
 
     async def _close_interval(self, interval: dict) -> None:
         """Metered quantities = actual delivered energy, from this interval's readings."""
@@ -533,6 +563,56 @@ class MarketService:
                 await self._push("market_settlement", {"trade": self._trade_public(t, orders)})
         except Exception as exc:
             logger.warning("Prosumer market: could not mirror trade %s into the ledger: %s", t["id"], exc)
+
+    # -- prosumer dashboard (app/api/p2p_routes.py) -----------------------------------------------------
+
+    def forecast_kw(self, node_id: str) -> float | None:
+        """Same forecast the interval clock uses: mean of the latest net_kw samples (live node value as fallback)."""
+        recent = self._recent.get(node_id)
+        if recent:
+            return self._mean(recent)
+        return digital_twin.get_node(node_id).get("net_kw")
+
+    def price_bounds(self) -> dict:
+        """Manual prices must lie between the lowest configured ask and the highest configured max (MARKET_PRICES)."""
+        prices = settings.market_prices.values()
+        return {"min": min(p["ask"] for p in prices), "max": max(p["max"] for p in prices)}
+
+    async def ensure_db(self) -> bool:
+        return self.db_ready or await self._retry_db()
+
+    async def set_auto_trade(self, node_id: str, enabled: bool) -> None:
+        async with db.get_pool().connection() as conn:
+            await conn.execute(
+                "INSERT INTO market_node_settings (node_id, auto_trade, updated_at) VALUES (%s, %s, now()) "
+                "ON CONFLICT (node_id) DO UPDATE SET auto_trade = EXCLUDED.auto_trade, updated_at = now()", (node_id, enabled))
+        self.auto_trade[node_id] = enabled
+
+    async def place_manual(self, node_id: str, side: str, kwh: float, price: float, user_id: int) -> dict:
+        """Queue a prosumer's own offer/bid for the next interval. Raises ValueError(message) when invalid.
+        Quantity is checked against the forecast surplus/deficit for one interval, price against MARKET_PRICES bounds.
+        It then goes through the normal pipeline: matching (price = seller's ask), chain worker (signed by this
+        node's dev account), metering, settlement, ledger mirror."""
+        f = self.forecast_kw(node_id)
+        role = role_of(f, settings.prosumer_role_deadband_kw)
+        need = "surplus" if side == "offer" else "deficit"
+        if role != need:
+            raise ValueError(f"You can only {'sell' if side == 'offer' else 'buy'} while in {need} (now: {role or 'unknown'}).")
+        cap_wh = engine.energy_wh(abs(f), settings.market_interval_seconds / 3600.0)
+        qty_wh = int(round(kwh * 1000))
+        if qty_wh <= 0:
+            raise ValueError("Quantity must be greater than 0 kWh.")
+        if qty_wh > cap_wh:
+            raise ValueError(f"Quantity exceeds your forecast {need} for one interval ({cap_wh / 1000:.3f} kWh).")
+        b = self.price_bounds()
+        if not b["min"] <= price <= b["max"]:
+            raise ValueError(f"Price must be between {b['min']:g} and {b['max']:g} demo credits per kWh.")
+        for old in await store.select("market_manual_orders", "node_id = %s AND status = 'queued'", (node_id,)):
+            await store.update("market_manual_orders", {"id": old["id"]}, status="cancelled", error="replaced by a newer order")
+        row = await store.insert("market_manual_orders", {"node_id": node_id, "side": side, "qty_wh": qty_wh,
+                                                          "price_milli": int(round(price * 1000)), "user_id": user_id, "created_at": _now()})
+        await self._push("market_manual_order", {"manual_order": row})
+        return row
 
     # -- public shapes ----------------------------------------------------------------------------
 

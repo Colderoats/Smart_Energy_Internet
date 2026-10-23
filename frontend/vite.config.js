@@ -29,6 +29,8 @@ export default defineConfig({
       '/testbed': api,
       // Live prosumer market (app/api/market_routes.py): Digital Twin strip/cards, Blockchain "Prosumer market" section.
       '/market': api,
+      // Prosumer dashboard (app/api/p2p_routes.py). No SPA route starts with /p2p (the page is /prosumer).
+      '/p2p': api,
       // Admin authentication (app/api/auth_routes.py).
       '/auth': api,
       '/health': api,

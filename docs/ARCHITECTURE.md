@@ -469,3 +469,36 @@ matches, settlements, tx hashes), `/market/trades?limit=`. `GET /twin/nodes` now
 `community_bus` ("prosumer self-healing: future work"). Frontend: Dashboard, Sources, AI Insights and Analytics ignore `type
 "prosumer"`; Digital Twin map (`TwinNode`, `FlowEdge.TradeEdge`, `ProsumerPanel`, `MarketStrip`), Redistribution summary +
 Blockchain "Prosumer market" section (`components/ProsumerMarket.jsx`, `hooks/useMarketSocket.js`); Vite proxies `/market`.
+
+
+## Prosumer login + P2P dashboard - added 2026-10-23 (additive)
+
+**Identity.** `users.role` gains `prosumer`; `users.prosumer_node_id` (nullable, FK to `prosumer_nodes(node_id)`, unique when set) links the user to
+exactly one of the 4 market prosumers. `invites.role` / `invites.prosumer_node_id` carry the choice an admin makes on the Invite page
+(`POST /auth/invites {prosumer_node_id?}`); `register_with_invite` copies them onto the new user in the same transaction. `deps.require_prosumer`
+= valid session + role `prosumer` + a node (else 401 / 403); `require_admin` is unchanged, so a prosumer can never reach an admin route, and
+`require_prosumer` rejects admins, so no prosumer API answers an admin. `GET /auth/me` uses `require_session` (any active user).
+
+**Router `/p2p`** (`app/api/p2p_routes.py`, included with `dependencies=[Depends(require_prosumer)]`). The node always comes from the user row; an
+optional `node_id` for another node is 403. Routes: `GET /me`, `GET /book`, `GET /trades`, `POST /offer`, `POST /bid`, `POST /auto`. State-changing
+calls pass the existing Origin (CSRF) middleware.
+
+**Manual order path.**
+```
+POST /p2p/offer|bid -> MarketService.place_manual   (role + qty vs forecast, price vs MARKET_PRICES bounds)
+   -> market_manual_orders (queued)                  one per node, a newer one cancels the older
+interval opens (_open_interval): per node
+   queued manual order  -> replaces the node's auto order (qty capped at the forecast, lapses if the role flipped) -> market_orders.manual = true
+   else auto_trade on   -> the usual forecast-based order       else auto_trade off -> no order
+   -> engine.match_orders (price = seller's ask) -> "post" job -> chain worker (the node's own dev account) -> metering -> settle -> P2P_TRADE mirror
+```
+Nothing about matching, metering, settlement or the contract changed. `market_node_settings(node_id, auto_trade)` holds the switch (cached in
+`MarketService.auto_trade`, loaded at start). Price bounds = `[min(ask), max(max)]` over `MARKET_PRICES`. Trade status shown to the prosumer:
+`matched_planned -> pending`, `matched | metered -> matched`, `settled -> settled`, `failed -> failed`; `block_number` = settle, else meter, else match block.
+
+**Live updates.** `ConnectionManager.connect(ws, market_only)`: prosumer sockets get only `market_*` messages (including the new
+`market_manual_order`); admin sockets get everything as before. `useMarketSocket({ rest: false })` skips the admin-only `/market/*` fetches.
+`/prosumer` re-reads `/p2p/*` (debounced) when the socket state changes - no timers other than the 1 s countdown clock.
+
+**Frontend routing** (`App.jsx`): prosumer -> `/prosumer` after login; `/dashboard/*` redirects a prosumer to `/prosumer`; `/prosumer` redirects an admin to
+`/dashboard/home`; anonymous -> `/login`. **Seeding**: `scripts/create_prosumers.py` (see PROGRESS.md); passwords are printed once and only hashes are stored.
