@@ -43,6 +43,8 @@ the ledger as P2P_TRADE): PROGRESS.md "Prosumer market (live)", ARCHITECTURE.md 
 The frontend UI was redesigned (presentation layer only): sidebar shell, design tokens and the view map
 are in ARCHITECTURE.md "Frontend structure (UI redesign)"; what is mocked is in PROGRESS.md "UI redesign".
 
+A real hardware node `solar_hardware` (ESP32 + INA219 mini panel, USB serial JSON lines) exists: firmware/solar_hardware, ARCHITECTURE.md "solar_hardware node".
+
 ## Auth quick reference
 - Needs `JWT_SECRET` (>= 32 chars) in the repo-root .env, or the backend will not start (see .env.example).
 - First admin (once): `cd backend && venv\Scripts\python scripts\create_admin.py` (prompts; or set

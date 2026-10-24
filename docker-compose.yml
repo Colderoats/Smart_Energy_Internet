@@ -17,5 +17,14 @@ services:
       timeout: 5s
       retries: 10
 
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: sei_mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
 volumes:
   timescaledb_data:

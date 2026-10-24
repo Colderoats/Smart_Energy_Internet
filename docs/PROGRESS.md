@@ -1277,3 +1277,44 @@ Product code changed: only the new `app/ingestion/buffered_publisher.py`. Backen
   `POST /nodes/{id}/stream/{stop|start}` (admin only, 404 for unknown node/action).
 - State is not persisted: a backend restart resumes all streams. Prosumer nodes are not listed (not in `GET /nodes`).
 - Not tested or checked in a browser.
+
+## solar_hardware (real ESP32 + INA219 node) (2026-10-24)
+- Added firmware (`firmware/solar_hardware/solar_hardware.ino`), serial ingestion (`backend/app/ingestion/solar_hardware.py`, enabled by
+  `SOLAR_HARDWARE_PORT`), node `solar_hardware` in the live twin and Module 1 graph, `backend/scripts/capture_solar_hardware.py` (time-limited
+  capture), and `backend/testbed/hardware_node.py` (hardware leaf for topologies A/B/C; default `build()` unchanged). `pyserial==3.5` added.
+- Tests: `backend/tests/test_solar_hardware.py`, `backend/testbed/tests/test_hardware_node.py`; `test_market.py` node set now includes `solar_hardware`.
+- Placements chosen by me, the docs gave none: A node 2, B node 4, C bus 10 (reasons in ARCHITECTURE.md). Per-unit rating is now the real 0.526 W (see the later entry).
+- Hardware bring-up: CP210x driver installed, board on COM5. The board runs the user's `arduino.c` (MQTT + Wi-Fi, placeholder credentials),
+  not firmware/solar_hardware. 45 s capture (no board reset): 9 samples, 5 s apart (`backend/data/solar_hardware/capture.jsonl`):
+  bus 0.856-0.864 V, current -0.1..0.0 mA, power -0.1..0.0 mW.
+- NOT VERIFIED: those values are NOT plausible for a lit panel into 68 ohm (~12 mA expected at 0.86 V): panel in the dark or the circuit not
+  closed through VIN+/VIN-. firmware/solar_hardware/*.ino was never compiled or uploaded (ESP32 core install via arduino-cli still downloading).
+  The live backend ingest from COM5, a browser check, and (panel rating now 0.526 W, resolved) are not done.
+- MQTT subscriber + Mosquitto service added (see ARCHITECTURE.md); verified with a published test message through a real broker (6 tests pass), NOT with the real ESP32.
+- Normalised voltage/current added (`normalized.voltage|current`), Sources tab card for solar_hardware (frontend builds; NOT viewed in a browser). Real COM5 data through `ingest_reading` verified: bus 0.864 V -> normalized.voltage 0.108, power 0.
+
+## solar_hardware: panel rating + online wiring (2026-10-24, later)
+- **"Live values 0.00" diagnosed.** Probed the running backend (`GET /twin/nodes`): wind_01, hydro_01, solar_01 and the prosumers had real non-zero
+  values; the Kelmarsh turbines read 0.0 p.u. only while their replayed 2016 data is in real "Stop" events. The node that was truly empty was
+  `solar_hardware` (no reading at all) because `SOLAR_HARDWARE_PORT` was not set in `.env`, so nothing read the board and the dashboard fell back to 0.
+- **Panel rating set to the real one:** 70x70 mm panel, 0.526 W (the earlier "526 W" was read as 0.526 W). `SOLAR_HARDWARE_RATED_KW` = 0.000526 in
+  `app/twin/digital_twin.py`; `testbed/hardware_node.py:RATED_MW` = 526.0 (mW; the old 5.0 was 1000x too small for its own 5 W placeholder, since it is in mW); `test_load_pu_series` fixture rescaled (0/263/900 mW -> 0/0.5/1.0 p.u.).
+  Backend solar/market tests (27) and testbed hardware tests (7) pass.
+- **Made it online (config):** `SOLAR_HARDWARE_PORT=COM5` added to `.env` (and a blank entry to `.env.example`); Sources tab now labels the
+  hardware card "Sensed - ESP32 + INA219" even while offline (it used to say "Live API").
+- **NOT online yet - hardware/OS side, not fixed:** COM5 cannot be opened: from a script "A device attached to the system is not functioning",
+  from the restarted backend "Access is denied". The backend retries every 5 s, so it will connect by itself once the port is free. Needs: unplug/replug
+  the ESP32 (and close any serial monitor), then make sure only ONE backend is running. A stray older uvicorn worker (pid 24988, orphan of the
+  previous dev server) was still listening on :8000 after the restart; I was not permitted to kill it, so stop it manually.
+- Still NOT verified: any real INA219 reading through the backend this session; earlier captures were ~0 mA (panel dark or circuit open), so even
+  when online expect ~0 until the panel is lit and the loop VIN+ -> VIN- -> 10 ohm is closed.
+- Load resistor is **10 ohm**, not 68 ohm (user correction). Backend now reads COM5 and stores a solar_hardware row every 5 s, but values are still ~0 mW
+  (0.0-0.3 mW) with the 10 ohm load: a lit panel would give roughly 0.1 W-class mW readings (<=~50 mA), so the panel is dark or the VIN+/VIN- loop is open.
+
+## 8 nodes showing data / Sources tab solar card (2026-10-24, later)
+- "2/8 active" cause: (1) several backend stacks were listening on :8000 at once (the old dev server's orphan worker, one I started, one started
+  later), so the browser hit a stale one with few readings; (2) the wind/hydro first poll failed (`getaddrinfo failed`, no network at startup) and
+  then waited a full 60 s. **Fix in code:** `app/ingestion/poller.py` retries after 10 s when a poll failed. **Fix by hand (not done by me, process
+  kills were refused):** stop every backend and start exactly one `python run.py`; the 4 Kelmarsh nodes appear within ~8 s (round-robin, 2 s each).
+- Sources tab: the "Solar hardware" card now always shows Voltage / Current / Power (p.u. + raw V, mA, mW, 2 decimals), dashes while no reading,
+  fed by the existing WebSocket. Frontend builds; NOT viewed in a browser.

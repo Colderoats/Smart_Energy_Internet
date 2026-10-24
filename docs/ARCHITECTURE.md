@@ -187,7 +187,7 @@ POST /chain/simulate-trade, POST /chain/replay-fl-rounds, POST /chain/dev/tamper
 WS on /ws/updates: chain_record, chain_status. Network: BLOCKCHAIN_NETWORK=local (default) | sepolia.
 
 ## Out of scope (still)
-- Solar/EV hardware, MQTT, ESP32 firmware
+- EV hardware, MQTT (the solar_hardware ESP32 node now exists and uses USB serial, see "solar_hardware node")
 - Real (non-simulated) P2P energy trading: Module 5 records SIMULATED trades only until hardware exists
 - Human-approval gate / real actuation on the self-healing layer
 (Topology switching now exists via the Module 2 self-healing layer; the original "static topology" note above is historical.)
@@ -516,3 +516,64 @@ graph; a fresh `DigitalTwin()` stays 9 nodes for AI training/parity.
 ESP32 seam: set `SOLAR_SOURCE=sensed` (stops the replay) and have the MQTT subscriber call `solar_source.ingest_sensed(power_kw,
 voltage_v, current_a)`; it emits the same reading with `source_type="live"`, `provenance="sensed"`. Not wired yet (no broker
 subscriber); nothing downstream changes. Sources tab shows a "Solar plants" group again.
+
+## solar_hardware node (real ESP32 + INA219 mini panel) - added 2026-10-24
+
+The one physically sensed source in the repo. A small solar panel feeds an INA219 current sensor and a load resistor, read by an ESP32.
+No battery storage anywhere in this circuit.
+
+**Wiring** (verified only on paper so far, see PROGRESS.md "solar_hardware"): INA219 SDA -> GPIO 21, SCL -> GPIO 22, VCC -> 3V3, GND -> GND,
+I2C address 0x40. Panel+ -> INA219 VIN+; INA219 VIN- -> load resistor -> panel-. Load resistor: 10 ohm (corrected by the user 2026-10-24; was documented as 68 ohm).
+If readings fail the firmware prints an I2C scan (`{"i2c_scan":["0x40"]}`) so a wrong address is visible.
+
+**Firmware actually on the board.** The user's sketch `arduino.c` (repo root; MQTT-based, node `solar_01`, topic `sei/solar/solar_01`, 5 s sampling,
+20-message store-and-forward buffer, Wi-Fi/MQTT/NTP, placeholder credentials) also prints each sample as a JSON line on USB serial:
+`{"node":"solar_01","type":"solar","ts":..,"voltage_v":..,"current_ma":..,"power_mw":..,"valid":true}`. `parse_line` accepts this dialect, so
+serial works today; the sketch blocks ~30 s at boot on Wi-Fi/NTP and floods "Wi-Fi not connected" afterwards, so captures open the port
+without resetting the board. **MQTT path (built 2026-10-24).** Mosquitto service `sei_mosquitto` in docker-compose (`mosquitto/mosquitto.conf`, port 1883, ANONYMOUS - local dev only);
+`run_solar_hardware_mqtt` (app/ingestion/solar_hardware.py, paho-mqtt) subscribes `MQTT_SOLAR_TOPIC` (default `sei/solar/+`) when `MQTT_HOST` is set and
+feeds the same `build_reading` -> `ingest_reading`. Test: `tests/test_solar_hardware_mqtt.py` (skipped without the broker). To use it: `docker compose up -d mosquitto`,
+`MQTT_HOST=localhost` in `.env`; in `arduino.c` set real `WIFI_SSID`/`WIFI_PASSWORD` and `MQTT_HOST` = the laptop's IPv4 (and allow TCP 1883 in Windows Firewall).
+Not verified with the real board (it has no Wi-Fi credentials yet). The sketch's `solar_01` name
+clashes with the simulated `solar_01` node: the serial/MQTT subscriber must map it to `solar_hardware`, or change NODE_ID in the sketch.
+
+**Data format (serial, our firmware).** Firmware `firmware/solar_hardware/solar_hardware.ino` prints one JSON line per second over USB serial, 115200 baud:
+`{"node":"solar_hardware","t_ms":12345,"v_bus_v":3.412,"i_ma":18.7,"p_mw":63.8}` (V, mA, mW; INA219 calibrated 16 V / 400 mA). A line
+with `"err"` or `"i2c_scan"` is diagnostics and is ignored. MQTT is still not built, so serial is the transport; the MQTT hop remains
+the documented seam above.
+
+**Flow.**
+```
+panel -> INA219 -> ESP32 -USB serial JSON lines-> app/ingestion/solar_hardware.py (SOLAR_HARDWARE_PORT=COMx; reconnects on unplug)
+   -> NormalizedReading(node_id="solar_hardware", type="solar", source_type="live", provenance="sensed", power_output = p_mw/1e6 kW)
+   -> pipeline.ingest_reading (same path as solar_01): normalized.power_output = per-unit of SOLAR_HARDWARE_RATED_KW -> twin -> DB -> WS
+```
+`SOLAR_HARDWARE_RATED_KW` (app/twin/digital_twin.py, 0.000526 = 0.526 W, the 70x70 mm panel's rating, user-supplied) is the per-unit scale; keep it equal to
+`testbed/hardware_node.py:RATED_MW` (526 mW). It only sets the per-unit scale. Voltage and current are in the serial line and the capture file but
+only power is stored (same as `solar_01`).
+
+**Normalisation and front end.** The reading carries `normalized.power_output` (per-unit of the panel rating), `normalized.voltage` (V / 8 V, the sketch's V_MAX)
+and `normalized.current` (mA / 400 mA, the INA219 range), all clipped to [0, 1]; raw `voltage_v` / `current_ma` ride along (live only: not persisted, so
+history has power only). Sources tab -> "Solar hardware" card (badge "Sensed - ESP32 + INA219"): live p.u. + raw V / mA / mW, sparkline, updated by the
+existing `twin_node_update` WebSocket message (no new endpoint). The serial reader opens the port WITHOUT resetting the ESP32.
+
+**Where the node sits**
+| Topology | Attach point | Why |
+|---|---|---|
+| Live twin (9 nodes + prosumers + solar_01) | `bus_a` (like `solar_01`), and a `grid` edge in Module 1's `twin` | same gating as `solar_01` (`with_solar`), fresh `DigitalTwin()` stays 9 nodes |
+| A radial | leaf off node 2 (feeder bus, index 1) | stays a tree; near the grid, away from the two solar prosumers |
+| B meshed | leaf off node 4 (collector hub, index 3) | highest-degree bus, mesh untouched |
+| C IEEE 33-bus | leaf off bus 10 (index 9) | mid-feeder, no existing source nearby |
+The testbed variants come from `testbed/hardware_node.py:build_with_hardware(name)` (a COPY with one extra solar leaf bus and one line; line data
+copied from the line at the attach bus). `build()` is unchanged because its counts are the paper's Table III. The per-unit series is scaled to
+`GEN_CAP_KW` (50 kW): the measured SHAPE is real, the magnitude on the feeder is an ASSUMPTION. Topology provenance stays `simulated_testbed`.
+
+**Run and test**
+1. Install the CP210x USB driver if Windows shows the device with an error; find the port (`arduino-cli board list`).
+2. Compile/upload (arduino-cli, ESP32 core + "Adafruit INA219" library): `arduino-cli compile --fqbn esp32:esp32:esp32 firmware/solar_hardware` then
+   `arduino-cli upload -p COMx --fqbn esp32:esp32:esp32 firmware/solar_hardware`.
+3. 30 s capture (stop the backend first, one process per port): `cd backend && venv\Scripts\python scripts\capture_solar_hardware.py --port COMx`
+   -> `backend/data/solar_hardware/capture.jsonl` + min/mean/max summary.
+4. Live: set `SOLAR_HARDWARE_PORT=COMx` in the repo-root `.env`, start the backend; the node updates every second.
+5. Tests: `cd backend && venv\Scripts\python -m pytest tests\test_solar_hardware.py -q`; testbed variants:
+   `testbed\venv\Scripts\python -m pytest testbed\tests\test_hardware_node.py -q`.

@@ -70,6 +70,13 @@ class Settings(BaseSettings):
     # Solar plant source (app/ingestion/solar_source.py): "replay" = bundled small dataset, "sensed" = ESP32 feed.
     solar_source: str = "replay"
     solar_replay_seconds: float = 15.0
+    # solar_hardware node (app/ingestion/solar_hardware.py): serial port of the ESP32 + INA219 (e.g. COM3); unset = off.
+    solar_hardware_port: str | None = None
+    solar_hardware_baud: int = 115200
+    # Same node over MQTT (Mosquitto, docker-compose): set MQTT_HOST (e.g. localhost) to subscribe to MQTT_SOLAR_TOPIC; unset = off.
+    mqtt_host: str | None = None
+    mqtt_port: int = 1883
+    mqtt_solar_topic: str = "sei/solar/+"
 
     # Prosumer market (app/market/). Prosumers are SIMULATED buildings: solar is
     # ESTIMATED from REAL live weather (Open-Meteo GHI + temperature at this

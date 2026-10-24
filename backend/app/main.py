@@ -24,6 +24,7 @@ from app.api.market_routes import router as market_router
 from app.api.p2p_routes import router as p2p_router
 from app.ingestion.poller import run_live_poller
 from app.ingestion.prosumer_source import run_prosumer_poller
+from app.ingestion.solar_hardware import run_solar_hardware, run_solar_hardware_mqtt
 from app.ingestion.solar_source import run_solar_replay
 from app.market.service import market
 from app.ingestion.scada_replay import run_scada_replay
@@ -70,6 +71,8 @@ async def lifespan(app: FastAPI):
     background_tasks.append(asyncio.create_task(run_scada_replay()))
     background_tasks.append(asyncio.create_task(run_prosumer_poller()))
     background_tasks.append(asyncio.create_task(run_solar_replay()))
+    background_tasks.append(asyncio.create_task(run_solar_hardware()))
+    background_tasks.append(asyncio.create_task(run_solar_hardware_mqtt()))
 
     yield
 

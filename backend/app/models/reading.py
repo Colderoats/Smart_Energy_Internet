@@ -34,6 +34,9 @@ class NormalizedReading(BaseModel):
     net_kw: float | None = None
     irradiance_wm2: float | None = None
     provenance: str | None = None
+    # solar_hardware (INA219) only: the measured bus voltage / current. Not persisted (no DB columns); live twin + WebSocket only.
+    voltage_v: float | None = None
+    current_ma: float | None = None
 
 
 # Fixed scales used to normalise a reading before the twin, detectors and
@@ -41,6 +44,8 @@ class NormalizedReading(BaseModel):
 WIND_SPEED_MAX_MS = 25.0   # turbine cut-out speed
 TEMP_MIN_C, TEMP_MAX_C = -20.0, 120.0
 VIBRATION_MAX = 10.0
+SOLAR_HW_V_MAX = 8.0         # V, the sensor sketch's own panel limit (arduino.c V_MAX)
+SOLAR_HW_I_MAX_MA = 400.0   # mA, INA219 16 V / 400 mA calibration range
 
 
 def normalized_values(reading: dict, rated_kw: float | None) -> dict:
@@ -58,4 +63,8 @@ def normalized_values(reading: dict, rated_kw: float | None) -> dict:
         out["temperature"] = round(clip((reading["temperature"] - TEMP_MIN_C) / (TEMP_MAX_C - TEMP_MIN_C)), 4)
     if reading.get("vibration") is not None:
         out["vibration"] = round(clip(reading["vibration"] / VIBRATION_MAX), 4)
+    if reading.get("voltage_v") is not None:
+        out["voltage"] = round(clip(reading["voltage_v"] / SOLAR_HW_V_MAX), 4)
+    if reading.get("current_ma") is not None:
+        out["current"] = round(clip(reading["current_ma"] / SOLAR_HW_I_MAX_MA), 4)
     return out

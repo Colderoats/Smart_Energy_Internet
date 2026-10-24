@@ -62,6 +62,12 @@ COMMUNITY_BUS = "community_bus"
 # fresh 9-node DigitalTwin() used by AI training/parity is unchanged. Never scored by the AI (not historical).
 SOLAR_NODE = {"node_id": "solar_01", "type": "solar", "source_type": "simulated", "rated_capacity_kw": 50.0, "primary_via": BUS_A}
 
+# Real hardware mini panel (ESP32 + INA219, app/ingestion/solar_hardware.py). Same gating as solar_01. Rating = the 70x70 mm panel's 0.526 W (user-supplied);
+# it only sets the per-unit scale. Keep testbed/hardware_node.py:RATED_MW equal to this x1000.
+SOLAR_HARDWARE_RATED_KW = 0.000526
+SOLAR_HARDWARE_NODE = {"node_id": "solar_hardware", "type": "solar", "source_type": "live",
+                       "rated_capacity_kw": SOLAR_HARDWARE_RATED_KW, "primary_via": BUS_A}
+
 # Prosumer market: four SIMULATED buildings on a separate community bus (kW
 # arithmetic, not a power-flow model). Added to the digital twin only; Module 1's
 # `twin` graph, bus_a / bus_b and the 6 sources above are untouched. The AI
@@ -90,7 +96,7 @@ class DigitalTwin:
         self._graph.add_edge(BUS_A, GRID)
         self._graph.add_edge(BUS_B, GRID)
 
-        for node in SOURCE_NODES + ([SOLAR_NODE] if with_solar else []):
+        for node in SOURCE_NODES + ([SOLAR_NODE, SOLAR_HARDWARE_NODE] if with_solar else []):
             other_bus = BUS_B if node["primary_via"] == BUS_A else BUS_A
             self._graph.add_node(
                 node["node_id"],

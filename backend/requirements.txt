@@ -18,5 +18,10 @@ web3==8.0.0
 # Admin authentication (app/auth): argon2id password hashing + JWT access tokens.
 argon2-cffi==25.1.0
 PyJWT==2.10.1
+# solar_hardware node: USB serial from the ESP32 (app/ingestion/solar_hardware.py)
+pyserial==3.5
+# solar_hardware node over MQTT (Mosquitto): app/ingestion/solar_hardware.py
+paho-mqtt==2.1.0
+
 # Backend tests (tests/): python -m pytest tests
 pytest==8.4.2

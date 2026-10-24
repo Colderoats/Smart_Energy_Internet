@@ -163,7 +163,7 @@ def test_fresh_twin_is_the_original_nine_nodes_and_live_twin_adds_five_plus_sola
     live_ids = {n["node_id"] for n in digital_twin.get_all_nodes()}
     assert {n["node_id"] for n in fresh.get_all_nodes()} < live_ids
     assert live_ids - {n["node_id"] for n in fresh.get_all_nodes()} == {
-        "community_bus", "prosumer_home_01", "prosumer_apartment_01", "prosumer_shop_01", "prosumer_school_01", "solar_01"}
+        "community_bus", "prosumer_home_01", "prosumer_apartment_01", "prosumer_shop_01", "prosumer_school_01", "solar_01", "solar_hardware"}
     assert digital_twin.get_node("community_bus")["capacity_kw"] == 100.0
 
 

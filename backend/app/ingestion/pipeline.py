@@ -11,12 +11,12 @@ from app.api.ws_manager import manager
 from app.ingestion.validation import validate_live
 from app.models.reading import NormalizedReading, normalized_values
 from app.twin import fault_detection, self_healing
-from app.twin.digital_twin import COMMUNITY_BUS, PROSUMER_NODES, SOLAR_NODE, SOURCE_NODES, digital_twin
+from app.twin.digital_twin import COMMUNITY_BUS, PROSUMER_NODES, SOLAR_HARDWARE_NODE, SOLAR_NODE, SOURCE_NODES, digital_twin
 from app.twin.graph import twin
 
 logger = logging.getLogger("sei")
 
-_RATED_KW = {n["node_id"]: n["rated_capacity_kw"] for n in SOURCE_NODES + [SOLAR_NODE]}
+_RATED_KW = {n["node_id"]: n["rated_capacity_kw"] for n in SOURCE_NODES + [SOLAR_NODE, SOLAR_HARDWARE_NODE]}
 
 
 # Nodes whose stream an admin stopped (Settings -> System -> Live data). In-memory

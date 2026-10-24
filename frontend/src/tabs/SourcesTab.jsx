@@ -65,7 +65,7 @@ function SourceCard({ node, open, onToggle }) {
             </span>
             <div className="leading-tight">
               <div className="text-[15px] font-semibold text-slate-900">{node.name}</div>
-              <div className="text-xs text-slate-500">{node.source_type === 'live' ? 'Live API' : 'Replayed SCADA'}</div>
+              <div className="text-xs text-slate-500">{r?.provenance === 'sensed' || node.node_id === 'solar_hardware' ? 'Sensed · ESP32 + INA219' : node.source_type === 'live' ? 'Live API' : node.source_type === 'simulated' ? 'Replayed sample' : 'Replayed SCADA'}</div>
             </div>
           </div>
           <div className="flex flex-col items-end gap-1">
@@ -87,6 +87,17 @@ function SourceCard({ node, open, onToggle }) {
             </div>
           </div>
         </div>
+        {(r?.provenance === 'sensed' || node.node_id === 'solar_hardware') && (
+          <div className="mt-3 grid grid-cols-3 gap-3 text-xs text-slate-500">
+            {[['Voltage', r?.normalized?.voltage, r?.voltage_v, 'V'], ['Current', r?.normalized?.current, r?.current_ma, 'mA'], ['Power', r?.normalized?.power_output, r?.power_output != null ? r.power_output * 1e6 : null, 'mW']].map(([label, pu, raw, unit]) => (
+              <div key={label}>
+                <div>{label} (p.u.)</div>
+                <div className="text-sm font-semibold text-slate-900">{pu != null ? fmtNum(pu, 3) : '—'}</div>
+                <div>{raw != null ? `${fmtNum(raw, 2)} ${unit}` : '—'}</div>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="mt-3">
           <Sparkline nodeId={node.node_id} reading={r} color={color} />
         </div>
@@ -110,7 +121,9 @@ export default function SourcesTab() {
     .filter((n) => n.type !== 'bus' && n.type !== 'grid' && n.type !== 'prosumer')
     .map((n) => ({
       ...n,
-      name: n.node_id.startsWith('wind_scada_kelmarsh_')
+      name: n.node_id === 'solar_hardware'
+        ? 'Solar hardware'
+        : n.node_id.startsWith('wind_scada_kelmarsh_')
         ? `Kelmarsh turbine ${n.node_id.slice(-1)}`
         : n.type === 'hydro'
           ? 'Hydro plant'
@@ -143,7 +156,7 @@ export default function SourcesTab() {
             {items.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white">
                 <EmptyState icon={g.type === 'solar' ? 'solar' : 'sources'}>
-                  {g.type === 'solar' ? 'No solar plants connected yet: the ESP32 solar hardware is not deployed.' : 'No sources of this type.'}
+                  {g.type === 'solar' ? 'No solar plants connected yet.' : 'No sources of this type.'}
                 </EmptyState>
               </div>
             ) : (
