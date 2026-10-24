@@ -11,7 +11,7 @@ class NormalizedReading(BaseModel):
 
     node_id: str
     source_type: Literal["live", "historical", "simulated"]
-    type: Literal["wind", "hydro", "prosumer"]
+    type: Literal["wind", "hydro", "solar", "prosumer"]
     timestamp: datetime
     power_output: float
     wind_speed: float | None = None

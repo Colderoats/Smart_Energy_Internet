@@ -1260,3 +1260,20 @@ repo MEASURED. Pass criterion = the qualitative expected output.
 | Set-2 TC10 dashboard during a fault | PASS (result reused) | Same test as the first sheet's TC05, run earlier today, not re-run: measurements 71 ms, fault prediction 74 ms, topology 78 ms, blockchain log 155 ms, self-healing log 254 ms after injection (limit 5 s; the SCADA feed interval is 2 s). Code since then only gained the unused `buffered_publisher.py`. |
 
 Product code changed: only the new `app/ingestion/buffered_publisher.py`. Backend suite after the change: 90 passed. Hardhat `blockchain/deployments/` unchanged.
+
+## Solar plant source (2026-10-24)
+- Added `solar_01` (50 kWp) replaying a small bundled sample CSV (`backend/data/solar/solar_plant_sample.csv`, 24 hourly rows,
+  illustrative not measured) via `app/ingestion/solar_source.py`; `NormalizedReading.type` gains `"solar"`; twin node gated by
+  `with_solar` on the live singleton only (AI 9-node topology unchanged); added to Module 1 `twin` graph too.
+- Settings: `SOLAR_SOURCE=replay|sensed`, `SOLAR_REPLAY_SECONDS`. ESP32 hook: `solar_source.ingest_sensed()` (MQTT subscriber not built).
+- Frontend: restored the Solar group/filter in SourcesTab (was blanked in the working tree), "Solar plant" card name.
+- Tests: `backend/tests/test_solar.py`; `test_market.py` node-set expectation now includes `solar_01`. Full backend suite: 93 passed.
+- Not checked in a browser.
+
+## Stop/resume data per node (2026-10-24)
+- Settings -> System -> "Live data" card lists every streaming node (not `grid`) with a "Stop data" / "Resume data" button.
+- Backend: `app/ingestion/pipeline.py` keeps an in-memory `_stopped` set; `ingest_reading` drops readings for stopped nodes, so it
+  covers every source (live poller, SCADA replay, solar). `app/api/routes.py`: `GET /nodes/stream` -> `{stopped: [...]}`,
+  `POST /nodes/{id}/stream/{stop|start}` (admin only, 404 for unknown node/action).
+- State is not persisted: a backend restart resumes all streams. Prosumer nodes are not listed (not in `GET /nodes`).
+- Not tested or checked in a browser.

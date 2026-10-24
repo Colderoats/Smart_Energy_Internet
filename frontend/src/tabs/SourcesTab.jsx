@@ -114,7 +114,9 @@ export default function SourcesTab() {
         ? `Kelmarsh turbine ${n.node_id.slice(-1)}`
         : n.type === 'hydro'
           ? 'Hydro plant'
-          : 'Wind farm',
+          : n.type === 'solar'
+            ? 'Solar plant'
+            : 'Wind farm',
     }))
 
   return (

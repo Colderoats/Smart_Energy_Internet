@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from app import db
 from app.api.ws_manager import manager
 from app.auth.deps import authenticate_websocket, origin_allowed
+from app.ingestion import pipeline
 from app.twin.graph import twin
 
 logger = logging.getLogger("sei")
@@ -32,6 +33,23 @@ async def get_node_history(node_id: str, limit: int = 100):
         logger.warning("Failed to fetch history for %s: %s", node_id, exc)
         rows = []
     return {"node_id": node_id, "history": rows}
+
+
+@router.get("/nodes/stream")
+async def get_stream_state():
+    return {"stopped": pipeline.stopped_nodes()}
+
+
+@router.post("/nodes/{node_id}/stream/{action}")
+async def control_stream(node_id: str, action: str):
+    if action not in ("stop", "start"):
+        raise HTTPException(status_code=404, detail="action must be 'stop' or 'start'")
+    try:
+        twin.get_node(node_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"unknown node: {node_id}")
+    pipeline.set_streaming(node_id, action == "start")
+    return {"stopped": pipeline.stopped_nodes()}
 
 
 # The WebSocket has its own router: REST routers carry require_admin as a

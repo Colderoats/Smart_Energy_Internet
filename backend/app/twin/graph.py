@@ -18,6 +18,7 @@ HealthStatus = Literal["normal", "warning", "fault_predicted", "fault"]
 NODES = [
     {"node_id": "wind_01", "type": "wind", "source_type": "live"},
     {"node_id": "hydro_01", "type": "hydro", "source_type": "live"},
+    {"node_id": "solar_01", "type": "solar", "source_type": "simulated"},
     {"node_id": "wind_scada_kelmarsh_1", "type": "wind", "source_type": "historical"},
     {"node_id": "wind_scada_kelmarsh_2", "type": "wind", "source_type": "historical"},
     {"node_id": "wind_scada_kelmarsh_3", "type": "wind", "source_type": "historical"},
@@ -28,6 +29,7 @@ NODES = [
 EDGES = [
     ("wind_01", "grid"),
     ("hydro_01", "grid"),
+    ("solar_01", "grid"),
     ("wind_scada_kelmarsh_1", "grid"),
     ("wind_scada_kelmarsh_2", "grid"),
     ("wind_scada_kelmarsh_3", "grid"),

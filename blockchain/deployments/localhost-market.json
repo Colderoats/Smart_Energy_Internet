@@ -1,13 +1,13 @@
 {
   "network": "localhost",
   "chainId": 31337,
-  "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+  "address": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
   "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
   "gateway": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-  "blockNumber": 4,
-  "txHash": "0xa3da0606e56892f3683527eb23bc117a2dd8619d0e255e466427bf1654fdf93c",
+  "blockNumber": 10,
+  "txHash": "0x58aaf55b2a580783db939d638a133afca44c67f82c39ebf65afeec1287d83d0a",
   "deployGas": 1540982,
-  "deployedAt": "2026-10-23T13:36:54.011826+00:00",
+  "deployedAt": "2026-10-24T04:00:32.921789+00:00",
   "deployedBy": "backend auto-deploy (no valid EnergyMarket on the local Hardhat node)",
   "abi": [
     {

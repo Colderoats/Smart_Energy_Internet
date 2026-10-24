@@ -157,13 +157,13 @@ def test_ledger_mirror_payload_is_a_p2p_trade_with_the_market_hashes():
 
 # ---- twin / isolation ------------------------------------------------------------------------
 
-def test_fresh_twin_is_the_original_nine_nodes_and_live_twin_adds_five():
+def test_fresh_twin_is_the_original_nine_nodes_and_live_twin_adds_five_plus_solar():
     fresh = DigitalTwin()
     assert len(fresh.get_all_nodes()) == 9 and len(fresh.get_edges()) == 8
     live_ids = {n["node_id"] for n in digital_twin.get_all_nodes()}
     assert {n["node_id"] for n in fresh.get_all_nodes()} < live_ids
     assert live_ids - {n["node_id"] for n in fresh.get_all_nodes()} == {
-        "community_bus", "prosumer_home_01", "prosumer_apartment_01", "prosumer_shop_01", "prosumer_school_01"}
+        "community_bus", "prosumer_home_01", "prosumer_apartment_01", "prosumer_shop_01", "prosumer_school_01", "solar_01"}
     assert digital_twin.get_node("community_bus")["capacity_kw"] == 100.0
 
 

@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     # Dev-only tamper demo endpoint. Defaults to on for local, off for Sepolia.
     blockchain_dev_tools: bool | None = None
 
+    # Solar plant source (app/ingestion/solar_source.py): "replay" = bundled small dataset, "sensed" = ESP32 feed.
+    solar_source: str = "replay"
+    solar_replay_seconds: float = 15.0
+
     # Prosumer market (app/market/). Prosumers are SIMULATED buildings: solar is
     # ESTIMATED from REAL live weather (Open-Meteo GHI + temperature at this
     # location), load is a deterministic SYNTHETIC profile. See app/market/prosumers.py.

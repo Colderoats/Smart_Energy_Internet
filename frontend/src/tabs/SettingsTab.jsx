@@ -138,6 +138,64 @@ function useSystemStatus() {
   return s
 }
 
+// Per-node stream control: stopped nodes are dropped in the backend ingest
+// path (in-memory; a backend restart resumes everything).
+function LiveDataControl() {
+  const [nodes, setNodes] = useState(null)
+  const [stopped, setStopped] = useState([])
+  const [busy, setBusy] = useState(null)
+  useEffect(() => {
+    let cancelled = false
+    const get = (url) => apiFetch(url).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+    Promise.all([get('/nodes'), get('/nodes/stream')]).then(([n, s]) => {
+      if (cancelled) return
+      setNodes((n?.nodes ?? []).filter((x) => x.source_type))
+      setStopped(s?.stopped ?? [])
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const toggle = async (id, isStopped) => {
+    setBusy(id)
+    try {
+      const res = await apiFetch(`/nodes/${id}/stream/${isStopped ? 'start' : 'stop'}`, { method: 'POST' })
+      if (res.ok) setStopped((await res.json()).stopped)
+    } catch {
+      /* leave state unchanged */
+    }
+    setBusy(null)
+  }
+
+  return (
+    <Card title="Live data" subtitle="Control: stop or resume streaming for each node">
+      {nodes === null ? (
+        <Pill tone="idle">Checking…</Pill>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {nodes.map((n) => {
+            const isStopped = stopped.includes(n.node_id)
+            return (
+              <li key={n.node_id} className="flex items-center justify-between gap-4 py-3">
+                <div>
+                  <div className="text-sm font-medium text-slate-800">{n.node_id}</div>
+                  <div className="text-sm text-slate-500">
+                    {n.type} · {n.source_type} · {isStopped ? 'Stopped' : 'Streaming'}
+                  </div>
+                </div>
+                <Button variant={isStopped ? 'secondary' : 'danger'} disabled={busy === n.node_id} onClick={() => toggle(n.node_id, isStopped)}>
+                  {isStopped ? 'Resume data' : 'Stop data'}
+                </Button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </Card>
+  )
+}
+
 function SystemTab() {
   const { health, chain, ai } = useSystemStatus()
   const status = (v, ok, label) => (v === undefined ? <Pill tone="idle">Checking…</Pill> : ok ? <Pill>Online</Pill> : <Pill>{label ?? 'Offline'}</Pill>)
@@ -159,24 +217,27 @@ function SystemTab() {
     { name: 'Live data', detail: 'Open-Meteo API (wind/hydro) + Kelmarsh SCADA replay', icon: 'pulse', el: <Pill tone="idle" dot={false}>See Dashboard</Pill> },
   ]
   return (
-    <Card title="Connected services" subtitle="Checked when this tab opened">
-      <ul className="divide-y divide-slate-100">
-        {services.map((s) => (
-          <li key={s.name} className="flex items-center justify-between gap-4 py-3">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                <Icon name={s.icon} size={18} />
-              </span>
-              <div>
-                <div className="text-sm font-medium text-slate-800">{s.name}</div>
-                <div className="text-sm text-slate-500">{s.detail}</div>
+    <div className="space-y-6">
+      <Card title="Connected services" subtitle="Checked when this tab opened">
+        <ul className="divide-y divide-slate-100">
+          {services.map((s) => (
+            <li key={s.name} className="flex items-center justify-between gap-4 py-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                  <Icon name={s.icon} size={18} />
+                </span>
+                <div>
+                  <div className="text-sm font-medium text-slate-800">{s.name}</div>
+                  <div className="text-sm text-slate-500">{s.detail}</div>
+                </div>
               </div>
-            </div>
-            {s.el}
-          </li>
-        ))}
-      </ul>
-    </Card>
+              {s.el}
+            </li>
+          ))}
+        </ul>
+      </Card>
+      <LiveDataControl />
+    </div>
   )
 }
 

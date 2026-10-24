@@ -43,7 +43,7 @@ Offline (Module 4, federated layer):
 {
   "node_id": string,          // e.g. "wind_01", "hydro_01"
   "source_type": "live" | "historical",
-  "type": "wind" | "hydro",
+  "type": "wind" | "hydro" | "solar" | "prosumer",
   "timestamp": ISO8601,
   "power_output": float,      // kW
   "wind_speed": float | null, // live source only
@@ -105,6 +105,7 @@ a node as "fault_predicted" or "fault", frontend visibly reacts.
 GET  /nodes                  — current state of all nodes
 WS   /ws/updates              — push stream of node state changes
 GET  /nodes/{id}/history      — recent time-series for one node
+POST /nodes/{id}/stream/stop|start, GET /nodes/stream — admin stream control (Settings -> System -> Live data)
 
 Module 2 (added later): GET /twin/nodes, GET /twin/nodes/{id}/history, GET /twin/decisions
 (WS messages twin_node_update / twin_decision on the same /ws/updates).
@@ -319,7 +320,7 @@ used only for status. Primitives are in `ui/components.jsx` and icons are inline
 | Redistribution (`chain`) | `tabs/RedistributionTab` (+ existing `BlockchainTab` as the ledger explorer) | `useBlockchainSocket` (all, and `P2P_TRADE`), `useDigitalTwinSocket` decisions |
 | AI Insights (`ai`) | `tabs/AIInsightsTab` | twin node `detectors` + `GET /ai/predictions` model card |
 | Analytics (`analytics`) | `tabs/AnalyticsTab` | twin nodes/decisions, `P2P_TRADE` records, snapshots, mocks |
-| Settings (`settings`) | `tabs/SettingsTab` (+ existing `InviteAdminPage` as "Admins") | `useAuth` user, `/health`, `/chain/status`, `/ai/predictions` |
+| Settings (`settings`) | `tabs/SettingsTab` (+ existing `InviteAdminPage` as "Admins") | `useAuth` user, `/health`, `/chain/status`, `/ai/predictions`, `/nodes` + `/nodes/stream` (stream stop/resume) |
 
 **Topology rendering.** Nodes are compact icon cards whose colour shows status. The Live/Replayed
 badge stays always visible (data-sourcing rule). `components/FlowEdge.jsx` sets stroke width from the
@@ -502,3 +503,16 @@ Nothing about matching, metering, settlement or the contract changed. `market_no
 
 **Frontend routing** (`App.jsx`): prosumer -> `/prosumer` after login; `/dashboard/*` redirects a prosumer to `/prosumer`; `/prosumer` redirects an admin to
 `/dashboard/home`; anonymous -> `/login`. **Seeding**: `scripts/create_prosumers.py` (see PROGRESS.md); passwords are printed once and only hashes are stored.
+
+## Solar plant source (added)
+
+`solar_01` (type `solar`, 50 kWp, bus_a) is fed by `app/ingestion/solar_source.py`: a SMALL bundled 24-hour sample
+(`backend/data/solar/solar_plant_sample.csv`: hour, irradiance_wm2, ac_power_kw; illustrative generated curve, not a measured plant)
+replayed in a loop every `SOLAR_REPLAY_SECONDS` (15), starting at the current local hour. Readings: `source_type="simulated"`
+(UI badge "Replayed"), `provenance="replayed_dataset"`. They use the normal `ingest_reading` path; no fault detection, AI scoring
+or self-healing trigger (not historical SCADA). The node exists only in the live twin singleton (`with_solar`) and Module 1's `twin`
+graph; a fresh `DigitalTwin()` stays 9 nodes for AI training/parity.
+
+ESP32 seam: set `SOLAR_SOURCE=sensed` (stops the replay) and have the MQTT subscriber call `solar_source.ingest_sensed(power_kw,
+voltage_v, current_a)`; it emits the same reading with `source_type="live"`, `provenance="sensed"`. Not wired yet (no broker
+subscriber); nothing downstream changes. Sources tab shows a "Solar plants" group again.

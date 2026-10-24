@@ -11,12 +11,25 @@ from app.api.ws_manager import manager
 from app.ingestion.validation import validate_live
 from app.models.reading import NormalizedReading, normalized_values
 from app.twin import fault_detection, self_healing
-from app.twin.digital_twin import COMMUNITY_BUS, PROSUMER_NODES, SOURCE_NODES, digital_twin
+from app.twin.digital_twin import COMMUNITY_BUS, PROSUMER_NODES, SOLAR_NODE, SOURCE_NODES, digital_twin
 from app.twin.graph import twin
 
 logger = logging.getLogger("sei")
 
-_RATED_KW = {n["node_id"]: n["rated_capacity_kw"] for n in SOURCE_NODES}
+_RATED_KW = {n["node_id"]: n["rated_capacity_kw"] for n in SOURCE_NODES + [SOLAR_NODE]}
+
+
+# Nodes whose stream an admin stopped (Settings -> System -> Live data). In-memory
+# only: a backend restart resumes every stream.
+_stopped: set[str] = set()
+
+
+def stopped_nodes() -> list[str]:
+    return sorted(_stopped)
+
+
+def set_streaming(node_id: str, streaming: bool) -> None:
+    (_stopped.discard if streaming else _stopped.add)(node_id)
 
 
 async def _ingest_prosumer(reading: NormalizedReading) -> None:
@@ -46,6 +59,8 @@ async def _ingest_prosumer(reading: NormalizedReading) -> None:
 
 
 async def ingest_reading(reading: NormalizedReading) -> None:
+    if reading.node_id in _stopped:
+        return
     if reading.type == "prosumer":
         await _ingest_prosumer(reading)
         return

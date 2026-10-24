@@ -58,6 +58,10 @@ BUS_CAPACITY_KW = {BUS_A: 5000.0, BUS_B: 6500.0}
 
 COMMUNITY_BUS = "community_bus"
 
+# Solar plant (50 kWp sample, app/ingestion/solar_source.py). Live singleton only (with_solar), like the prosumers, so the
+# fresh 9-node DigitalTwin() used by AI training/parity is unchanged. Never scored by the AI (not historical).
+SOLAR_NODE = {"node_id": "solar_01", "type": "solar", "source_type": "simulated", "rated_capacity_kw": 50.0, "primary_via": BUS_A}
+
 # Prosumer market: four SIMULATED buildings on a separate community bus (kW
 # arithmetic, not a power-flow model). Added to the digital twin only; Module 1's
 # `twin` graph, bus_a / bus_b and the 6 sources above are untouched. The AI
@@ -72,7 +76,7 @@ PROSUMER_NODES = [
 
 
 class DigitalTwin:
-    def __init__(self, with_market: bool = False) -> None:
+    def __init__(self, with_market: bool = False, with_solar: bool = False) -> None:
         """`with_market` adds the community bus + prosumers. Only the live
         singleton below sets it: fresh `DigitalTwin()` instances (AI training's
         default_topology, serving-parity check) stay the original 9-node graph."""
@@ -86,7 +90,7 @@ class DigitalTwin:
         self._graph.add_edge(BUS_A, GRID)
         self._graph.add_edge(BUS_B, GRID)
 
-        for node in SOURCE_NODES:
+        for node in SOURCE_NODES + ([SOLAR_NODE] if with_solar else []):
             other_bus = BUS_B if node["primary_via"] == BUS_A else BUS_A
             self._graph.add_node(
                 node["node_id"],
@@ -264,4 +268,4 @@ class DigitalTwin:
         return total
 
 
-digital_twin = DigitalTwin(with_market=True)
+digital_twin = DigitalTwin(with_market=True, with_solar=True)
