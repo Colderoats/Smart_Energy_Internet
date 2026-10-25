@@ -6,6 +6,7 @@ import RedistributionTab from './tabs/RedistributionTab'
 import AIInsightsTab from './tabs/AIInsightsTab'
 import AnalyticsTab from './tabs/AnalyticsTab'
 import TopologiesTab from './tabs/TopologiesTab'
+import SelfHealingTab from './tabs/SelfHealingTab'
 import SettingsTab from './tabs/SettingsTab'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -51,6 +52,7 @@ function Dashboard({ tab, search }) {
       {tab === 'ai' && <AIInsightsTab />}
       {tab === 'analytics' && <AnalyticsTab />}
       {tab === 'topologies' && <TopologiesTab />}
+      {tab === 'healing' && <SelfHealingTab />}
       {tab === 'settings' && <SettingsTab search={search} onLogout={signOut} />}
     </AppShell>
   )

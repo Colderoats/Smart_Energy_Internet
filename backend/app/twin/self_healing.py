@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from app import db
 from app.api.ws_manager import manager
 from app.blockchain import ledger as ledger_hooks
+from app.twin import healing_events
 from app.twin.digital_twin import BUS_A, BUS_B, BUS_CAPACITY_KW, digital_twin
 
 logger = logging.getLogger("sei")
@@ -56,11 +57,16 @@ async def maybe_trigger(node_id: str) -> None:
 
 async def _handle_fault(node: dict) -> None:
     node_id = node["node_id"]
+    event = await _safe_event(healing_events.start, node)  # Self-Healing Analytics (additive)
     candidates = _generate_candidates(node)
     scored = [(_score(node, c), c) for c in candidates]
     (best_unserved, best_overload), best = min(scored, key=lambda pair: _combined(pair[0]))
+    if event:
+        await _safe_event(healing_events.rerouting, event)
 
     updated_node = _apply(node_id, best)
+    if event:
+        await _safe_event(healing_events.finish, event, node, best)
     # The reconfiguration itself (new active_connection/isolated/load_share,
     # and the knock-on change to both buses' current_load_kw) needs its own
     # push — pipeline.py's twin_node_update broadcast already fired for
@@ -98,6 +104,15 @@ async def _handle_fault(node: dict) -> None:
     # blockchain ledger. Only schedules work — never waits on or fails
     # because of the chain (app/blockchain/ledger.py).
     ledger_hooks.on_self_healing(node, decision)
+
+
+async def _safe_event(fn, *args):
+    """Analytics must never break a self-healing decision."""
+    try:
+        return await fn(*args)
+    except Exception as exc:
+        logger.warning("healing_events.%s failed: %s", getattr(fn, "__name__", "?"), exc)
+        return None
 
 
 def _combined(score: tuple[float, float]) -> float:

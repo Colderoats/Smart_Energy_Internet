@@ -1318,3 +1318,14 @@ Product code changed: only the new `app/ingestion/buffered_publisher.py`. Backen
   kills were refused):** stop every backend and start exactly one `python run.py`; the 4 Kelmarsh nodes appear within ~8 s (round-robin, 2 s each).
 - Sources tab: the "Solar hardware" card now always shows Voltage / Current / Power (p.u. + raw V, mA, mW, 2 decimals), dashes while no reading,
   fed by the existing WebSocket. Frontend builds; NOT viewed in a browser.
+
+
+## Self-Healing Analytics tab (2026-10-26)
+- Added sidebar view "Self-Healing" (`/dashboard/healing`): summary panel, topology overlay graph, per-event table. Live 9-node twin events come from the new
+  `backend/app/twin/healing_events.py` (hooked into `self_healing._handle_fault`, WS `healing_event`, `GET /twin/healing-events`); A / B / C replay the saved fault
+  scenarios from `/testbed` at 25x (simulated, labelled). Details in ARCHITECTURE.md "Self-Healing Analytics tab".
+- Files added: `frontend/src/tabs/SelfHealingTab.jsx`, `backend/app/twin/healing_events.py`. Changed (additive): `self_healing.py`, `twin_routes.py`, `useDigitalTwinSocket.js`
+  (extra `healingEvents` return field), `App.jsx`, `ui/nav.js`, `backend/tests/test_auth.py` (route pin).
+- Verified: frontend builds, oxlint clean, backend imports, and a forced fault on the twin produced a correct `restored` event (detect 21 ms, compute 0.1 ms).
+  NOT done: viewing the tab in a browser; `tests/test_auth.py` hung when run here (needs the DB/stack), so the route-pin test was not run.
+- Known limits: A/B/C times are the saved simulation's, not live; the 0.5 s switch time is assumed; solar nodes cannot raise events.

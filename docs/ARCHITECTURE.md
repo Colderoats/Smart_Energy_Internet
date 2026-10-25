@@ -577,3 +577,20 @@ copied from the line at the attach bus). `build()` is unchanged because its coun
 4. Live: set `SOLAR_HARDWARE_PORT=COMx` in the repo-root `.env`, start the backend; the node updates every second.
 5. Tests: `cd backend && venv\Scripts\python -m pytest tests\test_solar_hardware.py -q`; testbed variants:
    `testbed\venv\Scripts\python -m pytest testbed\tests\test_hardware_node.py -q`.
+
+
+## Self-Healing Analytics tab - added 2026-10-26 (additive)
+
+Sidebar view `/dashboard/healing` (`frontend/src/tabs/SelfHealingTab.jsx`): summary (total events, avg detection time, avg restoration time), a topology graph with the
+overlay (red = faulted element, grey = isolated section, animated green = new path) and an event table (problem, fixture, detect time, evaluated rerouting time = detect + compute,
+rerouting path from -> to via lines, estimated completion time, status detected / rerouting / restored). A toggle picks the topology:
+
+| Topology | Event source | Live? |
+|---|---|---|
+| Live 9-node twin (+ `solar_01`, `solar_hardware`) | `app/twin/healing_events.py`, called from `self_healing._handle_fault` (wrapped in try/except, never affects the decision). Pushed as WS `healing_event` on `/ws/updates` (same `id` re-sent as status moves), read by `useDigitalTwinSocket` (`healingEvents`); initial list `GET /twin/healing-events` (in memory since backend start, max 200) | Yes - real twin stream |
+| A radial, B meshed, C IEEE 33-bus | The saved fault scenarios from `GET /testbed/topologies/{A,B,C}/faults[/{id}]`, replayed in the browser at 25x. Path = BFS from the grid over lines closed after the action; closed tie switches named. Undetected scenarios are not listed | Simulated replay (no live stream exists for these) |
+
+Live-event times: `detect_ms` = age of the node's latest reading when the fault is acted on (measured); `compute_ms` = candidate generation + scoring + apply (measured);
+`est_complete_ms` = detect + compute + `SWITCH_OP_MS` (0.5 s ASSUMED per switch operation, reroute = 2 ops, isolate / curtail = 1). Only the replayed Kelmarsh turbines raise
+self-healing events (as before); `solar_01` / `solar_hardware` appear on the graph but never trigger one (no fault detection on solar). New protected route: `GET /twin/healing-events`
+(pinned in `backend/tests/test_auth.py`).

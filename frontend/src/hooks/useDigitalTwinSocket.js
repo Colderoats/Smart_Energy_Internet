@@ -11,6 +11,7 @@ export function useDigitalTwinSocket() {
   const [nodes, setNodes] = useState({})
   const [edges, setEdges] = useState([])
   const [decisions, setDecisions] = useState([])
+  const [healingEvents, setHealingEvents] = useState([])
   const [connected, setConnected] = useState(false)
   const socketRef = useRef(null)
 
@@ -36,6 +37,19 @@ export function useDigitalTwinSocket() {
       })
       .catch((err) => console.error('Failed to load decision log', err))
 
+    // Self-Healing Analytics tab: events recorded since backend start (live updates arrive as 'healing_event').
+    apiFetch('/twin/healing-events')
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return
+        setHealingEvents((prev) => {
+          const byId = new Map(data.events.map((e) => [e.id, e]))
+          for (const e of prev) byId.set(e.id, e)
+          return [...byId.values()]
+        })
+      })
+      .catch((err) => console.error('Failed to load healing events', err))
+
     // Authenticated socket: refreshes + reconnects on 4401 (token expiry).
     const ws = openAuthedSocket({
       onOpen: () => setConnected(true),
@@ -45,6 +59,14 @@ export function useDigitalTwinSocket() {
           setNodes((prev) => ({ ...prev, [message.node.node_id]: message.node }))
         } else if (message.type === 'twin_decision') {
           setDecisions((prev) => [message.decision, ...prev].slice(0, MAX_DECISIONS))
+        } else if (message.type === 'healing_event') {
+          setHealingEvents((prev) => {
+            const i = prev.findIndex((e) => e.id === message.event.id)
+            if (i < 0) return [...prev, message.event].slice(-MAX_DECISIONS * 2)
+            const next = prev.slice()
+            next[i] = message.event
+            return next
+          })
         }
         // 'node_update' (Module 1) is ignored here on purpose.
       },
@@ -57,5 +79,5 @@ export function useDigitalTwinSocket() {
     }
   }, [])
 
-  return { nodes, edges, decisions, connected }
+  return { nodes, edges, decisions, healingEvents, connected }
 }

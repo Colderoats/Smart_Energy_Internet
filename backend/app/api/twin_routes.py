@@ -37,6 +37,14 @@ async def get_twin_node_history(node_id: str, limit: int = 100):
     return {"node_id": node_id, "history": rows}
 
 
+@router.get("/healing-events")
+async def get_healing_events():
+    """Self-Healing Analytics: events of the live twin (in memory, since backend start), oldest first."""
+    from app.twin import healing_events
+
+    return {"events": [{k: v for k, v in e.items() if not k.startswith("_")} for e in healing_events.list_events()]}
+
+
 @router.get("/decisions")
 async def get_twin_decisions(node_id: str | None = None, limit: int = 100):
     """Self-healing decision log — what triggered each reconfiguration,
