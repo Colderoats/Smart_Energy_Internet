@@ -40,7 +40,7 @@ const avg = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : nul
 // ---------- graph ----------
 
 function HealNode({ data }) {
-  const ring = data.fault ? RED : data.grey ? GREY : data.onPath ? GREEN : '#e2e8f0'
+  const ring = data.fault ? RED : data.warn ? '#f59e0b' : data.grey ? GREY : data.onPath ? GREEN : '#e2e8f0'
   const color = SOURCE_COLORS[data.type] ?? '#64748b'
   return (
     <div className="min-w-[92px] rounded-xl border-2 bg-white px-2 py-1.5 text-slate-800 shadow-sm" style={{ borderColor: ring, opacity: data.grey && !data.fault ? 0.55 : 1, boxShadow: data.fault ? `0 0 0 3px ${RED}33` : undefined }}>
@@ -92,53 +92,269 @@ const LIVE_POS = {
   wind_01: [0, 0], hydro_01: [0, 90], wind_scada_kelmarsh_1: [0, 180], wind_scada_kelmarsh_2: [0, 270], wind_scada_kelmarsh_3: [0, 360], wind_scada_kelmarsh_4: [0, 450],
   solar_01: [0, 540], solar_hardware: [0, 630], bus_a: [330, 170], bus_b: [330, 430], grid: [620, 300],
 }
+const AMBER = '#f59e0b'
+const KIND_LABEL = { bus_overload: 'Bus overload', node_fault: 'Faulty node', line_fault: 'Faulty line' }
+const OP_TONE = { OPEN: 'bg-red-100 text-red-700', CLOSE: 'bg-emerald-100 text-emerald-700', CURTAIL: 'bg-amber-100 text-amber-700' }
+
+function useNow(ms = 200) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), ms); return () => clearInterval(id) }, [ms])
+  return now
+}
+const clock = (iso) => {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return `${d.toLocaleTimeString([], { hour12: false })}.${String(d.getMilliseconds()).padStart(3, '0')}`
+}
+const kw = (v) => (v == null ? '—' : `${Math.round(v).toLocaleString()} kW`)
+const lineName = (t) => String(t).split('>').map(nodeLabel).join(' → ')
 
 function liveGraph(twinNodes, ev) {
-  const path = ev?.path
+  const live = ev && ev.incident !== 'repaired' ? ev : null // a repaired incident leaves no overlay: the grid is back to normal
+  const path = live?.path
   const pathNodes = new Set(path ? path.lines.flat() : [])
   const nodes = Object.values(twinNodes)
     .filter((n) => LIVE_POS[n.node_id])
-    .map((n) => ({
-      id: n.node_id, type: 'heal', draggable: false,
-      position: { x: LIVE_POS[n.node_id][0], y: LIVE_POS[n.node_id][1] },
-      data: {
-        type: n.type, label: nodeLabel(n.node_id), sub: n.node_id === 'solar_hardware' ? 'ESP32 sensed' : n.type === 'bus' || n.type === 'grid' ? undefined : n.source_type === 'live' ? 'Live' : 'Replayed',
-        fault: ev?.fixture === n.node_id && ev.status !== 'restored' ? true : ev?.fixture === n.node_id && ev.action === 'isolate',
-        grey: n.isolated || (ev?.action === 'isolate' && ev.fixture === n.node_id),
-        onPath: pathNodes.has(n.node_id) && n.node_id !== ev?.fixture,
-      },
-    }))
+    .map((n) => {
+      const isBus = n.type === 'bus'
+      const overloaded = isBus && n.current_load_kw > n.capacity_kw + 1e-6
+      let sub
+      if (isBus) sub = `${Math.round(n.current_load_kw).toLocaleString()} / ${Math.round(n.capacity_kw).toLocaleString()} kW`
+      else if (n.type === 'grid') sub = undefined
+      else if (n.isolated) sub = 'ISOLATED'
+      else if (n.load_share < 1) sub = `curtailed ${Math.round(n.load_share * 100)}%`
+      else sub = n.node_id === 'solar_hardware' ? 'ESP32 sensed' : n.source_type === 'live' ? 'Live' : 'Replayed'
+      return {
+        id: n.node_id, type: 'heal', draggable: false,
+        position: { x: LIVE_POS[n.node_id][0], y: LIVE_POS[n.node_id][1] },
+        data: {
+          type: n.type, label: nodeLabel(n.node_id), sub,
+          fault: !!live && live.fixture === n.node_id && live.kind !== 'line_fault',
+          warn: overloaded,
+          grey: !!n.isolated,
+          onPath: pathNodes.has(n.node_id) && live?.fixture !== n.node_id,
+        },
+      }
+    })
   const pathKeys = new Set((path?.lines ?? []).map(([a, b]) => `${a}>${b}`))
   const edges = []
+  const drawn = new Set()
+  const add = (e) => { edges.push(e); drawn.add(`${e.source}>${e.target}`) }
   for (const n of Object.values(twinNodes)) {
-    if (!LIVE_POS[n.node_id] || n.type === 'bus' && n.node_id !== 'bus_a' && n.node_id !== 'bus_b') continue
-    const target = n.type === 'bus' ? 'grid' : n.active_connection
-    if (!target || n.type === 'grid') continue
-    const onPath = pathKeys.has(`${n.node_id}>${target}`)
-    edges.push(edge(`${n.node_id}>${target}`, n.node_id, target, onPath ? { color: GREEN, width: 3.5, animated: true } : {}))
+    if (!LIVE_POS[n.node_id] || n.type === 'grid') continue
+    if (n.type === 'bus') {
+      if (n.uplink_closed === false) add(edge(`${n.node_id}>grid`, n.node_id, 'grid', { color: RED, dashed: true, width: 2.5, label: 'OPEN (faulted line)' }))
+      else add(edge(`${n.node_id}>grid`, n.node_id, 'grid', pathKeys.has(`${n.node_id}>grid`) ? { color: GREEN, width: 3.5, animated: true } : {}))
+      continue
+    }
+    for (const via of n.possible_connections ?? []) {
+      const key = `${n.node_id}>${via}`
+      if (n.active_connection === via) {
+        const tied = via !== n.possible_connections[0]
+        if (pathKeys.has(key)) add(edge(key, n.node_id, via, { color: GREEN, width: 3.5, animated: true, label: tied ? 'tie closed' : undefined }))
+        else add(edge(key, n.node_id, via, tied ? { color: GREEN, width: 2, label: 'tie closed' } : {}))
+      } else if (!(path?.isolated_lines ?? []).some(([a, b]) => a === n.node_id && b === via)) {
+        add(edge(`tie-${key}`, n.node_id, via, { color: '#cbd5e1', dashed: true, width: 1 })) // normally-open tie switch
+      }
+    }
   }
-  for (const [a, b] of path?.lines ?? []) { // path lines that are not current twin edges (e.g. bus -> grid already covered)
-    if (!edges.some((e) => e.id === `${a}>${b}`)) edges.push(edge(`${a}>${b}`, a, b, { color: GREEN, width: 3.5, animated: true }))
-  }
-  for (const [a, b] of path?.isolated_lines ?? []) edges.push(edge(`iso-${a}>${b}`, a, b, { color: RED, dashed: true, width: 2, label: 'opened' }))
+  for (const [a, b] of path?.lines ?? []) if (!drawn.has(`${a}>${b}`)) add(edge(`${a}>${b}`, a, b, { color: GREEN, width: 3.5, animated: true }))
+  for (const [a, b] of path?.isolated_lines ?? []) if (!drawn.has(`${a}>${b}`)) edges.push(edge(`iso-${a}>${b}`, a, b, { color: RED, dashed: true, width: 2, label: 'opened' }))
   return { nodes, edges }
 }
 
 function normLive(e) {
   const p = e.path
-  const pathText = !p ? '—' : p.to ? `${nodeLabel(p.from)} → ${nodeLabel(p.via)} → ${nodeLabel(p.to)} (${p.lines.map(([a, b]) => `${nodeLabel(a)}–${nodeLabel(b)}`).join(', ')})` : `${nodeLabel(p.from)} isolated (no path)`
+  const steps = e.steps ?? []
+  const fallbackPath = !p ? '—' : p.to ? `${nodeLabel(p.from)} → ${nodeLabel(p.via)} → ${nodeLabel(p.to)} (${p.lines.map(([a, b]) => `${nodeLabel(a)}–${nodeLabel(b)}`).join(', ')})` : `${nodeLabel(p.from)} isolated (no path)`
   return {
-    id: e.id, problem: e.problem, fixture: nodeLabel(e.fixture), status: e.status,
+    id: e.id, problem: e.problem, fixture: lineName(e.fixture), status: e.status,
     detect_s: e.detect_ms == null ? null : e.detect_ms / 1000,
     reroute_s: e.reroute_ms == null ? null : e.reroute_ms / 1000,
     est_s: e.est_complete_ms == null ? null : e.est_complete_ms / 1000,
     restore_s: e.status === 'restored' ? e.est_complete_ms / 1000 : null,
-    pathText, action: e.action, raw: e,
-    switchOps: [
+    pathText: e.decision ?? fallbackPath, action: e.action, raw: e,
+    shown: steps.filter((s) => s.state === 'done').length,
+    switchOps: steps.length ? steps.map((s) => ({ op: s.op, text: s.text })) : [
       ...(p?.isolated_lines ?? []).map(([a, b]) => ({ op: 'OPEN', text: `Open switch ${nodeLabel(a)}–${nodeLabel(b)} (isolate fault)` })),
       ...(p?.to ? p.lines.map(([a, b]) => ({ op: 'CLOSE', text: `Close / route ${nodeLabel(a)}–${nodeLabel(b)}` })) : []),
     ],
   }
+}
+
+async function postJson(path, body) {
+  const res = await apiFetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail ?? `HTTP ${res.status}`)
+  return res.json()
+}
+
+function BusMeters({ nodes }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {['bus_a', 'bus_b'].map((id) => {
+        const b = nodes[id]
+        if (!b) return null
+        const pct = Math.min(100, (b.current_load_kw / b.capacity_kw) * 100)
+        const over = b.current_load_kw > b.capacity_kw + 1e-6
+        return (
+          <div key={id}>
+            <div className="mb-1 flex justify-between text-xs text-slate-600">
+              <span className="font-medium">{nodeLabel(id)}{b.uplink_closed === false && <span className="ml-2 text-red-600">uplink OPEN</span>}</span>
+              <span className="tabular-nums">{kw(b.current_load_kw)} / {kw(b.capacity_kw)}</span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full transition-all duration-300" style={{ width: `${pct}%`, background: over ? RED : pct > 90 ? AMBER : GREEN }} />
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function Simulator({ nodes, events }) {
+  const [kind, setKind] = useState('bus_overload')
+  const [target, setTarget] = useState('bus_a')
+  const [pct, setPct] = useState(25)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+  const sources = Object.values(nodes).filter((n) => n.possible_connections)
+  let targets
+  if (kind === 'bus_overload') targets = ['bus_a', 'bus_b']
+  else if (kind === 'node_fault') targets = sources.filter((n) => !n.isolated).map((n) => n.node_id)
+  else targets = [...sources.filter((n) => n.active_connection).map((n) => `${n.node_id}>${n.active_connection}`), ...['bus_a', 'bus_b'].filter((b) => nodes[b]?.uplink_closed !== false).map((b) => `${b}>grid`)]
+  const cur = targets.includes(target) ? target : targets[0]
+  const open = events.filter((e) => e.incident === 'active' || e.incident === 'repairing')
+  const run = async (fn) => {
+    setBusy(true); setErr(null)
+    try { await fn() } catch (e) { setErr(String(e.message ?? e)) } finally { setBusy(false) }
+  }
+  return (
+    <Card title="Fault simulator" subtitle="Injects a SIMULATED fault into the live twin (no real switch hardware exists). The twin detects it, isolates the faulty part and re-routes. Watch it below.">
+      <div className="space-y-4">
+        <BusMeters nodes={nodes} />
+        <div className="flex flex-wrap items-end gap-3">
+          <Segmented options={[{ id: 'bus_overload', label: 'Bus overload' }, { id: 'node_fault', label: 'Faulty node' }, { id: 'line_fault', label: 'Faulty line' }]} value={kind} onChange={(k) => { setKind(k); setTarget(undefined) }} />
+          <label className="text-xs text-slate-500">
+            {kind === 'bus_overload' ? 'Bus' : kind === 'node_fault' ? 'Node' : 'Line'}
+            <select className="mt-0.5 block rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800" value={cur ?? ''} onChange={(e) => setTarget(e.target.value)}>
+              {targets.map((t) => <option key={t} value={t}>{lineName(t)}</option>)}
+            </select>
+          </label>
+          {kind === 'bus_overload' && (
+            <label className="text-xs text-slate-500">Overload {pct}%
+              <input type="range" min={10} max={60} step={5} value={pct} onChange={(e) => setPct(Number(e.target.value))} className="mt-1 block w-32" />
+            </label>
+          )}
+          <Button disabled={busy || !cur} onClick={() => run(() => postJson('/twin/healing/simulate', { kind, target: cur, overload_pct: pct }))}>Inject fault</Button>
+        </div>
+        {kind === 'bus_overload' && <p className="text-xs text-slate-500">The bus limit is derated so its present load is {pct}% over it. The twin moves sources to the other bus (open feeder, close tie) as far as that bus has headroom and curtails the rest. Bus B only has room to take part of a turbine, so it reroutes only at a large overload.</p>}
+        {kind === 'node_fault' && <p className="text-xs text-slate-500">The faulty node is isolated (switches opened at both ends of its feeder) and stays isolated until you repair it.</p>}
+        {kind === 'line_fault' && <p className="text-xs text-slate-500">The faulted section is isolated by opening the switch at both ends, then the healthy sources that lost their path are re-fed by closing a tie switch to the other bus.</p>}
+        {err && <p className="text-xs text-red-600">{err}</p>}
+        {open.length > 0 && (
+          <div className="space-y-1.5">
+            <div className="text-xs font-medium text-slate-500">Open incidents</div>
+            {open.map((e) => (
+              <div key={e.id} className="flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs">
+                <Pill tone="bad">{KIND_LABEL[e.kind] ?? e.problem}</Pill>
+                <span className="font-medium text-slate-800">{lineName(e.fixture)}</span>
+                <span className="text-slate-500">{e.incident === 'repairing' ? 'repairing…' : e.status === 'restored' ? 'isolated / re-routed, awaiting repair' : e.status}</span>
+                {e.simulated
+                  ? <Button variant="secondary" className="ml-auto" disabled={busy || e.incident === 'repairing'} onClick={() => run(() => postJson('/twin/healing/repair', { event_id: e.id }))}>Repair</Button>
+                  : <span className="ml-auto text-slate-400">reconnects when the SCADA fault clears</span>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Card>
+  )
+}
+
+function PhaseBar({ ev, now }) {
+  const t0 = Date.parse(ev.time) - (ev.detect_ms ?? 0)
+  const elapsed = Math.max(0, now - t0)
+  const done = ev.status === 'restored'
+  const total = done ? ev.est_complete_ms : Math.max(elapsed, (ev.reroute_ms ?? 0) + 1)
+  const det = ev.detect_ms ?? 0
+  const ana = ev.compute_ms ?? Math.max(0, total - det)
+  const sw = Math.max(0, total - det - ana)
+  const seg = [
+    { name: 'Detect', ms: det, color: AMBER },
+    { name: 'Analyse', ms: ana, color: '#6366f1' },
+    { name: 'Switching', ms: sw, color: done ? GREEN : '#34d399' },
+  ]
+  // Detect and analyse are tiny next to the switching time; give them a visible minimum width.
+  const w = seg.map((s) => Math.max(s.ms / total, 0.03))
+  const sum = w.reduce((a, b) => a + b, 0)
+  return (
+    <div>
+      <div className="flex h-5 overflow-hidden rounded-md bg-slate-100">
+        {seg.map((s, i) => <div key={s.name} className="h-full" style={{ width: `${(w[i] / sum) * 100}%`, background: s.color, opacity: s.ms > 0 || done ? 1 : 0.3 }} title={`${s.name}: ${fmtT(s.ms / 1000)}`} />)}
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-600">
+        {seg.map((s) => <span key={s.name} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: s.color }} />{s.name} <span className="font-semibold tabular-nums text-slate-800">{fmtT(s.ms / 1000)}</span></span>)}
+        <span>{done ? 'Fault → restored' : 'Elapsed'} <span className="font-semibold tabular-nums text-slate-800">{fmtT((done ? total : elapsed) / 1000)}</span></span>
+      </div>
+    </div>
+  )
+}
+
+function InsightCard({ ev, now }) {
+  const e = ev.raw
+  const steps = e.steps ?? []
+  const imp = e.impact
+  const restoredAt = e.status === 'restored' ? new Date(Date.parse(e.time) + (e.est_complete_ms - e.detect_ms)).toISOString() : null
+  let pillText = 'healing'
+  if (e.incident === 'repaired') pillText = 'repaired'
+  else if (e.incident === 'repairing') pillText = 'repairing'
+  else if (e.status === 'restored') pillText = 'awaiting repair'
+  return (
+    <Card title="Why, when and how long" subtitle={`${KIND_LABEL[e.kind] ?? e.problem} · ${ev.fixture}`}
+      action={<div className="flex gap-1.5">{e.simulated && <Pill tone="idle">simulated fault</Pill>}<Pill tone={e.incident === 'repaired' ? 'ok' : e.incident === 'repairing' ? 'info' : 'warn'}>{pillText}</Pill></div>}>
+      <div className="space-y-4 text-sm text-slate-700">
+        <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[70px_1fr]">
+          <dt className="text-slate-500">Why</dt><dd>{e.why}</dd>
+          {e.decision && <><dt className="text-slate-500">Action</dt><dd>{e.decision}</dd></>}
+          <dt className="text-slate-500">When</dt>
+          <dd className="tabular-nums">fault at <b>{clock(e.time)}</b>{restoredAt && <> · restored at <b>{clock(restoredAt)}</b></>}{e.repaired_at && <> · repaired at <b>{clock(e.repaired_at)}</b></>}</dd>
+        </dl>
+        <div>
+          <div className="mb-1.5 text-xs font-medium text-slate-500">How long</div>
+          <PhaseBar ev={e} now={now} />
+          {steps.length > 0 && <p className="mt-1.5 text-xs text-slate-500">{steps.length} switch operation(s), one every ~0.5 s (assumed switch time). Detection and analysis are measured.</p>}
+          {e.outage_ms != null && <p className="mt-1 text-xs text-slate-600">Fault to repair: <b className="tabular-nums">{fmtT(e.outage_ms / 1000)}</b> (repair switching took {fmtT(e.repaired_ms / 1000)}).</p>}
+        </div>
+        {imp?.after && (
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl bg-emerald-50 p-3"><div className="text-xs text-emerald-700">Re-routed / kept supplied</div><div className="text-lg font-semibold tabular-nums text-emerald-800">{kw(imp.moved_kw)}</div></div>
+            <div className="rounded-xl bg-amber-50 p-3"><div className="text-xs text-amber-700">Curtailed / left unserved</div><div className="text-lg font-semibold tabular-nums text-amber-800">{kw(imp.unserved_kw)}</div></div>
+            <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+              {['bus_a', 'bus_b'].map((b) => <div key={b} className="tabular-nums"><b>{nodeLabel(b)}</b>: {kw(imp.before[b].load_kw)} → {kw(imp.after[b].load_kw)} <span className="text-slate-400">(limit {kw(imp.after[b].capacity_kw)})</span></div>)}
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
+  )
+}
+
+function Insights({ events }) {
+  const done = events.filter((e) => e.raw.status === 'restored' && e.raw.kind && e.raw.est_complete_ms != null)
+  if (!done.length) return null
+  const by = (k) => done.filter((e) => e.raw.kind === k)
+  const rows = Object.keys(KIND_LABEL).map((k) => ({ k, n: by(k).length, avg: avg(by(k).map((e) => e.raw.est_complete_ms / 1000)) })).filter((r) => r.n)
+  const longest = done.reduce((m, e) => (e.raw.est_complete_ms > m.raw.est_complete_ms ? e : m))
+  return (
+    <Card title="Healing insights" subtitle="Across the live events since the backend started.">
+      <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+        {rows.map((r) => <div key={r.k} className="rounded-xl border border-slate-200 p-3"><div className="text-xs text-slate-500">{KIND_LABEL[r.k]}</div><div className="text-lg font-semibold tabular-nums">{r.n}× <span className="text-sm font-normal text-slate-500">avg {fmtT(r.avg)}</span></div></div>)}
+        <div className="rounded-xl border border-slate-200 p-3"><div className="text-xs text-slate-500">Load re-routed (total)</div><div className="text-lg font-semibold tabular-nums">{kw(done.reduce((a, e) => a + (e.raw.impact?.moved_kw ?? 0), 0))}</div></div>
+        <div className="rounded-xl border border-slate-200 p-3"><div className="text-xs text-slate-500">Longest restoration</div><div className="text-lg font-semibold tabular-nums">{fmtT(longest.raw.est_complete_ms / 1000)}</div><div className="text-xs text-slate-400">{KIND_LABEL[longest.raw.kind]} · {longest.fixture}</div></div>
+      </div>
+    </Card>
+  )
 }
 
 function LiveView({ onConnected }) {
@@ -151,9 +367,11 @@ function LiveView({ onConnected }) {
   return (
     <Body
       events={events} sel={cur?.id} onSelect={setSel} live
+      top={<Simulator nodes={nodes} events={healingEvents} />}
+      insights={<Insights events={events} />}
       canvas={<Canvas nodes={gn} edges={ge} label="Live 9-node twin" />}
-      empty="No self-healing event yet. Events appear here the moment the twin reacts to a fault (the replayed Kelmarsh turbines trigger them)."
-      note="Live from the Digital Twin (/ws/updates). Detection and compute times are measured; completion time adds an assumed 0.5 s per switch operation."
+      empty="No self-healing event yet. Inject a fault above, or wait for the replayed Kelmarsh turbines to fault."
+      note="Live from the Digital Twin (/ws/updates). Faint dashed lines are open tie switches; red dashed = opened (isolating) switches or the faulted line; green = the new path."
     />
   )
 }
@@ -328,11 +546,13 @@ function SimView({ name, onConnected }) {
 
 // ---------- shared body: summary + graph + table ----------
 
-function Body({ events, sel, onSelect, canvas, empty, note, controls, live }) {
+function Body({ events, sel, onSelect, canvas, empty, note, controls, live, top, insights }) {
+  const now = useNow(250)
   const det = events.map((e) => e.detect_s).filter((v) => v != null)
   const res = events.map((e) => e.restore_s).filter((v) => v != null)
   return (
     <div className="space-y-5">
+      {top}
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Total events" value={String(events.length)} hint={`${events.filter((e) => e.status === 'restored').length} restored`} />
         <StatCard label="Avg detection time" value={fmtT(avg(det)).split(' ')[0]} unit={fmtT(avg(det)).split(' ')[1] ?? ''} hint="fault → detected" />
@@ -347,8 +567,8 @@ function Body({ events, sel, onSelect, canvas, empty, note, controls, live }) {
         if (!ev) return null
         const ops = ev.switchOps ?? []
         const shown = ev.shown ?? (ev.status === 'detected' ? 0 : ops.length)
-        const eta = ev.status === 'restored' ? 'Restored' : ev.est_s == null ? 'Estimating…' : ev.remaining_s != null ? `~${fmtT(ev.remaining_s)} remaining (total ${fmtT(ev.est_s)})` : `~${fmtT(ev.est_s)}`
-        return (
+        const eta = ev.raw && ev.status !== 'restored' ? `healing… ${fmtT(Math.max(0, now - Date.parse(ev.raw.time) + (ev.raw.detect_ms ?? 0)) / 1000)} elapsed` : ev.raw?.est_complete_ms && ev.status === 'restored' ? `Restored in ${fmtT(ev.raw.est_complete_ms / 1000)}` : ev.status === 'restored' ? 'Restored' : ev.est_s == null ? 'Estimating…' : ev.remaining_s != null ? `~${fmtT(ev.remaining_s)} remaining (total ${fmtT(ev.est_s)})` : `~${fmtT(ev.est_s)}`
+        return (<>
           <Card title="Switch actions & estimated healing" subtitle={`${ev.problem} · ${ev.fixture}`} action={<Pill tone={STATUS_TONE[ev.status]}>{ev.status}</Pill>}>
             <div className="mb-3 text-sm text-slate-700">Estimated time to heal: <span className="font-semibold tabular-nums">{eta}</span></div>
             {ops.length === 0 ? <p className="text-xs text-slate-500">No switch operation needed for this event.</p> : (
@@ -356,7 +576,7 @@ function Body({ events, sel, onSelect, canvas, empty, note, controls, live }) {
                 {ops.map((o, i) => (
                   <li key={i} className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${i < shown ? 'border-emerald-200 bg-emerald-50 text-slate-800' : 'border-slate-200 text-slate-400'}`}>
                     <span className="w-4 tabular-nums">{i + 1}.</span>
-                    <span className={`rounded px-1.5 py-0.5 font-semibold ${o.op === 'OPEN' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>{o.op}</span>
+                    <span className={`rounded px-1.5 py-0.5 font-semibold ${OP_TONE[o.op] ?? OP_TONE.CLOSE}`}>{o.op}</span>
                     <span>{o.text}</span>
                     <span className="ml-auto">{i < shown ? 'done' : 'pending'}</span>
                   </li>
@@ -364,8 +584,10 @@ function Body({ events, sel, onSelect, canvas, empty, note, controls, live }) {
               </ol>
             )}
           </Card>
-        )
+          {ev.raw?.why && <InsightCard ev={ev} now={now} />}
+        </>)
       })()}
+      {insights}
       <Card title="Self-healing events" subtitle={live ? 'Newest last. Click a row to show it on the graph.' : 'Click a row to play its rerouting on the graph and list its switch actions.'}>
         {events.length === 0 ? <EmptyState>{empty}</EmptyState> : (
           <div className="overflow-x-auto">

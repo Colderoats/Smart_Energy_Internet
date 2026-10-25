@@ -239,7 +239,7 @@ def test_every_non_public_route_requires_auth(client, admin):
     # Must match the protected-route list in ARCHITECTURE.md.
     assert routes == sorted([
         ("GET", "/nodes"), ("GET", "/nodes/1/history"),
-        ("GET", "/twin/nodes"), ("GET", "/twin/nodes/1/history"), ("GET", "/twin/decisions"), ("GET", "/twin/healing-events"),
+        ("GET", "/twin/nodes"), ("GET", "/twin/nodes/1/history"), ("GET", "/twin/decisions"), ("GET", "/twin/healing-events"), ("POST", "/twin/healing/simulate"), ("POST", "/twin/healing/repair"),
         ("GET", "/ai/predictions"),
         ("GET", "/chain/status"), ("GET", "/chain/records"), ("GET", "/chain/records/1"),
         ("POST", "/chain/verify/1"), ("POST", "/chain/simulate-trade"), ("POST", "/chain/replay-fl-rounds"),

@@ -91,7 +91,7 @@ class DigitalTwin:
         self._with_market = with_market
 
         for bus_id, capacity in BUS_CAPACITY_KW.items():
-            self._graph.add_node(bus_id, type="bus", capacity_kw=capacity)
+            self._graph.add_node(bus_id, type="bus", capacity_kw=capacity, uplink_closed=True)
         self._graph.add_node(GRID, type="grid")
         self._graph.add_edge(BUS_A, GRID)
         self._graph.add_edge(BUS_B, GRID)
@@ -236,6 +236,27 @@ class DigitalTwin:
             attrs = self._graph.nodes[node_id]
             attrs["load_share"] = max(0.0, min(1.0, fraction))
             return self.get_node(node_id)
+
+    # -- grid-protection primitives (app/twin/grid_protection.py) ------------
+
+    def set_bus_capacity(self, bus_id: str, capacity_kw: float | None) -> dict:
+        """Derate (or restore, with None) a collector bus's limit. Used to inject a bus overload."""
+        with self._lock:
+            self._graph.nodes[bus_id]["capacity_kw"] = BUS_CAPACITY_KW[bus_id] if capacity_kw is None else float(capacity_kw)
+            return self.get_node(bus_id)
+
+    def bus_capacity_kw(self, bus_id: str) -> float:
+        return self._graph.nodes[bus_id]["capacity_kw"]
+
+    def set_uplink(self, bus_id: str, closed: bool) -> dict:
+        """Open / close the bus -> grid line (both-end switches). An open uplink drops the edge from the graph."""
+        with self._lock:
+            self._graph.nodes[bus_id]["uplink_closed"] = closed
+            if closed:
+                self._graph.add_edge(bus_id, GRID)
+            elif self._graph.has_edge(bus_id, GRID):
+                self._graph.remove_edge(bus_id, GRID)
+            return self.get_node(bus_id)
 
     # -- reads --------------------------------------------------------
 

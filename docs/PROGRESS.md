@@ -1340,3 +1340,26 @@ Product code changed: only the new `app/ingestion/buffered_publisher.py`. Backen
 - Re-feeding unsupplied buses (A/B/C replay, `deriveSim` in SelfHealingTab.jsx): if a bus is still dead after the recorded action
   (e.g. B bus 10, C buses 16-17), the replay now closes an open non-faulted line/tie that links it to a supplied bus (repeating
   outward), draws the new green path and adds the CLOSE step to the switch list. Display-side only; saved results and backend unchanged.
+
+## Live protection: overload reroute, node isolation, line-fault sectionalising (2026-10-26)
+- **New** `backend/app/twin/grid_protection.py` (engine), extended `healing_events.py` (events now carry `kind`, `why`, `decision`, ordered `steps`, `impact`, incident
+  lifecycle), small additive helpers in `digital_twin.py` (`set_bus_capacity`, `bus_capacity_kw`, `set_uplink`, bus attr `uplink_closed`), new routes
+  `POST /twin/healing/simulate` and `POST /twin/healing/repair` (admin-protected, pinned in `tests/test_auth.py`), `check_overloads()` called from `self_healing.maybe_trigger`.
+- **Bus overloaded -> reroute:** the plan enumerates which sources to move to the other bus (open feeder, close tie) and picks the one with the least unserved kW (ties:
+  fewer switch ops); what the other bus cannot take is curtailed (biggest source first). Bus load is rated x share (no power flow), as elsewhere in the twin.
+- **Faulty node -> isolate until fixed:** `self_healing._handle_fault` now always chooses `isolate` (open both ends of the feeder). The other candidates are still scored and
+  logged. When the health status clears, `_handle_recovery` closes the switches and reconnects the node to its primary bus (event `incident: repaired`). This CHANGES the old
+  behaviour, where the lowest-score candidate (usually a reroute onto the other bus) was applied to a faulty node.
+- **Faulty line -> isolate, re-feed:** feeder (`source>bus`) or bus uplink (`bus>grid`). Open the switch at BOTH ends, then close the tie switch(es) so the healthy sources that
+  lost their path are fed from the other bus; whatever does not fit in its headroom is curtailed (>= 10 % share) or left unserved. Repair closes the ends and opens the ties again.
+- **Live + timing:** simulated faults are injected from the Self-Healing tab ("Fault simulator", severity slider for the overload). Switch steps are EXECUTED one every
+  `SWITCH_OP_MS` (0.5 s, assumed - no switch hardware), so the graph, bus meters and step list change live; detect / analyse (compute) times are measured; fault -> restored
+  is the measured wall-clock total. New "Why, when and how long" card (reason, clock times, Detect/Analyse/Switching bar with a live elapsed timer, kW re-routed vs unserved,
+  bus load before -> after) and a "Healing insights" card (per kind counts / averages, total re-routed, longest).
+- **Tests:** `backend/tests/test_grid_protection.py` (6, incl. the HTTP routes, all pass); full backend suite: 103 passed (before the 6th test was added) with the pin test deselected. Frontend builds, oxlint clean. Real-fault path checked
+  by forcing a Kelmarsh fault: isolated on fault, reconnected on recovery.
+- **Not done / limits:** NOT viewed in a browser. Only injected faults can be line faults or overloads (no line sensors, loads do not vary on their own); real faults still come from
+  the replayed Kelmarsh turbines. Engine events are not written to the blockchain ledger (real node faults still are, as before). Open incidents are in memory (lost on restart).
+  With the demo capacities Bus B only has 500 kW headroom, so a bus_b overload only reroutes (part of) a turbine at large severity (about 35 %+); at 25 % it curtails in place.
+- **Pre-existing, not touched:** `tests/test_auth.py::test_every_non_public_route_requires_auth` already failed before this change because `GET /nodes/stream` and
+  `POST /nodes/{id}/stream/{x}` are missing from its pin list; the two new routes are pinned.

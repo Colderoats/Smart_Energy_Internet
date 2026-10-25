@@ -4,7 +4,10 @@ requirement that the two tabs not share a view."""
 
 import logging
 
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from app import db
 from app.twin.digital_twin import digital_twin
@@ -43,6 +46,41 @@ async def get_healing_events():
     from app.twin import healing_events
 
     return {"events": [{k: v for k, v in e.items() if not k.startswith("_")} for e in healing_events.list_events()]}
+
+
+class SimulateBody(BaseModel):
+    kind: Literal["bus_overload", "node_fault", "line_fault"]
+    target: str  # bus_a | bus_b  /  a source node id  /  "source>bus" or "bus>grid"
+    overload_pct: float = 25.0  # bus_overload only: how far over its limit the bus is pushed (5-80)
+
+
+class RepairBody(BaseModel):
+    event_id: str
+
+
+@router.post("/healing/simulate", status_code=202)
+async def simulate_fault(body: SimulateBody):
+    """Inject a SIMULATED fault into the live twin (no real hardware is touched). Detection, isolation and restoration
+    then run in the background and stream to the Self-Healing tab as `healing_event` messages."""
+    from app.twin import grid_protection
+
+    try:
+        await grid_protection.simulate(body.kind, body.target, body.overload_pct)
+    except grid_protection.ProtectionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"accepted": True, "kind": body.kind, "target": body.target}
+
+
+@router.post("/healing/repair", status_code=202)
+async def repair_fault(body: RepairBody):
+    """Repair an injected incident: close the isolating switches again and return the sources to their normal feeder."""
+    from app.twin import grid_protection
+
+    try:
+        await grid_protection.repair(body.event_id)
+    except grid_protection.ProtectionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"accepted": True, "event_id": body.event_id}
 
 
 @router.get("/decisions")

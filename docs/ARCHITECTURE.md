@@ -594,3 +594,24 @@ Live-event times: `detect_ms` = age of the node's latest reading when the fault 
 `est_complete_ms` = detect + compute + `SWITCH_OP_MS` (0.5 s ASSUMED per switch operation, reroute = 2 ops, isolate / curtail = 1). Only the replayed Kelmarsh turbines raise
 self-healing events (as before); `solar_01` / `solar_hardware` appear on the graph but never trigger one (no fault detection on solar). New protected route: `GET /twin/healing-events`
 (pinned in `backend/tests/test_auth.py`).
+
+### Live protection: overload reroute, node isolation, line-fault sectionalising (2026-10-26)
+
+`backend/app/twin/grid_protection.py` runs three cases on the live twin as ordered switch operations, one every `SWITCH_OP_MS` (0.5 s, assumed - the twin has no switch hardware). Switch model:
+each source has a closed feeder switch pair to its primary bus and a normally-open **tie** switch to the other bus; each bus has a switch pair on its uplink to the grid. Loads = rated x
+`load_share` (no power flow).
+
+| Situation | Trigger | Action (switch order) | Cleared by |
+|---|---|---|---|
+| Bus overload | bus load > its limit (`check_overloads`, after every ingested reading, or an injected derate) | for the least-unserved subset of sources: OPEN feeder, CLOSE tie to the other bus (curtailed to the other bus's headroom); remaining excess curtailed, biggest source first | Repair: limit restored, OPEN tie / CLOSE feeder, shares back |
+| Faulty node | `self_healing._handle_fault` (health -> fault / fault_predicted) or injected | `isolate`: OPEN both ends of its feeder; stays isolated. Other candidates are scored and logged only | `self_healing._handle_recovery` when health clears (real) or Repair (injected): CLOSE both ends |
+| Faulty line | injected (`line_fault`, `source>bus` or `bus>grid`) | OPEN both ends of the faulted section, then for each healthy source that lost its path OPEN feeder + CLOSE tie to the other bus within its headroom (>= 10 % share, else unserved) | Repair: CLOSE the ends, OPEN ties, sources back to their primary bus |
+
+State added to `DigitalTwin` (additive): bus attr `uplink_closed` (an open uplink also drops the bus -> grid edge), `set_bus_capacity` / `bus_capacity_kw` / `set_uplink`. `healing_events` records per event
+`kind` (`bus_overload` / `node_fault` / `line_fault`), `why`, `decision`, `steps[]` (`op` OPEN / CLOSE / CURTAIL, `state`, `at_ms` since the fault), `impact` (bus load / limit before + after, `moved_kw`,
+`unserved_kw`), `incident` (`active` -> `repairing` -> `repaired`, `repaired_ms`, `outage_ms`), `simulated`. Each step re-sends the event on `/ws/updates` (`healing_event`), plus `twin_node_update` for
+the touched node and both buses. Timing: `detect_ms` (fault appeared -> recognised) and `compute_ms` (plan) are measured; `est_complete_ms` of these events is the measured wall-clock total, which includes
+the simulated switch times. Routes (admin only, pinned in `backend/tests/test_auth.py`): `POST /twin/healing/simulate {kind, target, overload_pct?}` (202, work runs in the background; 400 on a bad
+request) and `POST /twin/healing/repair {event_id}`. Not on the ledger, not persisted (in memory, max 200 events). Tests: `backend/tests/test_grid_protection.py`.
+Frontend: `SelfHealingTab.jsx` live view - fault simulator, bus load meters, graph with open ties / opened switches / curtailed badges, step list, "Why, when and how long" card (phase bar with live timer) and
+"Healing insights".

@@ -43,6 +43,9 @@ the ledger as P2P_TRADE): PROGRESS.md "Prosumer market (live)", ARCHITECTURE.md 
 The frontend UI was redesigned (presentation layer only): sidebar shell, design tokens and the view map
 are in ARCHITECTURE.md "Frontend structure (UI redesign)"; what is mocked is in PROGRESS.md "UI redesign".
 
+Live protection on the 9-node twin (bus overload -> reroute over tie switches, faulty node -> isolated until repaired, faulty line -> open both ends + close a tie, all timed and shown live in the
+Self-Healing tab with a fault simulator): `backend/app/twin/grid_protection.py`, PROGRESS.md / ARCHITECTURE.md "Live protection". Faulty nodes are now always isolated (not rerouted) by `self_healing`.
+
 A real hardware node `solar_hardware` (ESP32 + INA219 mini panel, USB serial JSON lines) exists: firmware/solar_hardware, ARCHITECTURE.md "solar_hardware node".
 
 ## Auth quick reference

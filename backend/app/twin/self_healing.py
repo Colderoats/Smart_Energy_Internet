@@ -22,7 +22,7 @@ from app import db
 from app.api.ws_manager import manager
 from app.blockchain import ledger as ledger_hooks
 from app.twin import healing_events
-from app.twin.digital_twin import BUS_A, BUS_B, BUS_CAPACITY_KW, digital_twin
+from app.twin.digital_twin import BUS_A, BUS_B, digital_twin
 
 logger = logging.getLogger("sei")
 
@@ -49,10 +49,38 @@ async def maybe_trigger(node_id: str) -> None:
     previous = _last_health_status.get(node_id, "normal")
     _last_health_status[node_id] = status
 
-    if status not in _FAULT_STATES or previous in _FAULT_STATES:
-        return
+    if status not in _FAULT_STATES and previous in _FAULT_STATES:
+        await _handle_recovery(node)  # the fault cleared: bring the isolated node back
+    elif status in _FAULT_STATES and previous not in _FAULT_STATES:
+        await _handle_fault(node)
 
-    await _handle_fault(node)
+    # Bus overload watch (cheap; see grid_protection.check_overloads). Never lets protection break ingestion.
+    try:
+        from app.twin import grid_protection
+
+        await grid_protection.check_overloads()
+    except Exception as exc:
+        logger.warning("overload check failed: %s", exc)
+
+
+async def _handle_recovery(node: dict) -> None:
+    """Fault cleared -> reconnect the node we isolated (close its feeder switches again)."""
+    node_id = node["node_id"]
+    event = healing_events.find_open(node_id)
+    if event is None or not digital_twin.get_node(node_id).get("isolated"):
+        return
+    primary = node["possible_connections"][0]
+    steps = [("CLOSE", f"Close switch at {node_id} end of {node_id}–{primary}"), ("CLOSE", f"Close switch at {primary} end of {node_id}–{primary}")]
+
+    def apply(i: int) -> None:
+        if i == len(steps) - 1:
+            digital_twin.reroute_node(node_id, primary)
+
+    await _safe_event(healing_events.repair, event, steps, apply)
+    await manager.broadcast({"type": "twin_node_update", "node": digital_twin.get_node(node_id)})
+    for bus_id in (BUS_A, BUS_B):
+        await manager.broadcast({"type": "twin_node_update", "node": digital_twin.get_node(bus_id)})
+    logger.info("Self-healing: %s repaired -> reconnected via %s", node_id, primary)
 
 
 async def _handle_fault(node: dict) -> None:
@@ -60,7 +88,9 @@ async def _handle_fault(node: dict) -> None:
     event = await _safe_event(healing_events.start, node)  # Self-Healing Analytics (additive)
     candidates = _generate_candidates(node)
     scored = [(_score(node, c), c) for c in candidates]
-    (best_unserved, best_overload), best = min(scored, key=lambda pair: _combined(pair[0]))
+    # Policy: a faulty node is ISOLATED until it is fixed (never rerouted onto another bus, never kept on curtailed).
+    # The other candidates are still scored and logged so the decision log shows what isolation was chosen over.
+    (best_unserved, best_overload), best = next(pair for pair in scored if pair[1]["action"] == "isolate")
     if event:
         await _safe_event(healing_events.rerouting, event)
 
@@ -149,13 +179,13 @@ def _score(node: dict, candidate: dict) -> tuple[float, float]:
         unserved = max(0.0, contribution - rated * new_share)
         bus = node["active_connection"]
         projected = digital_twin.bus_load_kw(bus) - contribution + rated * new_share
-        overload = max(0.0, projected - BUS_CAPACITY_KW[bus])
+        overload = max(0.0, projected - digital_twin.bus_capacity_kw(bus))
         return unserved, overload
 
     if action == "reroute":
         via = candidate["params"]["via"]
         projected = digital_twin.bus_load_kw(via) + contribution
-        overload = max(0.0, projected - BUS_CAPACITY_KW[via])
+        overload = max(0.0, projected - digital_twin.bus_capacity_kw(via))
         return 0.0, overload
 
     raise ValueError(f"unknown candidate action: {action}")
@@ -184,7 +214,7 @@ def _reason(chosen: dict, scored: list[tuple[tuple[float, float], dict]]) -> str
         f"{_describe(c)} -> unserved {u:.0f}kW + overload {o:.0f}kW = {_combined((u, o)):.0f}"
         for (u, o), c in scored
     )
-    return f"chose '{_describe(chosen)}' — lowest combined score. Considered: {breakdown}"
+    return f"chose '{_describe(chosen)}' — a faulty node is isolated until it is repaired. Considered: {breakdown}"
 
 
 def _trigger_summary(node: dict) -> str:
