@@ -1337,3 +1337,6 @@ Product code changed: only the new `app/ingestion/buffered_publisher.py`. Backen
 - Clicking a row in A/B/C plays the reroute (~2.5 s: fault → rerouting with animated green path → restored) while ops tick to "done".
 - `frontend/src/tabs/TopologiesTab.jsx` Fault replay lists the switch actions applied up to the current step.
 - Removed the word "Simulated" from the UI of the three topologies (SimPill no longer rendered; notes reworded). Backend untouched.
+- Re-feeding unsupplied buses (A/B/C replay, `deriveSim` in SelfHealingTab.jsx): if a bus is still dead after the recorded action
+  (e.g. B bus 10, C buses 16-17), the replay now closes an open non-faulted line/tie that links it to a supplied bus (repeating
+  outward), draws the new green path and adds the CLOSE step to the switch list. Display-side only; saved results and backend unchanged.

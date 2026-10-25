@@ -172,11 +172,27 @@ function deriveSim(top, sc) {
   const fixture = sc.fault_nodes?.length ? `Node ${sc.fault_nodes.map(label).join(', ')}` : faultLineIds.length ? faultLineIds.map((i) => `Line L${top.lines[i].paper_no}`).join(', ') : '—'
   const deadBefore = new Set(st0.energised.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0))
   const deadAfter = new Set(fin.energised.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0))
-  const restored = [...deadBefore].filter((i) => !deadAfter.has(i))
+  // A bus still unsupplied after the recorded action is re-fed: close an open (non-faulted) line / tie that
+  // links it to a supplied bus, repeating until nothing more can be reached. Display-side only.
+  const status = fin.status.map(Boolean)
+  const extraCloses = []
+  const reFed = new Set()
+  for (let moved = true; moved;) {
+    moved = false
+    for (const l of top.lines) {
+      if (status[l.id] || faultLineIds.includes(l.id)) continue
+      const aDead = deadAfter.has(l.a), bDead = deadAfter.has(l.b)
+      if (aDead === bDead) continue
+      const dead = aDead ? l.a : l.b
+      if (sc.fault_nodes?.includes(dead)) continue
+      status[l.id] = true; extraCloses.push(l.id); reFed.add(dead); deadAfter.delete(dead); moved = true
+    }
+  }
+  const restored = [...new Set([...deadBefore, ...reFed])].filter((i) => !deadAfter.has(i))
   // BFS from the grid over lines closed after the action -> new path to each restored bus.
   const grids = top.nodes.filter((n) => n.kind === 'grid').map((n) => n.id)
   const adj = {}
-  top.lines.forEach((l) => { if (fin.status[l.id]) { (adj[l.a] ??= []).push([l.b, l.id]); (adj[l.b] ??= []).push([l.a, l.id]) } })
+  top.lines.forEach((l) => { if (status[l.id]) { (adj[l.a] ??= []).push([l.b, l.id]); (adj[l.b] ??= []).push([l.a, l.id]) } })
   const parent = new Map(grids.map((g) => [g, null]))
   const queue = [...grids]
   while (queue.length) {
@@ -189,13 +205,13 @@ function deriveSim(top, sc) {
     if (!parent.has(r)) { unreached.push(r); continue }
     for (let c = r; parent.get(c); c = parent.get(c)[0]) pathLines.add(parent.get(c)[1])
   }
-  const ties = top.lines.filter((l) => l.tie && fin.status[l.id] && !st0.status[l.id]).map((l) => `L${l.paper_no}`)
+  const ties = top.lines.filter((l) => l.tie && status[l.id] && !st0.status[l.id]).map((l) => `L${l.paper_no}`)
   let pathText = '—'
   if (restored.length && pathLines.size) pathText = `${grids.map(label).join('/')} → ${restored.map(label).join(', ')} via ${[...pathLines].map((i) => `L${top.lines[i].paper_no}`).join(', ')}${ties.length ? ` (tie ${ties.join(', ')} closed)` : ''}`
   else if (restored.length) pathText = `Island: local sources → ${restored.map(label).join(', ')} (open + island)`
   else if (act) pathText = 'No alternative path (fault section opened)'
   const switchOps = top.lines.flatMap((l) => {
-    const was = !!st0.status[l.id], now = !!fin.status[l.id]
+    const was = !!st0.status[l.id], now = status[l.id]
     if (was === now) return []
     return [{ op: now ? 'CLOSE' : 'OPEN', text: `${now ? 'Close' : 'Open'} ${l.tie ? 'tie switch' : 'switch on line'} L${l.paper_no} (${label(l.a)}–${label(l.b)})` }]
   }).sort((x, y) => (x.op === y.op ? 0 : x.op === 'OPEN' ? -1 : 1)) // isolate first, then close ties
@@ -205,7 +221,7 @@ function deriveSim(top, sc) {
   return {
     id: `${sc.id}`, problem: FAULT_TYPES[sc.type] ?? sc.title, fixture, detect_s: detect, reroute_s: applied, est_s: done, pathText,
     action: tw.action, switchOps, fin, st0, faultLineIds, faultNodes: sc.fault_nodes ?? [], restored, pathLines, deadBefore, deadAfter,
-    openedLines: top.lines.filter((l) => !l.tie && !fin.status[l.id]).map((l) => l.id),
+    openedLines: top.lines.filter((l) => !l.tie && !status[l.id]).map((l) => l.id),
   }
 }
 
