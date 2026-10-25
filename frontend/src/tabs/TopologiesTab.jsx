@@ -5,7 +5,7 @@ import FlowEdge, { flowWidth } from '../components/FlowEdge'
 import { SourceIcon } from '../ui/icons'
 import { Button, Card, Details, EmptyState, Pill, Segmented, StatCard } from '../ui/components'
 import { SOURCE_COLORS, STATUS_COLORS } from '../ui/theme'
-import { ErrorNote, Loading, SimPill } from '../testbed/common'
+import { ErrorNote, Loading } from '../testbed/common'
 import { fmt } from '../testbed/format'
 import { useTestbed } from '../testbed/useTestbed'
 
@@ -151,8 +151,8 @@ function Redistribution({ name, top }) {
   return (
     <Card
       title="Redistribution playback"
-      subtitle="Flows between prosumer buses over the simulated day (5-minute trading intervals). Arrow width ∝ kW; losses on lines."
-      action={<div className="flex items-center gap-2"><SimPill /><Segmented size="sm" options={[{ id: 'normal', label: 'Normal topology' }, { id: 'postfault', label: 'After self-healing' }]} value={variant} onChange={setVariant} /></div>}
+      subtitle="Flows between prosumer buses over the day (5-minute trading intervals). Arrow width ∝ kW; losses on lines."
+      action={<div className="flex items-center gap-2"><Segmented size="sm" options={[{ id: 'normal', label: 'Normal topology' }, { id: 'postfault', label: 'After self-healing' }]} value={variant} onChange={setVariant} /></div>}
     >
       <p className="mb-2 text-xs text-slate-500">{run?.note}</p>
       <Canvas top={top} frame={frame} status={status} />
@@ -194,7 +194,7 @@ function FaultReplay({ name, top }) {
     <Card
       title="Fault replay"
       subtitle="A recorded fault from the held-out simulation. Step through detection, the candidate actions with their cost J, the chosen action and restoration."
-      action={<div className="flex items-center gap-2"><SimPill /><Segmented size="sm" options={[{ id: 'twin', label: 'Twin' }, { id: 'default', label: 'Default scheme' }]} value={scheme} onChange={setScheme} /></div>}
+      action={<div className="flex items-center gap-2"><Segmented size="sm" options={[{ id: 'twin', label: 'Twin' }, { id: 'default', label: 'Default scheme' }]} value={scheme} onChange={setScheme} /></div>}
     >
       <div className="mb-3 flex flex-wrap gap-2">
         {list.data.scenarios.map((s) => (
@@ -215,6 +215,18 @@ function FaultReplay({ name, top }) {
               </div>
             </div>
             <p className="text-sm text-slate-600">{st.description}</p>
+            {(() => {
+              const s0 = stages[0]?.status ?? []
+              const ops = top.lines.flatMap((l) => (!!s0[l.id] === !!st.status[l.id] ? [] : [{ open: !st.status[l.id], l }])).sort((x, y) => Number(y.open) - Number(x.open))
+              return ops.length ? (
+                <div>
+                  <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Switch actions so far</div>
+                  <ul className="space-y-1 text-xs">
+                    {ops.map(({ open, l }) => <li key={l.id} className="rounded-lg border border-slate-200 px-2 py-1"><span className={`mr-2 font-semibold ${open ? 'text-red-600' : 'text-emerald-600'}`}>{open ? 'OPEN' : 'CLOSE'}</span>{l.tie ? 'tie switch' : 'line'} L{l.paper_no}</li>)}
+                  </ul>
+                </div>
+              ) : null
+            })()}
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="rounded-lg bg-slate-50 p-2"><div className="text-[11px] text-slate-500">t − t_fault</div><div className="text-sm font-semibold tabular-nums">{fmt(st.t_s, 's', 0)}</div></div>
               <div className="rounded-lg bg-slate-50 p-2"><div className="text-[11px] text-slate-500">Unserved now</div><div className="text-sm font-semibold tabular-nums">{fmt(st.unserved_kw, 'kW', 0)}</div></div>
@@ -256,7 +268,7 @@ function Kpis({ k }) {
     ['Detection F1 (twin)', fmt(k.detection_f1_twin, '', 3), `default ${fmt(k.detection_f1_default, '', 3)}`],
     ['T_rec (twin)', fmt(k.t_rec_twin_s, 's', 1), `default ${fmt(k.t_rec_default_s, 's', 1)}`],
     ['E_uns (twin)', fmt(k.e_uns_twin_kwh, 'kWh', 1), `default ${fmt(k.e_uns_default_kwh, 'kWh', 1)}`],
-    ['Energy redistributed', fmt(k.energy_redistributed_kwh, 'kWh', 0), 'one simulated day'],
+    ['Energy redistributed', fmt(k.energy_redistributed_kwh, 'kWh', 0), 'one day'],
     ['Self-sufficiency', fmt(k.self_sufficiency * 100, '%', 1), 'with trading'],
     ['Network losses', fmt(k.losses_kwh, 'kWh', 1), 'with trading'],
     ['Trades', fmt(k.trades), `${fmt(k.avg_gas_per_trade, 'gas', 0)} / trade (match+meter+settle)`],
@@ -283,7 +295,7 @@ function Why({ top, k }) {
   }
   if (k?.e_uns_default_kwh != null) lines.push(`Unserved energy over the scenario: default ${fmt(k.e_uns_default_kwh, 'kWh', 1)}, twin ${fmt(k.e_uns_twin_kwh, 'kWh', 1)}.`)
   return (
-    <Card title="Why these numbers" subtitle="Each sentence quotes a number measured on this page; nothing is claimed beyond it." action={<SimPill />}>
+    <Card title="Why these numbers" subtitle="Each sentence quotes a number measured on this page; nothing is claimed beyond it.">
       <ul className="list-disc space-y-1.5 pl-5 text-sm text-slate-700">{lines.map((l) => <li key={l}>{l}</li>)}</ul>
     </Card>
   )
@@ -300,13 +312,13 @@ export default function TopologiesTab() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Segmented options={TOPS} value={name} onChange={setName} />
       </div>
-      <Card title={top.title} subtitle={`${top.counts.nodes} nodes · ${top.counts.lines} lines · ${top.counts.solar} solar · ${top.counts.wind_hydro} wind/hydro · ${top.counts.ties} tie switches · ${top.counts.storage} storage units`} action={<SimPill />}>
+      <Card title={top.title} subtitle={`${top.counts.nodes} nodes · ${top.counts.lines} lines · ${top.counts.solar} solar · ${top.counts.wind_hydro} wind/hydro · ${top.counts.ties} tie switches · ${top.counts.storage} storage units`}>
         <Canvas top={top} status={null} frame={null} />
         <div className="mt-3"><Legend top={top} /></div>
       </Card>
       <Redistribution key={`r${name}`} name={name} top={top} />
       <FaultReplay key={`f${name}`} name={name} top={top} />
-      <Card title="Topology KPIs" subtitle="From the saved runs." action={<SimPill />}><Kpis k={data.kpis?.[name]} /></Card>
+      <Card title="Topology KPIs" subtitle="From the saved runs."><Kpis k={data.kpis?.[name]} /></Card>
       <Why top={top} k={data.kpis?.[name]} />
       <Details label="Topology description"><pre className="overflow-x-auto rounded-xl bg-slate-50 p-3 text-xs">{JSON.stringify(top.counts, null, 1)}</pre></Details>
     </div>

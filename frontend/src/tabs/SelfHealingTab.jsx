@@ -7,7 +7,7 @@ import { useReportConnection } from '../ui/AppShell'
 import { SourceIcon } from '../ui/icons'
 import { Button, Card, EmptyState, Pill, Segmented, StatCard } from '../ui/components'
 import { SOURCE_COLORS, STATUS_COLORS, nodeLabel } from '../ui/theme'
-import { ErrorNote, Loading, SimPill } from '../testbed/common'
+import { ErrorNote, Loading } from '../testbed/common'
 import { useTestbed } from '../testbed/useTestbed'
 
 // Self-Healing Analytics. One event table + summary + topology overlay for four topologies:
@@ -15,7 +15,7 @@ import { useTestbed } from '../testbed/useTestbed'
 //    (app/twin/healing_events.py) over the existing /ws/updates socket via useDigitalTwinSocket.
 //  - A radial / B meshed / C IEEE 33-bus: no live stream exists for these (they are saved simulation
 //    results), so the saved fault scenarios (/testbed/topologies/{A,B,C}/faults) are replayed in real time
-//    (SIM_SPEED simulated seconds per real second). Simulated, labelled as such.
+//    (SIM_SPEED seconds per real second).
 // Overlay: red = faulted element, grey = isolated section, animated green = new path.
 
 const TOPS = [
@@ -134,6 +134,10 @@ function normLive(e) {
     est_s: e.est_complete_ms == null ? null : e.est_complete_ms / 1000,
     restore_s: e.status === 'restored' ? e.est_complete_ms / 1000 : null,
     pathText, action: e.action, raw: e,
+    switchOps: [
+      ...(p?.isolated_lines ?? []).map(([a, b]) => ({ op: 'OPEN', text: `Open switch ${nodeLabel(a)}–${nodeLabel(b)} (isolate fault)` })),
+      ...(p?.to ? p.lines.map(([a, b]) => ({ op: 'CLOSE', text: `Close / route ${nodeLabel(a)}–${nodeLabel(b)}` })) : []),
+    ],
   }
 }
 
@@ -190,12 +194,17 @@ function deriveSim(top, sc) {
   if (restored.length && pathLines.size) pathText = `${grids.map(label).join('/')} → ${restored.map(label).join(', ')} via ${[...pathLines].map((i) => `L${top.lines[i].paper_no}`).join(', ')}${ties.length ? ` (tie ${ties.join(', ')} closed)` : ''}`
   else if (restored.length) pathText = `Island: local sources → ${restored.map(label).join(', ')} (open + island)`
   else if (act) pathText = 'No alternative path (fault section opened)'
+  const switchOps = top.lines.flatMap((l) => {
+    const was = !!st0.status[l.id], now = !!fin.status[l.id]
+    if (was === now) return []
+    return [{ op: now ? 'CLOSE' : 'OPEN', text: `${now ? 'Close' : 'Open'} ${l.tie ? 'tie switch' : 'switch on line'} L${l.paper_no} (${label(l.a)}–${label(l.b)})` }]
+  }).sort((x, y) => (x.op === y.op ? 0 : x.op === 'OPEN' ? -1 : 1)) // isolate first, then close ties
   const applied = act?.t_s ?? null
   const detect = tw.detect_delay_s
   const done = act ? (tw.t_rec_s ?? applied) : null
   return {
     id: `${sc.id}`, problem: FAULT_TYPES[sc.type] ?? sc.title, fixture, detect_s: detect, reroute_s: applied, est_s: done, pathText,
-    action: tw.action, fin, st0, faultLineIds, faultNodes: sc.fault_nodes ?? [], restored, pathLines, deadBefore, deadAfter,
+    action: tw.action, switchOps, fin, st0, faultLineIds, faultNodes: sc.fault_nodes ?? [], restored, pathLines, deadBefore, deadAfter,
     openedLines: top.lines.filter((l) => !l.tie && !fin.status[l.id]).map((l) => l.id),
   }
 }
@@ -257,6 +266,7 @@ function SimView({ name, onConnected }) {
   const [run, setRun] = useState(0)
   const [playing, setPlaying] = useState(true)
   const [sel, setSel] = useState(null)
+  const [prev, setPrev] = useState(null) // click-to-play reroute: {id, p} with p in 0..1
   const playingRef = useRef(playing)
   playingRef.current = playing
   useEffect(() => { setSimT(0); setSel(null) }, [name, run])
@@ -265,25 +275,33 @@ function SimView({ name, onConnected }) {
     return () => clearInterval(id)
   }, [total])
 
+  useEffect(() => {
+    if (!prev || prev.p >= 1) return undefined
+    const id = setTimeout(() => setPrev((x) => (x ? { ...x, p: Math.min(1, x.p + 0.04) } : x)), 100)
+    return () => clearTimeout(id)
+  }, [prev])
+
   if (topo.loading || list.loading || (!scen && !err && !list.error)) return <Loading what="fault scenarios" />
   if (topo.error || list.error || err) return <ErrorNote error={topo.error ?? list.error ?? err} />
   const rows = (derived ?? []).map((d) => ({ d, t: simT - d.start })).filter(({ d, t }) => simStatus(d, t))
   const events = rows.map(({ d, t }) => {
     const status = simStatus(d, t)
-    return { id: d.id, problem: d.problem, fixture: d.fixture, status, detect_s: d.detect_s, reroute_s: status === 'detected' ? null : d.reroute_s, est_s: d.est_s, restore_s: status === 'restored' ? d.est_s : null, pathText: d.pathText, action: d.action, d }
+    const playing = prev && prev.id === d.id && prev.p < 1
+    const shown = playing ? Math.ceil(prev.p * d.switchOps.length) : status === 'detected' ? 0 : d.switchOps.length
+    const gstatus = playing ? (prev.p < 0.25 ? 'detected' : prev.p < 0.75 ? 'rerouting' : 'restored') : status
+    return { id: d.id, problem: d.problem, fixture: d.fixture, status, gstatus, detect_s: d.detect_s, reroute_s: status === 'detected' ? null : d.reroute_s, est_s: d.est_s, remaining_s: d.est_s == null ? null : Math.max(0, d.est_s - t), restore_s: status === 'restored' ? d.est_s : null, pathText: d.pathText, action: d.action, switchOps: d.switchOps, shown, d }
   })
   const cur = events.find((e) => e.id === sel) ?? events[events.length - 1]
-  const { nodes: gn, edges: ge } = simGraph(top, cur?.d, cur?.status)
+  const { nodes: gn, edges: ge } = simGraph(top, cur?.d, cur?.gstatus ?? cur?.status)
   const skipped = (scen?.length ?? 0) - (derived?.length ?? 0)
   return (
     <Body
-      events={events} sel={cur?.id} onSelect={setSel}
+      events={events} sel={cur?.id} onSelect={(id) => { setSel(id); setPrev({ id, p: 0 }) }}
       canvas={<Canvas nodes={gn} edges={ge} label={top.title} />}
       empty="Replay starting…"
-      note={`Simulated: saved fault scenarios of ${top.title} replayed at ${SIM_SPEED}x. Times are simulated seconds (t = 0 at the fault). ${skipped > 0 ? `${skipped} saved scenario(s) were never detected, so they trigger no healing and are not listed.` : ''}`}
+      note={`Saved fault scenarios of ${top.title} replayed at ${SIM_SPEED}x. Times are in seconds (t = 0 at the fault). ${skipped > 0 ? `${skipped} saved scenario(s) were never detected, so they trigger no healing and are not listed.` : ''}`}
       controls={
         <div className="flex items-center gap-2">
-          <SimPill />
           <Button variant="secondary" onClick={() => setPlaying((p) => !p)}>{playing ? 'Pause' : 'Play'}</Button>
           <Button variant="secondary" onClick={() => { setRun((r) => r + 1); setPlaying(true) }}>Replay</Button>
         </div>
@@ -308,7 +326,31 @@ function Body({ events, sel, onSelect, canvas, empty, note, controls, live }) {
         {canvas}
         <div className="mt-3"><Legend /></div>
       </Card>
-      <Card title="Self-healing events" subtitle={live ? 'Newest last. Click a row to show it on the graph.' : 'Click a row to show it on the graph.'}>
+      {(() => {
+        const ev = events.find((e) => e.id === sel)
+        if (!ev) return null
+        const ops = ev.switchOps ?? []
+        const shown = ev.shown ?? (ev.status === 'detected' ? 0 : ops.length)
+        const eta = ev.status === 'restored' ? 'Restored' : ev.est_s == null ? 'Estimating…' : ev.remaining_s != null ? `~${fmtT(ev.remaining_s)} remaining (total ${fmtT(ev.est_s)})` : `~${fmtT(ev.est_s)}`
+        return (
+          <Card title="Switch actions & estimated healing" subtitle={`${ev.problem} · ${ev.fixture}`} action={<Pill tone={STATUS_TONE[ev.status]}>{ev.status}</Pill>}>
+            <div className="mb-3 text-sm text-slate-700">Estimated time to heal: <span className="font-semibold tabular-nums">{eta}</span></div>
+            {ops.length === 0 ? <p className="text-xs text-slate-500">No switch operation needed for this event.</p> : (
+              <ol className="space-y-1.5 text-xs">
+                {ops.map((o, i) => (
+                  <li key={i} className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 ${i < shown ? 'border-emerald-200 bg-emerald-50 text-slate-800' : 'border-slate-200 text-slate-400'}`}>
+                    <span className="w-4 tabular-nums">{i + 1}.</span>
+                    <span className={`rounded px-1.5 py-0.5 font-semibold ${o.op === 'OPEN' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>{o.op}</span>
+                    <span>{o.text}</span>
+                    <span className="ml-auto">{i < shown ? 'done' : 'pending'}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Card>
+        )
+      })()}
+      <Card title="Self-healing events" subtitle={live ? 'Newest last. Click a row to show it on the graph.' : 'Click a row to play its rerouting on the graph and list its switch actions.'}>
         {events.length === 0 ? <EmptyState>{empty}</EmptyState> : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[920px] text-left text-xs">

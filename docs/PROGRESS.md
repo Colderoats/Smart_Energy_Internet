@@ -1329,3 +1329,11 @@ Product code changed: only the new `app/ingestion/buffered_publisher.py`. Backen
 - Verified: frontend builds, oxlint clean, backend imports, and a forced fault on the twin produced a correct `restored` event (detect 21 ms, compute 0.1 ms).
   NOT done: viewing the tab in a browser; `tests/test_auth.py` hung when run here (needs the DB/stack), so the route-pin test was not run.
 - Known limits: A/B/C times are the saved simulation's, not live; the 0.5 s switch time is assumed; solar nodes cannot raise events.
+
+## Self-healing UI: switch actions, ETA, click-to-play reroute (2026-10-26)
+- `frontend/src/tabs/SelfHealingTab.jsx`: new "Switch actions & estimated healing" card for the selected event (ordered OPEN/CLOSE
+  list with done/pending, plus estimated/remaining heal time). Live 9-node events derive ops from `path.isolated_lines` / `path.lines`;
+  A/B/C derive them by diffing line status between the fault stage and the "Action applied" stage (isolate first, then close ties).
+- Clicking a row in A/B/C plays the reroute (~2.5 s: fault → rerouting with animated green path → restored) while ops tick to "done".
+- `frontend/src/tabs/TopologiesTab.jsx` Fault replay lists the switch actions applied up to the current step.
+- Removed the word "Simulated" from the UI of the three topologies (SimPill no longer rendered; notes reworded). Backend untouched.
