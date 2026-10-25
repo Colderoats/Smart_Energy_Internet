@@ -46,7 +46,7 @@ async def _push(event: dict) -> None:
     await manager.broadcast({"type": "healing_event", "event": event})
 
 
-async def start(node: dict) -> dict:
+async def start(node: dict, reason: str | None = None, recovery: dict | None = None) -> dict:
     global _seq
     _seq += 1
     status = node["health_status"]
@@ -57,7 +57,8 @@ async def start(node: dict) -> dict:
         "simulated": False,
         "time": datetime.now(timezone.utc).isoformat(),
         "problem": "Predicted equipment fault (TA-GNN)" if status == "fault_predicted" else "Equipment fault / node outage",
-        "why": f"{node['node_id']} health status went to '{status}' -> the faulty node is isolated until it is fixed",
+        "why": f"{node['node_id']} health status went to '{status}'" + (f" because {reason}" if reason else "") + " -> the faulty node is isolated until it is fixed",
+        "recovery": recovery,  # {expected_s, ends_at, basis} or None when nothing allows an estimate
         "fixture": node["node_id"],
         "detect_ms": round(_age_ms(node), 1),
         "compute_ms": None,
@@ -114,6 +115,11 @@ def _public(event: dict) -> dict:
 # ---------------------------------------------------------------------------------------------------------------
 # Incident lifecycle helpers (used by grid_protection.py and by self_healing's recovery path)
 # ---------------------------------------------------------------------------------------------------------------
+
+def past_outage_s(fixture: str) -> list[float]:
+    """Fault -> repaired durations (s) of this fixture's earlier, repaired incidents in this backend run."""
+    return [e["outage_ms"] / 1000 for e in _events if e["fixture"] == fixture and e.get("incident") == "repaired" and e.get("outage_ms")]
+
 
 def find_open(fixture: str) -> dict | None:
     ev = _open_by_fixture.get(fixture)

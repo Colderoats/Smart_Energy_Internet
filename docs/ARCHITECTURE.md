@@ -611,7 +611,7 @@ State added to `DigitalTwin` (additive): bus attr `uplink_closed` (an open uplin
 `kind` (`bus_overload` / `node_fault` / `line_fault`), `why`, `decision`, `steps[]` (`op` OPEN / CLOSE / CURTAIL, `state`, `at_ms` since the fault), `impact` (bus load / limit before + after, `moved_kw`,
 `unserved_kw`), `incident` (`active` -> `repairing` -> `repaired`, `repaired_ms`, `outage_ms`), `simulated`. Each step re-sends the event on `/ws/updates` (`healing_event`), plus `twin_node_update` for
 the touched node and both buses. Timing: `detect_ms` (fault appeared -> recognised) and `compute_ms` (plan) are measured; `est_complete_ms` of these events is the measured wall-clock total, which includes
-the simulated switch times. Routes (admin only, pinned in `backend/tests/test_auth.py`): `POST /twin/healing/simulate {kind, target, overload_pct?}` (202, work runs in the background; 400 on a bad
-request) and `POST /twin/healing/repair {event_id}`. Not on the ledger, not persisted (in memory, max 200 events). Tests: `backend/tests/test_grid_protection.py`.
-Frontend: `SelfHealingTab.jsx` live view - fault simulator, bus load meters, graph with open ties / opened switches / curtailed badges, step list, "Why, when and how long" card (phase bar with live timer) and
+the simulated switch times. The simulate / repair HTTP routes were REMOVED (2026-10-26); `grid_protection.simulate()/repair()` remain as engine functions for tests only. Not on the ledger, not persisted (in memory, max 200 events). Tests: `backend/tests/test_grid_protection.py`.
+Frontend: `SelfHealingTab.jsx` live view - bus load meters + open incidents (no simulator), graph with open ties / opened switches / curtailed badges, step list, "Why, when and how long" card (phase bar with live timer) and
 "Healing insights".
+Extra buses (live twin only): `bus_c`, `bus_d` (3000 kW, no sources) - every source can tie to them; the relief / re-feed target is the bus with the most headroom (`_alt`). Real node faults also carry `recovery {expected_s, ends_at, basis}` (SCADA Stop window in replay time, else median of earlier repairs) and a cause in `why`.

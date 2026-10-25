@@ -33,6 +33,8 @@ from app.twin.graph import HealthStatus
 
 BUS_A = "bus_a"
 BUS_B = "bus_b"
+BUS_C = "bus_c"
+BUS_D = "bus_d"
 GRID = "grid"
 
 # rated_capacity_kw: wind_01 matches WIND_RATED_POWER_KW in live_source.py;
@@ -55,6 +57,11 @@ SOURCE_NODES = [
 # the tradeoff Stage 2's scoring function needs to weigh.
 BUS_CAPACITY_KW = {BUS_A: 5000.0, BUS_B: 6500.0}
 
+
+# Two extra collector buses of the LIVE singleton only (extra_buses=True; fresh DigitalTwin() used by AI training stays
+# 9-node). They carry no source of their own: they are spare feeder / tie capacity every source can be switched onto when
+# a bus is overloaded or a feeder / uplink / node is faulted (demo capacities, not a study).
+EXTRA_BUS_CAPACITY_KW = {BUS_C: 3000.0, BUS_D: 3000.0}
 
 COMMUNITY_BUS = "community_bus"
 
@@ -82,19 +89,20 @@ PROSUMER_NODES = [
 
 
 class DigitalTwin:
-    def __init__(self, with_market: bool = False, with_solar: bool = False) -> None:
+    def __init__(self, with_market: bool = False, with_solar: bool = False, extra_buses: bool = False) -> None:
         """`with_market` adds the community bus + prosumers. Only the live
         singleton below sets it: fresh `DigitalTwin()` instances (AI training's
         default_topology, serving-parity check) stay the original 9-node graph."""
         self._graph = nx.DiGraph()
         self._lock = Lock()
         self._with_market = with_market
+        self._bus_caps = {**BUS_CAPACITY_KW, **(EXTRA_BUS_CAPACITY_KW if extra_buses else {})}
 
-        for bus_id, capacity in BUS_CAPACITY_KW.items():
+        for bus_id, capacity in self._bus_caps.items():
             self._graph.add_node(bus_id, type="bus", capacity_kw=capacity, uplink_closed=True)
         self._graph.add_node(GRID, type="grid")
-        self._graph.add_edge(BUS_A, GRID)
-        self._graph.add_edge(BUS_B, GRID)
+        for bus_id in self._bus_caps:
+            self._graph.add_edge(bus_id, GRID)
 
         for node in SOURCE_NODES + ([SOLAR_NODE, SOLAR_HARDWARE_NODE] if with_solar else []):
             other_bus = BUS_B if node["primary_via"] == BUS_A else BUS_A
@@ -106,7 +114,7 @@ class DigitalTwin:
                 latest_reading=None,
                 health_status="normal",
                 last_updated=None,
-                possible_connections=[node["primary_via"], other_bus],
+                possible_connections=[node["primary_via"], other_bus, *[b for b in self._bus_caps if b not in (node["primary_via"], other_bus)]],
                 active_connection=node["primary_via"],
                 load_share=1.0,
                 isolated=False,
@@ -242,8 +250,12 @@ class DigitalTwin:
     def set_bus_capacity(self, bus_id: str, capacity_kw: float | None) -> dict:
         """Derate (or restore, with None) a collector bus's limit. Used to inject a bus overload."""
         with self._lock:
-            self._graph.nodes[bus_id]["capacity_kw"] = BUS_CAPACITY_KW[bus_id] if capacity_kw is None else float(capacity_kw)
+            self._graph.nodes[bus_id]["capacity_kw"] = self._bus_caps[bus_id] if capacity_kw is None else float(capacity_kw)
             return self.get_node(bus_id)
+
+    def bus_ids(self) -> list[str]:
+        """The collector buses (bus_a, bus_b and, on the live twin, bus_c / bus_d); not the community bus."""
+        return list(self._bus_caps)
 
     def bus_capacity_kw(self, bus_id: str) -> float:
         return self._graph.nodes[bus_id]["capacity_kw"]
@@ -295,4 +307,4 @@ class DigitalTwin:
         return total
 
 
-digital_twin = DigitalTwin(with_market=True, with_solar=True)
+digital_twin = DigitalTwin(with_market=True, with_solar=True, extra_buses=True)

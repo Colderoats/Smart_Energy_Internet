@@ -26,11 +26,11 @@ from time import perf_counter
 
 from app.api.ws_manager import manager
 from app.twin import healing_events as he
-from app.twin.digital_twin import BUS_A, BUS_B, GRID, digital_twin
+from app.twin.digital_twin import GRID, digital_twin
 
 logger = logging.getLogger("sei")
 
-BUSES = (BUS_A, BUS_B)
+BUSES = tuple(digital_twin.bus_ids())  # bus_a, bus_b + the spare buses bus_c, bus_d of the live twin
 DEFAULT_OVERLOAD_PCT = 25.0  # injected overload: the bus limit is derated to load / (1 + pct/100)
 MIN_SHARE = 0.10  # a source is only re-fed over a tie if at least 10 % of its output fits
 
@@ -48,8 +48,9 @@ class ProtectionError(ValueError):
 
 # -- small helpers -----------------------------------------------------------------------------------------------
 
-def _other(bus: str) -> str:
-    return BUS_B if bus == BUS_A else BUS_A
+def _alt(bus: str) -> str:
+    """The bus to move load onto: the other collector bus with the most headroom (an open uplink counts as none)."""
+    return max((b for b in BUSES if b != bus), key=_room)
 
 
 def _sources() -> list[dict]:
@@ -218,7 +219,7 @@ def _cut(group: list[dict], amount: float) -> dict[str, float]:
 
 
 def _plan_relief(bus: str) -> dict:
-    other = _other(bus)
+    other = _alt(bus)
     cap, load = digital_twin.bus_capacity_kw(bus), digital_twin.bus_load_kw(bus)
     room = _room(other)
     srcs = [n for n in _sources() if n["active_connection"] == bus and not n.get("isolated") and n["load_share"] > 0]
@@ -276,7 +277,7 @@ async def _handle_overload(bus: str, t0: float, simulated: bool) -> None:
     path = {"from": bus, "to": GRID, "via": other if moved else bus, "lines": path_lines, "isolated_lines": iso_lines}
     await he.set_plan(event, [(o, t) for o, t, _ in ops], path, "reroute" if moved else "reduce_load_share")
     event["decision"] = decision
-    event["_ctx"] = {"kind": "bus_overload", "bus": bus, "moved": [s["node_id"] for s in moved], "orig": orig, "curtailed": [k for k in shares]}
+    event["_ctx"] = {"kind": "bus_overload", "bus": bus, "other": other, "moved": [s["node_id"] for s in moved], "orig": orig, "curtailed": [k for k in shares]}
     await _execute(event, ops)
     await he.complete(event, _bus_state(), plan["moved_kw"], plan["unserved"])
     logger.info("Grid protection: %s overload -> %s", bus, decision)
@@ -304,7 +305,7 @@ async def _handle_node_fault(nid: str, t0: float) -> None:
 async def _handle_feeder_fault(target: str, t0: float) -> None:
     nid, bus = _validate_line(target)
     node = digital_twin.get_node(nid)
-    alt = _other(bus)
+    alt = _alt(bus)
     event = await he.open_event(
         "line_fault", target, "Line fault (feeder)", f"Fault on feeder {nid}–{bus} [injected]: the section is isolated by opening the switches at both ends, then {nid} is re-fed over its tie to {alt}",
         t0=t0, simulated=True, impact_before=_bus_state(),
@@ -332,7 +333,7 @@ async def _handle_feeder_fault(target: str, t0: float) -> None:
 
 async def _handle_uplink_fault(target: str, t0: float) -> None:
     bus, _ = _validate_line(target)
-    alt = _other(bus)
+    alt = _alt(bus)
     event = await he.open_event(
         "line_fault", target, "Line fault (bus uplink)",
         f"Fault on the uplink {bus}–{GRID} [injected]: every source on {bus} lost its path to the grid. The section is isolated by opening both ends, then the healthy sources are re-fed over their ties to {alt}",
@@ -405,7 +406,7 @@ async def _repair_run(event: dict) -> None:
                 _sim_overload.pop(bus, None)
                 await _push_nodes(bus)
                 for nid in ctx["moved"]:
-                    ops.append(("OPEN", f"Open tie switch {nid}–{_other(bus)}", None))
+                    ops.append(("OPEN", f"Open tie switch {nid}–{ctx['other']}", None))
                     ops.append(("CLOSE", f"Close feeder switch {nid}–{bus}", lambda nid=nid: _restore(nid, ctx["orig"].get(nid, 1.0))))
                 for nid in ctx["curtailed"]:
                     if nid not in ctx["moved"]:

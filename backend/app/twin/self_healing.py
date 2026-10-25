@@ -22,7 +22,7 @@ from app import db
 from app.api.ws_manager import manager
 from app.blockchain import ledger as ledger_hooks
 from app.twin import healing_events
-from app.twin.digital_twin import BUS_A, BUS_B, digital_twin
+from app.twin.digital_twin import digital_twin
 
 logger = logging.getLogger("sei")
 
@@ -78,14 +78,14 @@ async def _handle_recovery(node: dict) -> None:
 
     await _safe_event(healing_events.repair, event, steps, apply)
     await manager.broadcast({"type": "twin_node_update", "node": digital_twin.get_node(node_id)})
-    for bus_id in (BUS_A, BUS_B):
+    for bus_id in digital_twin.bus_ids():
         await manager.broadcast({"type": "twin_node_update", "node": digital_twin.get_node(bus_id)})
     logger.info("Self-healing: %s repaired -> reconnected via %s", node_id, primary)
 
 
 async def _handle_fault(node: dict) -> None:
     node_id = node["node_id"]
-    event = await _safe_event(healing_events.start, node)  # Self-Healing Analytics (additive)
+    event = await _safe_event(healing_events.start, node, _trigger_summary(node), _recovery_info(node))  # Self-Healing Analytics (additive)
     candidates = _generate_candidates(node)
     scored = [(_score(node, c), c) for c in candidates]
     # Policy: a faulty node is ISOLATED until it is fixed (never rerouted onto another bus, never kept on curtailed).
@@ -104,7 +104,7 @@ async def _handle_fault(node: dict) -> None:
     # wouldn't otherwise see the routing/load change until its next
     # unrelated update.
     await manager.broadcast({"type": "twin_node_update", "node": updated_node})
-    for bus_id in (BUS_A, BUS_B):
+    for bus_id in digital_twin.bus_ids():
         await manager.broadcast({"type": "twin_node_update", "node": digital_twin.get_node(bus_id)})
 
     decision = {
@@ -215,6 +215,26 @@ def _reason(chosen: dict, scored: list[tuple[tuple[float, float], dict]]) -> str
         for (u, o), c in scored
     )
     return f"chose '{_describe(chosen)}' — a faulty node is isolated until it is repaired. Considered: {breakdown}"
+
+
+def _recovery_info(node: dict) -> dict | None:
+    """How long until the node is expected back. Best source first: the Kelmarsh status log's Stop window (real
+    historical data, translated to replay time); else the median of this node's earlier repaired outages; else None."""
+    from datetime import timedelta
+    from statistics import median
+
+    from app.ingestion import scada_replay
+
+    def info(seconds: float, basis: str) -> dict:
+        return {"expected_s": round(seconds, 1), "ends_at": (datetime.now(timezone.utc) + timedelta(seconds=seconds)).isoformat(), "basis": basis}
+
+    est = scada_replay.recovery_estimate(node["node_id"], (node.get("latest_reading") or {}).get("timestamp"))
+    if est:
+        return info(est["recover_in_s"], f"SCADA status log: '{est['message']}' stop ends in {est['dataset_minutes_left']:.0f} min of dataset time (replayed)")
+    past = healing_events.past_outage_s(node["node_id"])
+    if past:
+        return info(median(past), f"median of {len(past)} earlier repaired outage(s) of this node")
+    return None
 
 
 def _trigger_summary(node: dict) -> str:

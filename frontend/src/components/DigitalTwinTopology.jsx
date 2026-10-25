@@ -28,8 +28,10 @@ const POSITIONS = {
   wind_scada_kelmarsh_2: { x: 0, y: 300 },
   wind_scada_kelmarsh_3: { x: 0, y: 400 },
   wind_scada_kelmarsh_4: { x: 0, y: 500 },
-  bus_a: { x: 330, y: 120 },
-  bus_b: { x: 330, y: 390 },
+  bus_a: { x: 330, y: 70 },
+  bus_c: { x: 330, y: 210 },
+  bus_b: { x: 330, y: 350 },
+  bus_d: { x: 330, y: 490 },
   grid: { x: 630, y: 260 },
   // Prosumer market: community bus column (4 prosumer cards -> community_bus -> grid).
   prosumer_home_01: { x: 0, y: 680 },

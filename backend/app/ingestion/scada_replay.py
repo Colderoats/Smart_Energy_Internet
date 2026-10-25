@@ -170,6 +170,33 @@ def _load_fault_windows(path: Path) -> list[tuple[datetime, datetime, str]]:
     return windows
 
 
+# node_id -> its "Stop" windows from the Kelmarsh status log (filled while the replay iterator starts; real historical
+# data). Lets the twin say how long a replayed fault will last - see recovery_estimate().
+FAULT_WINDOWS: dict[str, list[tuple[datetime, datetime, str]]] = {}
+SCADA_ROW_PERIOD_S = 600.0  # Kelmarsh Turbine_Data is 10-minute SCADA
+
+
+def recovery_estimate(node_id: str, reading_ts: str | None) -> dict | None:
+    """For a replayed turbine inside a logged Stop window: the log message, the window, and how many REAL seconds of
+    replay remain until the window ends (rows left x replay interval x turbines, since the replay round-robins)."""
+    if not reading_ts:
+        return None
+    try:
+        ts = datetime.fromisoformat(reading_ts)
+    except ValueError:
+        return None
+    for start, end, message in FAULT_WINDOWS.get(node_id, []):
+        s, e, t = (x.replace(tzinfo=None) for x in (start, end, ts))
+        if s <= t <= e:
+            rows_left = max(0.0, (e - t).total_seconds() / SCADA_ROW_PERIOD_S)
+            return {
+                "message": message, "window_start": start.isoformat(), "window_end": end.isoformat(),
+                "dataset_minutes_left": round((e - t).total_seconds() / 60, 1),
+                "recover_in_s": round(rows_left * settings.scada_replay_interval_seconds * len(KNOWN_TURBINES), 1),
+            }
+    return None
+
+
 def _fault_label_for(ts: datetime, windows: list[tuple[datetime, datetime, str]]) -> str | None:
     for start, end, message in windows:
         if start <= ts <= end:
@@ -186,6 +213,7 @@ def _iter_turbine_readings(data_dir: Path, turbine_n: int, node_id: str):
     fault_windows: list[tuple[datetime, datetime, str]] = []
     for status_file in status_files:
         fault_windows.extend(_load_fault_windows(status_file))
+    FAULT_WINDOWS[node_id] = fault_windows
 
     for data_file in data_files:
         reader = _read_kelmarsh_csv(data_file)

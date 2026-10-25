@@ -90,9 +90,10 @@ function Legend() {
 
 const LIVE_POS = {
   wind_01: [0, 0], hydro_01: [0, 90], wind_scada_kelmarsh_1: [0, 180], wind_scada_kelmarsh_2: [0, 270], wind_scada_kelmarsh_3: [0, 360], wind_scada_kelmarsh_4: [0, 450],
-  solar_01: [0, 540], solar_hardware: [0, 630], bus_a: [330, 170], bus_b: [330, 430], grid: [620, 300],
+  solar_01: [0, 540], solar_hardware: [0, 630], bus_a: [330, 130], bus_c: [330, 270], bus_b: [330, 410], bus_d: [330, 550], grid: [620, 340],
 }
 const AMBER = '#f59e0b'
+const LIVE_BUSES = ['bus_a', 'bus_b', 'bus_c', 'bus_d']
 const KIND_LABEL = { bus_overload: 'Bus overload', node_fault: 'Faulty node', line_fault: 'Faulty line' }
 const OP_TONE = { OPEN: 'bg-red-100 text-red-700', CLOSE: 'bg-emerald-100 text-emerald-700', CURTAIL: 'bg-amber-100 text-amber-700' }
 
@@ -182,16 +183,10 @@ function normLive(e) {
   }
 }
 
-async function postJson(path, body) {
-  const res = await apiFetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail ?? `HTTP ${res.status}`)
-  return res.json()
-}
-
 function BusMeters({ nodes }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      {['bus_a', 'bus_b'].map((id) => {
+      {LIVE_BUSES.map((id) => {
         const b = nodes[id]
         if (!b) return null
         const pct = Math.min(100, (b.current_load_kw / b.capacity_kw) * 100)
@@ -212,57 +207,20 @@ function BusMeters({ nodes }) {
   )
 }
 
-function Simulator({ nodes, events }) {
-  const [kind, setKind] = useState('bus_overload')
-  const [target, setTarget] = useState('bus_a')
-  const [pct, setPct] = useState(25)
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState(null)
-  const sources = Object.values(nodes).filter((n) => n.possible_connections)
-  let targets
-  if (kind === 'bus_overload') targets = ['bus_a', 'bus_b']
-  else if (kind === 'node_fault') targets = sources.filter((n) => !n.isolated).map((n) => n.node_id)
-  else targets = [...sources.filter((n) => n.active_connection).map((n) => `${n.node_id}>${n.active_connection}`), ...['bus_a', 'bus_b'].filter((b) => nodes[b]?.uplink_closed !== false).map((b) => `${b}>grid`)]
-  const cur = targets.includes(target) ? target : targets[0]
+function Incidents({ nodes, events }) {
   const open = events.filter((e) => e.incident === 'active' || e.incident === 'repairing')
-  const run = async (fn) => {
-    setBusy(true); setErr(null)
-    try { await fn() } catch (e) { setErr(String(e.message ?? e)) } finally { setBusy(false) }
-  }
   return (
-    <Card title="Fault simulator" subtitle="Injects a SIMULATED fault into the live twin (no real switch hardware exists). The twin detects it, isolates the faulty part and re-routes. Watch it below.">
+    <Card title="Bus loads and open incidents" subtitle="Rated output x load share per bus. An overloaded bus is relieved by moving sources over a tie switch to the bus with the most headroom (bus C / bus D are spare buses).">
       <div className="space-y-4">
         <BusMeters nodes={nodes} />
-        <div className="flex flex-wrap items-end gap-3">
-          <Segmented options={[{ id: 'bus_overload', label: 'Bus overload' }, { id: 'node_fault', label: 'Faulty node' }, { id: 'line_fault', label: 'Faulty line' }]} value={kind} onChange={(k) => { setKind(k); setTarget(undefined) }} />
-          <label className="text-xs text-slate-500">
-            {kind === 'bus_overload' ? 'Bus' : kind === 'node_fault' ? 'Node' : 'Line'}
-            <select className="mt-0.5 block rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800" value={cur ?? ''} onChange={(e) => setTarget(e.target.value)}>
-              {targets.map((t) => <option key={t} value={t}>{lineName(t)}</option>)}
-            </select>
-          </label>
-          {kind === 'bus_overload' && (
-            <label className="text-xs text-slate-500">Overload {pct}%
-              <input type="range" min={10} max={60} step={5} value={pct} onChange={(e) => setPct(Number(e.target.value))} className="mt-1 block w-32" />
-            </label>
-          )}
-          <Button disabled={busy || !cur} onClick={() => run(() => postJson('/twin/healing/simulate', { kind, target: cur, overload_pct: pct }))}>Inject fault</Button>
-        </div>
-        {kind === 'bus_overload' && <p className="text-xs text-slate-500">The bus limit is derated so its present load is {pct}% over it. The twin moves sources to the other bus (open feeder, close tie) as far as that bus has headroom and curtails the rest. Bus B only has room to take part of a turbine, so it reroutes only at a large overload.</p>}
-        {kind === 'node_fault' && <p className="text-xs text-slate-500">The faulty node is isolated (switches opened at both ends of its feeder) and stays isolated until you repair it.</p>}
-        {kind === 'line_fault' && <p className="text-xs text-slate-500">The faulted section is isolated by opening the switch at both ends, then the healthy sources that lost their path are re-fed by closing a tie switch to the other bus.</p>}
-        {err && <p className="text-xs text-red-600">{err}</p>}
-        {open.length > 0 && (
+        {open.length === 0 ? <p className="text-xs text-slate-500">No open incident. A faulty node is isolated and reconnected by itself when its fault clears.</p> : (
           <div className="space-y-1.5">
-            <div className="text-xs font-medium text-slate-500">Open incidents</div>
             {open.map((e) => (
               <div key={e.id} className="flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs">
                 <Pill tone="bad">{KIND_LABEL[e.kind] ?? e.problem}</Pill>
                 <span className="font-medium text-slate-800">{lineName(e.fixture)}</span>
-                <span className="text-slate-500">{e.incident === 'repairing' ? 'repairing…' : e.status === 'restored' ? 'isolated / re-routed, awaiting repair' : e.status}</span>
-                {e.simulated
-                  ? <Button variant="secondary" className="ml-auto" disabled={busy || e.incident === 'repairing'} onClick={() => run(() => postJson('/twin/healing/repair', { event_id: e.id }))}>Repair</Button>
-                  : <span className="ml-auto text-slate-400">reconnects when the SCADA fault clears</span>}
+                <span className="text-slate-500">{e.incident === 'repairing' ? 'repairing…' : e.status === 'restored' ? 'isolated / re-routed, waiting for the fault to clear' : e.status}</span>
+                <RecoveryText e={e} className="ml-auto" />
               </div>
             ))}
           </div>
@@ -270,6 +228,15 @@ function Simulator({ nodes, events }) {
       </div>
     </Card>
   )
+}
+
+// Expected recovery of a still-open incident: countdown to `recovery.ends_at` (server estimate), or the reason there is none.
+function RecoveryText({ e, className = '' }) {
+  const now = useNow(1000)
+  if (e.incident === 'repaired') return <span className={`text-emerald-700 ${className}`}>recovered in {fmtT((e.outage_ms ?? 0) / 1000)}</span>
+  if (!e.recovery) return <span className={`text-slate-400 ${className}`}>recovery time unknown</span>
+  const left = (Date.parse(e.recovery.ends_at) - now) / 1000
+  return <span className={`tabular-nums text-slate-700 ${className}`}>{left > 0 ? `recovers in ~${fmtT(left)}` : 'recovery due, waiting for the fault to clear'}</span>
 }
 
 function PhaseBar({ ev, now }) {
@@ -317,6 +284,8 @@ function InsightCard({ ev, now }) {
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[70px_1fr]">
           <dt className="text-slate-500">Why</dt><dd>{e.why}</dd>
           {e.decision && <><dt className="text-slate-500">Action</dt><dd>{e.decision}</dd></>}
+          <dt className="text-slate-500">Recovery</dt>
+          <dd><RecoveryText e={e} />{e.recovery && e.incident !== 'repaired' && <span className="text-xs text-slate-500"> · expected total {fmtT(e.recovery.expected_s)} from the fault · basis: {e.recovery.basis}</span>}</dd>
           <dt className="text-slate-500">When</dt>
           <dd className="tabular-nums">fault at <b>{clock(e.time)}</b>{restoredAt && <> · restored at <b>{clock(restoredAt)}</b></>}{e.repaired_at && <> · repaired at <b>{clock(e.repaired_at)}</b></>}</dd>
         </dl>
@@ -331,7 +300,7 @@ function InsightCard({ ev, now }) {
             <div className="rounded-xl bg-emerald-50 p-3"><div className="text-xs text-emerald-700">Re-routed / kept supplied</div><div className="text-lg font-semibold tabular-nums text-emerald-800">{kw(imp.moved_kw)}</div></div>
             <div className="rounded-xl bg-amber-50 p-3"><div className="text-xs text-amber-700">Curtailed / left unserved</div><div className="text-lg font-semibold tabular-nums text-amber-800">{kw(imp.unserved_kw)}</div></div>
             <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-              {['bus_a', 'bus_b'].map((b) => <div key={b} className="tabular-nums"><b>{nodeLabel(b)}</b>: {kw(imp.before[b].load_kw)} → {kw(imp.after[b].load_kw)} <span className="text-slate-400">(limit {kw(imp.after[b].capacity_kw)})</span></div>)}
+              {LIVE_BUSES.filter((b) => imp.before[b] && imp.after[b]).map((b) => <div key={b} className="tabular-nums"><b>{nodeLabel(b)}</b>: {kw(imp.before[b].load_kw)} → {kw(imp.after[b].load_kw)} <span className="text-slate-400">(limit {kw(imp.after[b].capacity_kw)})</span></div>)}
             </div>
           </div>
         )}
@@ -367,11 +336,11 @@ function LiveView({ onConnected }) {
   return (
     <Body
       events={events} sel={cur?.id} onSelect={setSel} live
-      top={<Simulator nodes={nodes} events={healingEvents} />}
+      top={<Incidents nodes={nodes} events={healingEvents} />}
       insights={<Insights events={events} />}
       canvas={<Canvas nodes={gn} edges={ge} label="Live 9-node twin" />}
-      empty="No self-healing event yet. Inject a fault above, or wait for the replayed Kelmarsh turbines to fault."
-      note="Live from the Digital Twin (/ws/updates). Faint dashed lines are open tie switches; red dashed = opened (isolating) switches or the faulted line; green = the new path."
+      empty="No self-healing event yet. Waiting for a replayed Kelmarsh turbine to fault, or a bus to overload."
+      note="Live from the Digital Twin (/ws/updates). Faint dashed lines are open tie switches (every source can be tied to every bus; only the closed ones are drawn solid); red dashed = opened (isolating) switches or the faulted line; green = the new path."
     />
   )
 }

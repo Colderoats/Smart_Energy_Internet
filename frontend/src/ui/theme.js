@@ -50,6 +50,8 @@ export function nodeLabel(id) {
       hydro_01: 'Hydro plant (live)',
       bus_a: 'Bus A',
       bus_b: 'Bus B',
+      bus_c: 'Bus C (spare)',
+      bus_d: 'Bus D (spare)',
       grid: 'Main grid',
       federated_server: 'FL server',
       community_bus: 'Community bus',

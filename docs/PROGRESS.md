@@ -1363,3 +1363,17 @@ Product code changed: only the new `app/ingestion/buffered_publisher.py`. Backen
   With the demo capacities Bus B only has 500 kW headroom, so a bus_b overload only reroutes (part of) a turbine at large severity (about 35 %+); at 25 % it curtails in place.
 - **Pre-existing, not touched:** `tests/test_auth.py::test_every_non_public_route_requires_auth` already failed before this change because `GET /nodes/stream` and
   `POST /nodes/{id}/stream/{x}` are missing from its pin list; the two new routes are pinned.
+
+## Live protection follow-up: simulator removed, spare buses, fault reason + recovery time (2026-10-26)
+- **Fault simulator removed** from the Self-Healing tab and the HTTP API (`POST /twin/healing/simulate` and `/repair` are gone; pin list in `tests/test_auth.py` updated). The engine functions
+  `grid_protection.simulate()/repair()` stay (used by `tests/test_grid_protection.py`, not exposed). The tab now shows "Bus loads and open incidents" (read-only) instead.
+- **Two more buses, `bus_c` and `bus_d`** (3000 kW each, live singleton only via `DigitalTwin(extra_buses=True)`; fresh `DigitalTwin()` for AI stays the 9-node graph). They have no source of their own: every
+  source's `possible_connections` is now `[primary, old other bus, bus_c, bus_d]`. `grid_protection._alt(bus)` picks the target bus with the MOST headroom, so overload relief, feeder and uplink faults now
+  re-feed onto bus_c / bus_d first. `digital_twin.bus_ids()` lists the collector buses. Overloaded bus -> reroute is unchanged in logic (`check_overloads`, after every reading); it is now automatic only,
+  and with rated x share loads nothing overloads a bus on its own - the only way to trigger it now is a limit/load change (tests call `simulate()`).
+- **Why faulty + time to recover** (real faults, `self_healing._handle_fault`): `why` now states the cause (ground-truth SCADA label / statistical threshold / TA-GNN forecast). New `recovery` field on the event
+  `{expected_s, ends_at, basis}`: from the Kelmarsh status-log "Stop" window of that turbine (`scada_replay.FAULT_WINDOWS`, `recovery_estimate`) translated to replay time (rows left x 2 s x 4 turbines;
+  10-min SCADA rows), else the median of that node's earlier repaired outages, else none ("recovery time unknown"). The tab shows a live countdown and, after repair, the actual fault-to-repair time.
+- **Tests:** `test_grid_protection.py` adapted (+ extra-bus test, route test dropped), `test_market.py` node-set test now includes bus_c / bus_d. Backend: 105 pass; only the pre-existing
+  `test_every_non_public_route_requires_auth` (stream routes missing from its pin list) still fails. Frontend builds, oxlint clean. NOT viewed in a browser.
+
