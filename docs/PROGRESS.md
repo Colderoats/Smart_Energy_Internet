@@ -1389,3 +1389,9 @@ Product code changed: only the new `app/ingestion/buffered_publisher.py`. Backen
 - Dashboard "Total consumption" now = sum of the collector-bus loads (twin model, not metered); mock tag removed.
 - Self-Healing graph is laid out as a mesh (buses + grid in the centre, sources around, a dashed tie from every source to every bus). The backend still has no bus-to-bus links.
 - Backend tests: 104 pass (one pre-existing auth test deselected). `test_market` expected live-only node set updated. UI not viewed in a browser.
+
+## Node layout fix + live Self-Healing map (2026-10-27)
+- **Overlap fixed:** `solar_01`, `solar_hardware`, `solar_02` and `battery_01` had no entry in the fixed layouts, so they fell back to (0,0) and stacked on `wind_01`. Added positions in `components/TopologyView.jsx` (Live Data) and `components/DigitalTwinTopology.jsx` (Digital Twin; the prosumer column and `community_bus` moved down to make room). The Self-Healing mesh (`LIVE_POS`) already had positions. A/B/C (Topologies tab, positions from the backend) not touched.
+- **Self-Healing "Live 9-node" renamed "Live nodes"** (segmented label, map aria-label, code comment). Event-source wording in ARCHITECTURE.md left as is.
+- **Live map:** node cards show the current output (kW x load share); a closed feeder is animated and coloured while its source produces; a new incident automatically takes over the map (clicking a row still pins an older one); the map refits when the node set changes. All from the existing twin WebSocket, no backend change. A/B/C stay saved-scenario replays (no live stream exists for them).
+- Frontend builds; oxlint shows only the 2 older warnings (`Incidents` unused, `DashboardTab` fast-refresh). Backend untouched. NOT viewed in a browser.

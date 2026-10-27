@@ -11,7 +11,7 @@ import { ErrorNote, Loading } from '../testbed/common'
 import { useTestbed } from '../testbed/useTestbed'
 
 // Self-Healing Analytics. One event table + summary + topology overlay for four topologies:
-//  - Live 9-node twin (incl. solar_01 and the solar hardware node): events come from the backend
+//  - Live nodes twin (incl. solar_01 and the solar hardware node): events come from the backend
 //    (app/twin/healing_events.py) over the existing /ws/updates socket via useDigitalTwinSocket.
 //  - A radial / B meshed / C IEEE 33-bus: no live stream exists for these (they are saved simulation
 //    results), so the saved fault scenarios (/testbed/topologies/{A,B,C}/faults) are replayed in real time
@@ -19,7 +19,7 @@ import { useTestbed } from '../testbed/useTestbed'
 // Overlay: red = faulted element, grey = isolated section, animated green = new path.
 
 const TOPS = [
-  { id: 'live', label: 'Live 9-node' },
+  { id: 'live', label: 'Live nodes' },
   { id: 'A', label: 'A Radial' },
   { id: 'B', label: 'B Meshed' },
   { id: 'C', label: 'C IEEE 33-bus' },
@@ -129,7 +129,11 @@ function liveGraph(twinNodes, ev) {
       else if (n.type === 'grid') sub = undefined
       else if (n.isolated) sub = 'ISOLATED'
       else if (n.load_share < 1) sub = `curtailed ${Math.round(n.load_share * 100)}%`
-      else sub = n.node_id === 'solar_hardware' ? 'ESP32 sensed' : n.source_type === 'live' ? 'Live' : 'Replayed'
+      else {
+        const base = n.node_id === 'solar_hardware' ? 'ESP32 sensed' : n.source_type === 'live' ? 'Live' : 'Replayed'
+        const out = n.latest_reading?.power_output
+        sub = out == null ? base : `${base} · ${Math.round(out * (n.load_share ?? 1)).toLocaleString()} kW`
+      }
       return {
         id: n.node_id, type: 'heal', draggable: false,
         position: { x: LIVE_POS[n.node_id][0], y: LIVE_POS[n.node_id][1] },
@@ -158,7 +162,11 @@ function liveGraph(twinNodes, ev) {
       if (n.active_connection === via) {
         const tied = via !== n.possible_connections[0]
         if (pathKeys.has(key)) add(edge(key, n.node_id, via, { color: GREEN, width: 3.5, animated: true, label: tied ? 'tie closed' : undefined }))
-        else add(edge(key, n.node_id, via, tied ? { color: GREEN, width: 2, label: 'tie closed' } : {}))
+        else {
+          // Live flow: animate the closed feeder while the source is actually producing.
+          const flowing = !n.isolated && (n.latest_reading?.power_output ?? 0) > 0
+          add(edge(key, n.node_id, via, tied ? { color: GREEN, width: 2, label: 'tie closed', animated: flowing } : { color: flowing ? SOURCE_COLORS[n.type] ?? GREY : GREY, width: flowing ? 2 : 1.5, animated: flowing }))
+        }
       } else if (!(path?.isolated_lines ?? []).some(([a, b]) => a === n.node_id && b === via)) {
         add(edge(`tie-${key}`, n.node_id, via, { color: '#cbd5e1', dashed: true, width: 1 })) // normally-open tie switch
       }
@@ -410,6 +418,7 @@ function LiveView({ onConnected }) {
   useEffect(() => onConnected(connected), [connected, onConnected])
   const events = useMemo(() => healingEvents.map(normLive), [healingEvents])
   const [sel, setSel] = useState(null)
+  useEffect(() => setSel(null), [events.length]) // a new incident takes over the map; clicking a row pins an older one
   const cur = events.find((e) => e.id === sel) ?? events[events.length - 1]
   const { nodes: gn, edges: ge } = useMemo(() => liveGraph(nodes, cur?.raw), [nodes, cur])
   return (
@@ -419,7 +428,7 @@ function LiveView({ onConnected }) {
         <BusMeters nodes={nodes} />
       </Card>
       <Card title="Grid map" subtitle="Red = faulty node or line, grey = isolated, green = new path, dashed grey = unused tie switch.">
-        <Canvas nodes={gn} edges={ge} label="Live 9-node twin" />
+        <Canvas key={gn.length} nodes={gn} edges={ge} label="Live node twin" />
         <div className="mt-3"><Legend /></div>
       </Card>
       <details className="rounded-2xl border border-slate-200 bg-white p-4">

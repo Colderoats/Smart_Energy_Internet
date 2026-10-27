@@ -17,6 +17,10 @@ const POSITIONS = {
   wind_scada_kelmarsh_2: { x: 0, y: 320 },
   wind_scada_kelmarsh_3: { x: 0, y: 420 },
   wind_scada_kelmarsh_4: { x: 0, y: 520 },
+  solar_01: { x: 0, y: 640 },
+  solar_hardware: { x: 0, y: 740 },
+  solar_02: { x: 0, y: 840 },
+  battery_01: { x: 0, y: 940 },
   grid: { x: 360, y: 260 },
 }
 

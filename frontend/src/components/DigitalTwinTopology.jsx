@@ -34,11 +34,16 @@ const POSITIONS = {
   bus_d: { x: 330, y: 490 },
   grid: { x: 630, y: 260 },
   // Prosumer market: community bus column (4 prosumer cards -> community_bus -> grid).
-  prosumer_home_01: { x: 0, y: 680 },
-  prosumer_apartment_01: { x: 0, y: 840 },
-  prosumer_shop_01: { x: 0, y: 1000 },
-  prosumer_school_01: { x: 0, y: 1160 },
-  community_bus: { x: 640, y: 930 },
+  // Solar / battery sources sit below the wind and hydro cards (they used to fall back to 0,0 and stack on wind_01).
+  solar_01: { x: 0, y: 620 },
+  solar_hardware: { x: 0, y: 720 },
+  solar_02: { x: 0, y: 820 },
+  battery_01: { x: 0, y: 920 },
+  prosumer_home_01: { x: 0, y: 1100 },
+  prosumer_apartment_01: { x: 0, y: 1260 },
+  prosumer_shop_01: { x: 0, y: 1420 },
+  prosumer_school_01: { x: 0, y: 1580 },
+  community_bus: { x: 640, y: 1350 },
 }
 
 // Temporary trade edges for the prosumer market. Seller -> buyer, violet (blockchain): dashed

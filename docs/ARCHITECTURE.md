@@ -587,7 +587,7 @@ rerouting path from -> to via lines, estimated completion time, status detected 
 
 | Topology | Event source | Live? |
 |---|---|---|
-| Live 9-node twin (+ `solar_01`, `solar_hardware`) | `app/twin/healing_events.py`, called from `self_healing._handle_fault` (wrapped in try/except, never affects the decision). Pushed as WS `healing_event` on `/ws/updates` (same `id` re-sent as status moves), read by `useDigitalTwinSocket` (`healingEvents`); initial list `GET /twin/healing-events` (in memory since backend start, max 200) | Yes - real twin stream |
+| Live nodes twin (tab label "Live nodes"; + `solar_01`, `solar_hardware`) | `app/twin/healing_events.py`, called from `self_healing._handle_fault` (wrapped in try/except, never affects the decision). Pushed as WS `healing_event` on `/ws/updates` (same `id` re-sent as status moves), read by `useDigitalTwinSocket` (`healingEvents`); initial list `GET /twin/healing-events` (in memory since backend start, max 200) | Yes - real twin stream |
 | A radial, B meshed, C IEEE 33-bus | The saved fault scenarios from `GET /testbed/topologies/{A,B,C}/faults[/{id}]`, replayed in the browser at 25x. Path = BFS from the grid over lines closed after the action; closed tie switches named. Undetected scenarios are not listed | Simulated replay (no live stream exists for these) |
 
 Live-event times: `detect_ms` = age of the node's latest reading when the fault is acted on (measured); `compute_ms` = candidate generation + scoring + apply (measured);
