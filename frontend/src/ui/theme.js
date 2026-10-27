@@ -8,6 +8,7 @@ export const SOURCE_COLORS = {
   hydro: '#3b82f6', // blue
   grid: '#64748b', // slate
   storage: '#64748b',
+  battery: '#8b5cf6', // violet-ish storage
   bus: '#64748b',
 }
 
@@ -21,7 +22,7 @@ export const STATUS_COLORS = {
 export const CHAIN_COLOR = '#7c3aed' // violet
 export const ACCENT = '#4f46e5' // indigo
 
-export const SOURCE_LABELS = { solar: 'Solar', wind: 'Wind', hydro: 'Hydro', grid: 'Grid', bus: 'Bus' }
+export const SOURCE_LABELS = { solar: 'Solar', wind: 'Wind', hydro: 'Hydro', battery: 'Battery', grid: 'Grid', bus: 'Bus' }
 
 // health_status -> status tone used by pills, rings and node borders.
 export const HEALTH_TONE = {
@@ -47,6 +48,8 @@ export function nodeLabel(id) {
   return (
     {
       wind_01: 'Wind farm (live)',
+      solar_02: 'Solar farm 2',
+      battery_01: 'Battery',
       hydro_01: 'Hydro plant (live)',
       bus_a: 'Bus A',
       bus_b: 'Bus B',

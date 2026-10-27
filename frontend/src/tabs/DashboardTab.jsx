@@ -5,7 +5,6 @@ import { useReportConnection } from '../ui/AppShell'
 import { Card, EmptyState, Pill, StatCard } from '../ui/components'
 import { fmtNum } from '../ui/format'
 import { CHART, HEALTH_LABEL, HEALTH_TONE, SOURCE_COLORS, nodeLabel } from '../ui/theme'
-import { mockConsumptionKw } from '../mocks/uiMocks'
 
 // Dashboard: live overview. Everything is derived from the existing Digital
 // Twin hook (initial GET /twin/nodes + /twin/decisions, then WebSocket
@@ -199,6 +198,8 @@ export default function DashboardTab() {
   const { series, stream } = useLiveBuffers(nodes)
 
   const sources = list.filter(isSource)
+  // Twin figure: kW carried by the collector buses (rated x load share x demand cycle), not metered demand.
+  const consumption = sumBy(list, (n) => n.type === 'bus' && !n.community, (n) => n.current_load_kw)
   const generation = sumBy(sources, () => true, (n) => n.latest_reading?.power_output)
   const healthy = sources.filter((n) => (n.health_status ?? 'normal') === 'normal').length
   const active = sources.filter((n) => !n.isolated && n.latest_reading).length
@@ -208,7 +209,7 @@ export default function DashboardTab() {
     <div className="mx-auto max-w-7xl space-y-6 p-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total generation" value={fmtNum(generation / 1000, 2)} unit="MW" icon="bolt" color="#14b8a6" hint="All sources, latest reading" />
-        <StatCard label="Total consumption" value={fmtNum(mockConsumptionKw(generation) / 1000, 2)} unit="MW" icon="plug" color="#64748b" mock />
+        <StatCard label="Total consumption" value={fmtNum(consumption / 1000, 2)} unit="MW" icon="plug" color="#64748b" hint="Sum of bus loads (twin model)" />
         <StatCard
           label="Grid stability"
           value={stability ?? '—'}

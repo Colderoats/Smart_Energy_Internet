@@ -88,9 +88,14 @@ function Legend() {
 
 // ---------- live 9-node ----------
 
+// Mesh layout: the four buses and the grid in the middle, the sources around them. Every source has a tie to every bus
+// (dashed lines), so the picture is a mesh rather than a tree.
 const LIVE_POS = {
-  wind_01: [0, 0], hydro_01: [0, 90], wind_scada_kelmarsh_1: [0, 180], wind_scada_kelmarsh_2: [0, 270], wind_scada_kelmarsh_3: [0, 360], wind_scada_kelmarsh_4: [0, 450],
-  solar_01: [0, 540], solar_hardware: [0, 630], bus_a: [330, 130], bus_c: [330, 270], bus_b: [330, 410], bus_d: [330, 550], grid: [620, 340],
+  grid: [380, 250],
+  bus_a: [190, 120], bus_b: [570, 120], bus_c: [190, 380], bus_d: [570, 380],
+  wind_01: [0, -40], hydro_01: [200, -40], wind_scada_kelmarsh_1: [400, -40], wind_scada_kelmarsh_2: [600, -40],
+  wind_scada_kelmarsh_3: [800, 120], wind_scada_kelmarsh_4: [800, 250],
+  solar_01: [800, 380], solar_hardware: [600, 540], solar_02: [400, 540], battery_01: [200, 540], 
 }
 const AMBER = '#f59e0b'
 const LIVE_BUSES = ['bus_a', 'bus_b', 'bus_c', 'bus_d']

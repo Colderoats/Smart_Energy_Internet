@@ -70,6 +70,11 @@ class Settings(BaseSettings):
     # Solar plant source (app/ingestion/solar_source.py): "replay" = bundled small dataset, "sensed" = ESP32 feed.
     solar_source: str = "replay"
     solar_replay_seconds: float = 15.0
+
+    # Live twin demand cycle (app/twin/load_profile.py): bus loads swing +-AMPLITUDE around normal over PERIOD seconds so a bus
+    # overloads (and later recovers) by itself. PERIOD 0 turns it off.
+    load_profile_period_s: float = 240.0
+    load_profile_amplitude: float = 0.12
     # solar_hardware node (app/ingestion/solar_hardware.py): serial port of the ESP32 + INA219 (e.g. COM3); unset = off.
     solar_hardware_port: str | None = None
     solar_hardware_baud: int = 115200

@@ -26,6 +26,8 @@ from app.ingestion.poller import run_live_poller
 from app.ingestion.prosumer_source import run_prosumer_poller
 from app.ingestion.solar_hardware import run_solar_hardware, run_solar_hardware_mqtt
 from app.ingestion.solar_source import run_solar_replay
+from app.twin.extra_sources import run_extra_sources
+from app.twin.load_profile import run_load_profile
 from app.market.service import market
 from app.ingestion.scada_replay import run_scada_replay
 
@@ -73,6 +75,8 @@ async def lifespan(app: FastAPI):
     background_tasks.append(asyncio.create_task(run_solar_replay()))
     background_tasks.append(asyncio.create_task(run_solar_hardware()))
     background_tasks.append(asyncio.create_task(run_solar_hardware_mqtt()))
+    background_tasks.append(asyncio.create_task(run_extra_sources()))
+    background_tasks.append(asyncio.create_task(run_load_profile()))
 
     yield
 

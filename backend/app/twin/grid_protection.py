@@ -58,7 +58,7 @@ def _sources() -> list[dict]:
 
 
 def _contrib(n: dict) -> float:
-    return n["rated_capacity_kw"] * n["load_share"]
+    return n["rated_capacity_kw"] * n["load_share"] * digital_twin.demand_factor
 
 
 def _uplink_closed(bus: str) -> bool:
@@ -437,3 +437,19 @@ def _restore(nid: str, share: float = 1.0) -> list[str]:
     digital_twin.reroute_node(nid, _primary(node))
     digital_twin.set_load_share(nid, share)
     return [nid]
+
+
+# -- natural overloads (load_profile) -------------------------------------------------------------------------------
+
+RECOVER_AT = 0.97  # a self-made overload is repaired once the home bus could take its sources back below 97 % of its limit
+
+
+async def auto_recover() -> None:
+    """Repair overload incidents that came from the demand cycle (not injected) once the demand has dropped enough."""
+    for bus, event in list(_overload_events.items()):
+        ctx = event.get("_ctx")
+        if event.get("simulated") or event.get("incident") != "active" or event.get("status") != "restored" or not ctx:
+            continue
+        back = sum(digital_twin.get_node(n)["rated_capacity_kw"] * ctx["orig"].get(n, 1.0) for n in ctx["moved"]) * digital_twin.demand_factor
+        if digital_twin.bus_load_kw(bus) + back <= digital_twin.bus_capacity_kw(bus) * RECOVER_AT:
+            await repair(event["id"])

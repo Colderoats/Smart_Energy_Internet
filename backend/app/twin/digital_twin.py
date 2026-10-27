@@ -75,6 +75,14 @@ SOLAR_HARDWARE_RATED_KW = 0.000526
 SOLAR_HARDWARE_NODE = {"node_id": "solar_hardware", "type": "solar", "source_type": "live",
                        "rated_capacity_kw": SOLAR_HARDWARE_RATED_KW, "primary_via": BUS_A}
 
+# Extra simulated sources of the LIVE singleton only (extra_nodes=True), sitting on the spare buses so the live grid reads as a
+# mesh (every source can be tied to every bus). Fed by app/twin/extra_sources.py straight into this twin; Module 1's graph,
+# the AI and self-healing detection never see them (an injected fault or an overload can still move / isolate them).
+EXTRA_SOURCE_NODES = [
+    {"node_id": "solar_02", "type": "solar", "source_type": "simulated", "rated_capacity_kw": 120.0, "primary_via": BUS_C},
+    {"node_id": "battery_01", "type": "battery", "source_type": "simulated", "rated_capacity_kw": 500.0, "primary_via": BUS_D},
+]
+
 # Prosumer market: four SIMULATED buildings on a separate community bus (kW
 # arithmetic, not a power-flow model). Added to the digital twin only; Module 1's
 # `twin` graph, bus_a / bus_b and the 6 sources above are untouched. The AI
@@ -89,13 +97,15 @@ PROSUMER_NODES = [
 
 
 class DigitalTwin:
-    def __init__(self, with_market: bool = False, with_solar: bool = False, extra_buses: bool = False) -> None:
+    def __init__(self, with_market: bool = False, with_solar: bool = False, extra_buses: bool = False, extra_nodes: bool = False) -> None:
         """`with_market` adds the community bus + prosumers. Only the live
         singleton below sets it: fresh `DigitalTwin()` instances (AI training's
         default_topology, serving-parity check) stay the original 9-node graph."""
         self._graph = nx.DiGraph()
         self._lock = Lock()
         self._with_market = with_market
+        # Slow multiplier on every source's routed output (app/twin/load_profile.py). 1.0 = off, so tests / AI training are unchanged.
+        self.demand_factor = 1.0
         self._bus_caps = {**BUS_CAPACITY_KW, **(EXTRA_BUS_CAPACITY_KW if extra_buses else {})}
 
         for bus_id, capacity in self._bus_caps.items():
@@ -104,7 +114,7 @@ class DigitalTwin:
         for bus_id in self._bus_caps:
             self._graph.add_edge(bus_id, GRID)
 
-        for node in SOURCE_NODES + ([SOLAR_NODE, SOLAR_HARDWARE_NODE] if with_solar else []):
+        for node in SOURCE_NODES + ([SOLAR_NODE, SOLAR_HARDWARE_NODE] if with_solar else []) + (EXTRA_SOURCE_NODES if extra_nodes else []):
             other_bus = BUS_B if node["primary_via"] == BUS_A else BUS_A
             self._graph.add_node(
                 node["node_id"],
@@ -303,8 +313,8 @@ class DigitalTwin:
         for node_id in self._graph.predecessors(bus_id):
             attrs = self._graph.nodes[node_id]
             if attrs.get("active_connection") == bus_id:
-                total += attrs["rated_capacity_kw"] * attrs["load_share"]
+                total += attrs["rated_capacity_kw"] * attrs["load_share"] * self.demand_factor
         return total
 
 
-digital_twin = DigitalTwin(with_market=True, with_solar=True, extra_buses=True)
+digital_twin = DigitalTwin(with_market=True, with_solar=True, extra_buses=True, extra_nodes=True)
