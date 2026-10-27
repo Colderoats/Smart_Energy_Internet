@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Background, Controls, Handle, Position, ReactFlow } from '@xyflow/react'
+import { Background, Controls, Handle, Position, ReactFlow, useReactFlow } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { apiFetch } from '../auth/api'
 import { useDigitalTwinSocket } from '../hooks/useDigitalTwinSocket'
@@ -65,12 +65,23 @@ const edge = (id, source, target, { color = GREY, width = 1.5, dashed = false, a
   style: { stroke: color, strokeWidth: width, strokeDasharray: dashed ? '5 4' : undefined },
 })
 
+// Re-fits the view (debounced) when the node count changes, e.g. nodes arriving over the socket after mount.
+function Refit({ count }) {
+  const { fitView } = useReactFlow()
+  useEffect(() => {
+    const id = setTimeout(() => fitView({ padding: 0.12, duration: 200 }), 250)
+    return () => clearTimeout(id)
+  }, [count, fitView])
+  return null
+}
+
 function Canvas({ nodes, edges, label }) {
   return (
     <div className="h-[520px] rounded-xl border border-slate-200 bg-slate-50" role="img" aria-label={label}>
       <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.12 }} nodesConnectable={false} nodesDraggable={false} proOptions={{ hideAttribution: true }} minZoom={0.2}>
         <Background color="#e2e8f0" gap={24} />
         <Controls showInteractive={false} />
+        <Refit count={nodes.length} />
       </ReactFlow>
     </div>
   )
@@ -428,7 +439,7 @@ function LiveView({ onConnected }) {
         <BusMeters nodes={nodes} />
       </Card>
       <Card title="Grid map" subtitle="Red = faulty node or line, grey = isolated, green = new path, dashed grey = unused tie switch.">
-        <Canvas key={gn.length} nodes={gn} edges={ge} label="Live node twin" />
+        <Canvas nodes={gn} edges={ge} label="Live node twin" />
         <div className="mt-3"><Legend /></div>
       </Card>
       <details className="rounded-2xl border border-slate-200 bg-white p-4">
