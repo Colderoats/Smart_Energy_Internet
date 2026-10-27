@@ -326,6 +326,80 @@ function Insights({ events }) {
   )
 }
 
+// Who was moved where, derived from the event's path: opened feeder -> closed tie. `to: null` = just disconnected.
+const isBusId = (id) => String(id).startsWith('bus_')
+function routesOf(e) {
+  const p = e.path
+  if (!p) return []
+  const iso = p.isolated_lines ?? []
+  const lines = p.lines ?? []
+  if (e.kind === 'node_fault') return iso.map(([a, b]) => ({ name: a, from: b, to: null }))
+  const uplink = iso.find(([a, b]) => isBusId(a) && b === 'grid')
+  const out = []
+  for (const [a, b] of lines) {
+    if (isBusId(a) || a === 'grid' || !isBusId(b)) continue
+    const home = iso.find(([x]) => x === a)?.[1] ?? uplink?.[0]
+    if (home && home !== b) out.push({ name: a, from: home, to: b })
+  }
+  for (const [a, b] of iso) if (!isBusId(a) && a !== 'grid' && !out.some((o) => o.name === a)) out.push({ name: a, from: b, to: null })
+  return out
+}
+
+function incidentTitle(e) {
+  if (e.kind === 'node_fault') return `${nodeLabel(e.fixture)} is faulty`
+  if (e.kind === 'line_fault') return `Line ${lineName(e.fixture)} is faulty`
+  const b = e.impact?.before?.[e.fixture]
+  return `${nodeLabel(e.fixture)} is overloaded${b ? ` (${kw(b.load_kw)} of ${kw(b.capacity_kw)})` : ''}`
+}
+
+function IncidentCard({ e }) {
+  const routes = routesOf(e)
+  const open = e.incident !== 'repaired'
+  const unserved = e.impact?.unserved_kw
+  return (
+    <div className={`rounded-xl border p-3 ${open ? 'border-red-200 bg-red-50/40' : 'border-slate-200'}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Pill tone={open ? 'bad' : 'ok'}>{open ? (e.incident === 'repairing' ? 'Repairing' : 'Active') : 'Repaired'}</Pill>
+        <span className="text-sm font-semibold text-slate-900">{incidentTitle(e)}</span>
+        <span className="ml-auto text-xs text-slate-500">{clock(e.time)}</span>
+      </div>
+      <div className="mt-2 space-y-1.5">
+        {routes.length === 0 && <p className="text-xs text-slate-600">{e.decision ?? 'Working on it…'}</p>}
+        {routes.map((r) => (
+          <div key={r.name} className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="rounded-md bg-white px-2 py-0.5 font-medium shadow-sm ring-1 ring-slate-200">{nodeLabel(r.name)}</span>
+            <span className="text-slate-500">{nodeLabel(r.from)}</span>
+            <span className="text-slate-400">→</span>
+            {r.to ? <span className="rounded-md bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-800">rerouted to {nodeLabel(r.to)}</span>
+              : <span className="rounded-md bg-slate-200 px-2 py-0.5 font-semibold text-slate-700">disconnected (isolated)</span>}
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-x-4 text-xs text-slate-500">
+        {unserved > 0.5 && <span>{kw(unserved)} not served</span>}
+        {open ? <RecoveryText e={e} /> : <span className="text-emerald-700">back to normal after {fmtT((e.outage_ms ?? 0) / 1000)}</span>}
+      </div>
+    </div>
+  )
+}
+
+function Summary({ events }) {
+  const list = events.filter((e) => e.kind).slice().reverse()
+  const open = list.filter((e) => e.incident !== 'repaired')
+  const recent = list.filter((e) => e.incident === 'repaired').slice(0, 3)
+  return (
+    <Card title="Faults and rerouting" subtitle={open.length ? `${open.length} active problem(s)` : 'Everything is normal'}>
+      {list.length === 0 ? <EmptyState icon="check">No faulty node or line, and no overloaded bus.</EmptyState> : (
+        <div className="space-y-2">
+          {open.map((e) => <IncidentCard key={e.id} e={e} />)}
+          {open.length === 0 && <p className="text-sm text-emerald-700">No active problem. Latest repaired incidents:</p>}
+          {recent.map((e) => <IncidentCard key={e.id} e={e} />)}
+        </div>
+      )}
+    </Card>
+  )
+}
+
 function LiveView({ onConnected }) {
   const { nodes, healingEvents, connected } = useDigitalTwinSocket()
   useEffect(() => onConnected(connected), [connected, onConnected])
@@ -334,14 +408,22 @@ function LiveView({ onConnected }) {
   const cur = events.find((e) => e.id === sel) ?? events[events.length - 1]
   const { nodes: gn, edges: ge } = useMemo(() => liveGraph(nodes, cur?.raw), [nodes, cur])
   return (
-    <Body
-      events={events} sel={cur?.id} onSelect={setSel} live
-      top={<Incidents nodes={nodes} events={healingEvents} />}
-      insights={<Insights events={events} />}
-      canvas={<Canvas nodes={gn} edges={ge} label="Live 9-node twin" />}
-      empty="No self-healing event yet. Waiting for a replayed Kelmarsh turbine to fault, or a bus to overload."
-      note="Live from the Digital Twin (/ws/updates). Faint dashed lines are open tie switches (every source can be tied to every bus; only the closed ones are drawn solid); red dashed = opened (isolating) switches or the faulted line; green = the new path."
-    />
+    <div className="space-y-5">
+      <Summary events={healingEvents} />
+      <Card title="Bus loads" subtitle="Load against limit for each bus.">
+        <BusMeters nodes={nodes} />
+      </Card>
+      <Card title="Grid map" subtitle="Red = faulty node or line, grey = isolated, green = new path, dashed grey = unused tie switch.">
+        <Canvas nodes={gn} edges={ge} label="Live 9-node twin" />
+        <div className="mt-3"><Legend /></div>
+      </Card>
+      <details className="rounded-2xl border border-slate-200 bg-white p-4">
+        <summary className="cursor-pointer text-sm font-medium text-slate-700">Technical details (switch steps, timings, event log)</summary>
+        <div className="mt-4">
+          <Body events={events} sel={cur?.id} onSelect={setSel} live insights={<Insights events={events} />} empty="No events yet." />
+        </div>
+      </details>
+    </div>
   )
 }
 
@@ -522,15 +604,15 @@ function Body({ events, sel, onSelect, canvas, empty, note, controls, live, top,
   return (
     <div className="space-y-5">
       {top}
-      <div className="grid gap-3 sm:grid-cols-3">
+      {canvas && <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Total events" value={String(events.length)} hint={`${events.filter((e) => e.status === 'restored').length} restored`} />
         <StatCard label="Avg detection time" value={fmtT(avg(det)).split(' ')[0]} unit={fmtT(avg(det)).split(' ')[1] ?? ''} hint="fault → detected" />
         <StatCard label="Avg restoration time" value={fmtT(avg(res)).split(' ')[0]} unit={fmtT(avg(res)).split(' ')[1] ?? ''} hint="fault → restored" />
-      </div>
-      <Card title="Topology" subtitle={note} action={controls}>
+      </div>}
+      {canvas && <Card title="Topology" subtitle={note} action={controls}>
         {canvas}
         <div className="mt-3"><Legend /></div>
-      </Card>
+      </Card>}
       {(() => {
         const ev = events.find((e) => e.id === sel)
         if (!ev) return null

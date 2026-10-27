@@ -615,3 +615,6 @@ the simulated switch times. The simulate / repair HTTP routes were REMOVED (2026
 Frontend: `SelfHealingTab.jsx` live view - bus load meters + open incidents (no simulator), graph with open ties / opened switches / curtailed badges, step list, "Why, when and how long" card (phase bar with live timer) and
 "Healing insights".
 Extra buses (live twin only): `bus_c`, `bus_d` (3000 kW, no sources) - every source can tie to them; the relief / re-feed target is the bus with the most headroom (`_alt`). Real node faults also carry `recovery {expected_s, ends_at, basis}` (SCADA Stop window in replay time, else median of earlier repairs) and a cause in `why`.
+
+### Self-Healing live view layout (2026-10-27)
+`SelfHealingTab.jsx` `LiveView`: `Summary` (per-incident `IncidentCard`, moves from `routesOf(event.path)`: isolated feeder + closed tie = "rerouted", isolated only = "disconnected"), `BusMeters`, the graph, then a collapsed `<details>` holding the old `Body` (steps, phase bar, insights, event table). Dashboard live buffers: module-level `store` in `DashboardTab.jsx`, reset by `resetLiveBuffers()` on login / logout.

@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { resetLiveBuffers } from '../tabs/DashboardTab'
 import { AUTH_EXPIRED_EVENT, apiFetch, apiJson } from './api'
 
 const AuthContext = createContext(null)
@@ -37,6 +38,7 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const data = await apiJson('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
+    resetLiveBuffers()
     setUser(data.user)
     setStatus('authenticated')
     return data.user
@@ -46,6 +48,7 @@ export function AuthProvider({ children }) {
     try {
       await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' })
     } finally {
+      resetLiveBuffers()
       setUser(null)
       setStatus('anonymous')
     }

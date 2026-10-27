@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useDigitalTwinSocket } from '../hooks/useDigitalTwinSocket'
 import { useReportConnection } from '../ui/AppShell'
@@ -47,12 +47,23 @@ function readingRows(node) {
   return rows
 }
 
+// Buffers live at module level so they survive switching tabs; they are
+// cleared only on login / logout (resetLiveBuffers, called by AuthProvider).
+const store = { series: [], stream: [], seen: {}, lastPointAt: 0, seq: 0, listeners: new Set() }
+
+export function resetLiveBuffers() {
+  Object.assign(store, { series: [], stream: [], seen: {}, lastPointAt: 0, seq: 0 })
+  store.listeners.forEach((l) => l())
+}
+
 function useLiveBuffers(nodes) {
-  const [series, setSeries] = useState([])
-  const [stream, setStream] = useState([])
-  const seen = useRef({})
-  const lastPointAt = useRef(0)
-  const seq = useRef(0)
+  const [, force] = useState(0)
+
+  useEffect(() => {
+    const l = () => force((n) => n + 1)
+    store.listeners.add(l)
+    return () => store.listeners.delete(l)
+  }, [])
 
   useEffect(() => {
     const list = Object.values(nodes)
@@ -61,10 +72,10 @@ function useLiveBuffers(nodes) {
     for (const n of list) {
       const ts = n.latest_reading?.timestamp
       if (!ts || !isSource(n)) continue
-      if (seen.current[n.node_id] !== ts) {
+      if (store.seen[n.node_id] !== ts) {
         // The first snapshot seeds the "seen" map without flooding the panel.
-        if (seen.current[n.node_id] !== undefined) fresh.push(n)
-        seen.current[n.node_id] = ts
+        if (store.seen[n.node_id] !== undefined) fresh.push(n)
+        store.seen[n.node_id] = ts
       }
     }
     if (fresh.length) {
@@ -72,25 +83,24 @@ function useLiveBuffers(nodes) {
       const rows = fresh.flatMap((n) =>
         readingRows(n).map((row) => ({
           ...row,
-          id: ++seq.current,
+          id: ++store.seq,
           node: n.node_id,
           type: n.type,
           replayed: n.source_type === 'historical',
           at: now.toLocaleTimeString(),
         })),
       )
-      setStream((prev) => [...rows.reverse(), ...prev].slice(0, MAX_STREAM))
+      store.stream = [...rows.reverse(), ...store.stream].slice(0, MAX_STREAM)
     }
     const t = Date.now()
-    if (t - lastPointAt.current >= 1000) {
-      lastPointAt.current = t
-      setSeries((prev) =>
-        [...prev, { time: new Date(t).toLocaleTimeString(), ...snapshot(list) }].slice(-MAX_POINTS),
-      )
+    if (t - store.lastPointAt >= 1000) {
+      store.lastPointAt = t
+      store.series = [...store.series, { time: new Date(t).toLocaleTimeString(), ...snapshot(list) }].slice(-MAX_POINTS)
     }
+    force((n) => n + 1)
   }, [nodes])
 
-  return { series, stream }
+  return { series: store.series, stream: store.stream }
 }
 
 function EnergyFlowChart({ series }) {

@@ -1377,3 +1377,8 @@ Product code changed: only the new `app/ingestion/buffered_publisher.py`. Backen
 - **Tests:** `test_grid_protection.py` adapted (+ extra-bus test, route test dropped), `test_market.py` node-set test now includes bus_c / bus_d. Backend: 105 pass; only the pre-existing
   `test_every_non_public_route_requires_auth` (stream routes missing from its pin list) still fails. Frontend builds, oxlint clean. NOT viewed in a browser.
 
+
+## Dashboard buffers + simpler Self-Healing tab (2026-10-27)
+- Dashboard "Energy flow" series and "Live data stream" now live in a module-level store in `frontend/src/tabs/DashboardTab.jsx`, so leaving and returning to the tab no longer restarts them. They are cleared only by `resetLiveBuffers()`, called from `AuthProvider` on login and logout (a server restart reloads the page, which also clears them).
+- Self-Healing tab (live view) rewritten for readability: "Faults and rerouting" cards (what is faulty, which source moved from which bus to which, or "disconnected (isolated)", recovery countdown), bus load meters, the grid map, and everything else (switch steps, timings, insights, event table) folded into a "Technical details" section. `routesOf()` derives the moves from the event's `path`.
+- Not done / unverified: not viewed in a browser; no login bug was reproduced or changed (none was described); overload still needs a load/limit change to trigger because nothing varies on its own.
