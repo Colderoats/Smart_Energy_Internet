@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Background, Controls, Handle, Position, ReactFlow, useReactFlow } from '@xyflow/react'
+import { Background, Controls, Handle, Position, ReactFlow, useNodesState, useReactFlow } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { apiFetch } from '../auth/api'
 import { useDigitalTwinSocket } from '../hooks/useDigitalTwinSocket'
@@ -75,10 +75,23 @@ function Refit({ count }) {
   return null
 }
 
-function Canvas({ nodes, edges, label }) {
+// The nodes are rebuilt on every socket message. Handing React Flow brand-new node objects each time drops their measured
+// size, and unmeasured nodes are hidden until re-measured (the map flickered / vanished). So keep the nodes in React Flow's own
+// state and carry the measured size over when the props change.
+function Canvas({ nodes: next, edges, label }) {
+  const [nodes, setNodes, onNodesChange] = useNodesState(next)
+  useEffect(() => {
+    setNodes((cur) => {
+      const old = new Map(cur.map((n) => [n.id, n]))
+      return next.map((n) => {
+        const o = old.get(n.id)
+        return o ? { ...n, measured: o.measured, width: o.width, height: o.height } : n
+      })
+    })
+  }, [next, setNodes])
   return (
     <div className="h-[520px] rounded-xl border border-slate-200 bg-slate-50" role="img" aria-label={label}>
-      <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.12 }} nodesConnectable={false} nodesDraggable={false} proOptions={{ hideAttribution: true }} minZoom={0.2}>
+      <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.12 }} nodesConnectable={false} nodesDraggable={false} proOptions={{ hideAttribution: true }} minZoom={0.2}>
         <Background color="#e2e8f0" gap={24} />
         <Controls showInteractive={false} />
         <Refit count={nodes.length} />
@@ -244,7 +257,6 @@ function Incidents({ nodes, events }) {
                 <Pill tone="bad">{KIND_LABEL[e.kind] ?? e.problem}</Pill>
                 <span className="font-medium text-slate-800">{lineName(e.fixture)}</span>
                 <span className="text-slate-500">{e.incident === 'repairing' ? 'repairing…' : e.status === 'restored' ? 'isolated / re-routed, waiting for the fault to clear' : e.status}</span>
-                <RecoveryText e={e} className="ml-auto" />
               </div>
             ))}
           </div>
@@ -252,15 +264,6 @@ function Incidents({ nodes, events }) {
       </div>
     </Card>
   )
-}
-
-// Expected recovery of a still-open incident: countdown to `recovery.ends_at` (server estimate), or the reason there is none.
-function RecoveryText({ e, className = '' }) {
-  const now = useNow(1000)
-  if (e.incident === 'repaired') return <span className={`text-emerald-700 ${className}`}>recovered in {fmtT((e.outage_ms ?? 0) / 1000)}</span>
-  if (!e.recovery) return <span className={`text-slate-400 ${className}`}>recovery time unknown</span>
-  const left = (Date.parse(e.recovery.ends_at) - now) / 1000
-  return <span className={`tabular-nums text-slate-700 ${className}`}>{left > 0 ? `recovers in ~${fmtT(left)}` : 'recovery due, waiting for the fault to clear'}</span>
 }
 
 function PhaseBar({ ev, now }) {
@@ -308,8 +311,6 @@ function InsightCard({ ev, now }) {
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[70px_1fr]">
           <dt className="text-slate-500">Why</dt><dd>{e.why}</dd>
           {e.decision && <><dt className="text-slate-500">Action</dt><dd>{e.decision}</dd></>}
-          <dt className="text-slate-500">Recovery</dt>
-          <dd><RecoveryText e={e} />{e.recovery && e.incident !== 'repaired' && <span className="text-xs text-slate-500"> · expected total {fmtT(e.recovery.expected_s)} from the fault · basis: {e.recovery.basis}</span>}</dd>
           <dt className="text-slate-500">When</dt>
           <dd className="tabular-nums">fault at <b>{clock(e.time)}</b>{restoredAt && <> · restored at <b>{clock(restoredAt)}</b></>}{e.repaired_at && <> · repaired at <b>{clock(e.repaired_at)}</b></>}</dd>
         </dl>
@@ -401,7 +402,6 @@ function IncidentCard({ e }) {
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 text-xs text-slate-500">
         {unserved > 0.5 && <span>{kw(unserved)} not served</span>}
-        {open ? <RecoveryText e={e} /> : <span className="text-emerald-700">back to normal after {fmtT((e.outage_ms ?? 0) / 1000)}</span>}
       </div>
     </div>
   )
