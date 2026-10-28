@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import UsageInsights from '../components/UsageInsights'
 import { useDigitalTwinSocket } from '../hooks/useDigitalTwinSocket'
 import { useReportConnection } from '../ui/AppShell'
 import { Card, EmptyState, Pill, StatCard } from '../ui/components'
@@ -229,6 +230,8 @@ export default function DashboardTab() {
       </div>
 
       <LiveStream stream={stream} />
+
+      <UsageInsights />
     </div>
   )
 }

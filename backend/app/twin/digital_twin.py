@@ -36,6 +36,9 @@ BUS_B = "bus_b"
 BUS_C = "bus_c"
 BUS_D = "bus_d"
 GRID = "grid"
+# Second main grid of the LIVE singleton only (extra_nodes=True): a second utility connection tied to the spare buses
+# bus_c / bus_d. Structural like GRID (no readings, no routing); self-healing and the AI never see it.
+GRID_2 = "grid_2"
 
 # rated_capacity_kw: wind_01 matches WIND_RATED_POWER_KW in live_source.py;
 # the Kelmarsh turbines are real Senvion MM92s (2.05 MW rated) per the
@@ -113,6 +116,10 @@ class DigitalTwin:
         self._graph.add_node(GRID, type="grid")
         for bus_id in self._bus_caps:
             self._graph.add_edge(bus_id, GRID)
+        if extra_nodes:
+            self._graph.add_node(GRID_2, type="grid")
+            for bus_id in EXTRA_BUS_CAPACITY_KW:
+                self._graph.add_edge(bus_id, GRID_2)
 
         for node in SOURCE_NODES + ([SOLAR_NODE, SOLAR_HARDWARE_NODE] if with_solar else []) + (EXTRA_SOURCE_NODES if extra_nodes else []):
             other_bus = BUS_B if node["primary_via"] == BUS_A else BUS_A

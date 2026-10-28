@@ -56,6 +56,7 @@ export function nodeLabel(id) {
       bus_c: 'Bus C (spare)',
       bus_d: 'Bus D (spare)',
       grid: 'Main grid',
+      grid_2: 'Main grid 2',
       federated_server: 'FL server',
       community_bus: 'Community bus',
       prosumer_home_01: 'House',

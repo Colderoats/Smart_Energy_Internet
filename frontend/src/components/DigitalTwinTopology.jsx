@@ -33,6 +33,7 @@ const POSITIONS = {
   bus_b: { x: 330, y: 350 },
   bus_d: { x: 330, y: 490 },
   grid: { x: 630, y: 260 },
+  grid_2: { x: 630, y: 420 },
   // Prosumer market: community bus column (4 prosumer cards -> community_bus -> grid).
   // Solar / battery sources sit below the wind and hydro cards (they used to fall back to 0,0 and stack on wind_01).
   solar_01: { x: 0, y: 620 },
@@ -117,16 +118,15 @@ function DigitalTwinTopology({ nodes, onSelectNode, selectedNodeId, trades, orde
   // bus_a -> grid / bus_b -> grid are structural and never reconfigured by
   // self-healing, so they're safe to keep constant.
   const busEdges = useMemo(
-    () =>
-      Object.values(nodes)
-        .filter((node) => node.type === 'bus')
-        .map((node) => ({
-          id: `${node.node_id}-grid`,
-          source: node.node_id,
-          target: 'grid',
-          kw: node.current_load_kw ?? 0,
-          color: SOURCE_COLORS.grid,
-        })),
+    () => {
+      const buses = Object.values(nodes).filter((node) => node.type === 'bus')
+      const edge = (node, target) => ({ id: `${node.node_id}-${target}`, source: node.node_id, target, kw: node.current_load_kw ?? 0, color: SOURCE_COLORS.grid })
+      return [
+        ...buses.map((node) => edge(node, 'grid')),
+        // Second main grid: tied to the spare buses only.
+        ...(nodes.grid_2 ? buses.filter((node) => node.node_id === 'bus_c' || node.node_id === 'bus_d').map((node) => edge(node, 'grid_2')) : []),
+      ]
+    },
     [nodes],
   )
 
